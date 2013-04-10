@@ -1,0 +1,184 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass book
+\use_default_options false
+\begin_modules
+eqs-within-sections
+figs-within-sections
+\end_modules
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_amsmath 1
+\use_esint 0
+\use_mhchem 0
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Standard
+Groundwater modeling with ModAEM
+\begin_inset CommandInset label
+LatexCommand label
+name "cha:modeling-with-modaem"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+How do I build an analytic element model with ModAEM? How does ModAEM work?
+ 
+\end_layout
+
+\begin_layout Standard
+Using ModAEM is much like using any other analytic element code.
+ Somehow, the modeler constructs a script file that controls the creation
+ of the model, first defining the aquifer properties and their distribution,
+ then adds elements to the aquifer that simulate various features in the
+ flow system, such as rivers and wells.
+ The script file also directs the solution of the model problem and uses
+ various analytical tools to extract results as grids, trace streamlines,
+ and write reports.
+ Onc
+\end_layout
+
+\begin_layout Section
+About the AEM
+\end_layout
+
+\begin_layout Standard
+This section introduces some important principles of analytic element models,
+ with the purpose of introducing the new ModAEM user to analytic elements.
+ Those who are interested in the 
+\begin_inset Quotes eld
+\end_inset
+
+gory details
+\begin_inset Quotes erd
+\end_inset
+
+ of analytic elements should see Strack, 1989.
+ For a more complete discussion of modeling issues with analytic elements,
+ please see Haitjema, 1995.
+\end_layout
+
+\begin_layout Subsubsection
+What is an analytic element?
+\end_layout
+
+\begin_layout Standard
+The analytic element method is based on the superposition of analytic functions.
+ An 
+\emph on
+analytic element
+\emph default
+ is a mathematical function that may be superimposed with other analytic
+ elements to create a complete solution for a groundwater problem.
+ In practice, two--dimensional, steady--state analytic elements come in
+ two varieties,
+\end_layout
+
+\begin_layout Description
+Elements
+\begin_inset space ~
+\end_inset
+
+that
+\begin_inset space ~
+\end_inset
+
+satisfy
+\begin_inset space ~
+\end_inset
+
+Laplace's
+\begin_inset space ~
+\end_inset
+
+Equation 
+\end_layout
+
+\begin_layout Subsection
+Discharge potentials 
+\end_layout
+
+\begin_layout Subsection
+Example solutions
+\end_layout
+
+\begin_layout Subsection
+Analytic element functions and superposition
+\end_layout
+
+\begin_layout Subsection
+Boundary conditions for complex models
+\end_layout
+
+\begin_layout Section
+Using the AEM
+\end_layout
+
+\begin_layout Subsection
+Keep it simple
+\end_layout
+
+\begin_layout Subsection
+Stepwise modeling approach
+\end_layout
+
+\begin_layout Subsection
+Gotchas and troubleshooting
+\end_layout
+
+\end_body
+\end_document

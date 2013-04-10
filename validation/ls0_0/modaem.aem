@@ -1,0 +1,44 @@
+# Test a single aquifer with uniform flow
+ aem
+   aqu 1 0 0.0 10.0 100.0 0.25 100.0
+     ref (0.0,0.0) 100.0 (1.0,0.0)
+   end
+   ls0 1
+     str 5 1
+     (100.0,-25.0) 2.0
+     (100.0,25.0) 2.0
+   end
+ end
+# Solve it (one iteration)
+ sol 1
+# Make a grid of heads and streamfunctions for SURFER
+# gri
+#   opt surfer
+#   win (-200.0,-200.0) (200.0,200.0)
+#   dim 50
+#   hea modaem
+#   psi modaem
+# end
+# Test the edge detection code
+hea (100,50)
+hea (100,-25)
+hea (100,0)
+hea (100,25)
+hea (100,100)
+# Dump my data structures to the .out file
+ rpt
+# Trace
+ tr0
+   fil modaem
+   win (-500,-500) (500,500)
+   poi (100,100) 10 0 0 1 
+   poi (-100,-30) 10 0 0 1 
+ end
+## Inquiry
+ inq
+   fil modaem.inq
+   aqu
+   ls0
+ end
+# That's all, folks!
+ eod

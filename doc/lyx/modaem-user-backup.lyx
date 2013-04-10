@@ -1,0 +1,5962 @@
+#LyX 1.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 221
+\textclass book
+\language english
+\inputencoding auto
+\fontscheme palatino
+\graphics dvips
+\float_placement page
+\paperfontsize 11
+\spacing single 
+\papersize Default
+\paperpackage a4
+\use_geometry 1
+\use_amsmath 0
+\use_natbib 0
+\use_numerical_citations 0
+\paperorientation portrait
+\leftmargin 1in
+\topmargin 1in
+\rightmargin 1in
+\bottommargin 1in
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\quotes_times 2
+\papercolumns 1
+\papersides 1
+\paperpagestyle headings
+
+\layout Title
+
+The ModAEM Book
+\newline 
+Version 1.4.0
+\layout Author
+
+Vic Kelson, Ph.D.
+ CGWP 
+\newline 
+WHPA Inc.
+\newline 
+320 West 8th St.
+\newline 
+Bloomington, IN 47404
+\layout Standard
+
+
+\begin_inset LatexCommand \tableofcontents{}
+
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset FloatList figure
+
+\end_inset 
+
+
+\layout Chapter
+
+Introduction
+\begin_inset LatexCommand \label{cha:Introduction}
+
+\end_inset 
+
+ 
+\layout Standard
+
+Where do I start? This book describes the results of nearly ten years of
+ effort (much of it the 
+\begin_inset Quotes eld
+\end_inset 
+
+on again, off again
+\begin_inset Quotes erd
+\end_inset 
+
+ variety).
+ Over the years, ModAEM has been through three major revisions, several
+ research branches, and has been used for countless wellhead protection
+ models, even though most ModAEM users never knew they were using it! The
+ purpose of this chapter is to introduce the reader to the history and philosoph
+y behind the ModAEM project and to introduce the manual.
+ 
+\layout Section
+
+History
+\layout Standard
+
+My memory of detailed dates in ModAEM history is lacking, since I've been
+ through several major revisions in the last ten years as well, but this
+ is an approximate chronology:
+\layout Subsection*
+
+Standing on the shoulders of giants, and the precursors to ModAEM
+\layout Standard
+
+Like every graduate student, I began this project thinking that I could
+ quickly write a code that did what my major professor's code did.
+ I learned about analytic elements from Dr.
+ Henk Haitjema at Indiana University.
+ Henk was a student of Otto Strack, and wrote the first AE code, SYLENS.
+ Otto later developed the more comprehensive codes SLAEM, SLAEMS, MLAEM,
+ MVAEM and more codes of which I am unaware.
+ SLAEM and its children have always been proprietary codes.
+ Henk needed a research and teaching code, and he developed the code GFLOW
+ in the late 1980's and early 1990's.
+ GFLOW is still around as a commercial code, and recently, Henk began to
+ make source code available for it.
+\layout Standard
+
+I first started hacking around with analytic element codes in 1992--1993,
+ when I began working on my Ph.D.
+ My first effort was an 
+\begin_inset Quotes eld
+\end_inset 
+
+integrated flux
+\begin_inset Quotes erd
+\end_inset 
+
+ boundary condition that persists into ModAEM (and GFLOW) today.
+ It was implemented in SLWL, which is probably still the 
+\emph on 
+lingua franca
+\emph default 
+ for newbie analytic element programmers.
+ I spent more of my time working on preprocessing tools for analytic elements
+ and the use of analytic element models as screening tools for numerical
+ models, and also on FRACFLOW, a model of flow in discrete fracture networks.
+\layout Standard
+
+In 1994, I began work on what would become ModAEM.
+ As part of a research project funded by U.S.
+ EPA, I was offered the opportunity to develop and test an analytic element
+ code that would run on massively--parallel computers.
+ I began with a cobbled--up version of SLWL, but the old--style FORTRAN
+ 77 nature of the code made parallelization on message--passing hardware
+ difficult in those days (as it most likely would be now).
+ After doing benchmarks with my mangled SLWL, it was clear that a new design
+ was needed
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+dots
+\end_inset 
+
+
+\layout Subsection*
+
+Early ModAEM
+\layout Standard
+
+The essential design of ModAEM was conceived during a series of long tedious
+ discussions between Mark Bakker, Steve Kraemer, and myself during a High
+ Performance Computing Consortium workshop at EPA's Research Triangle Park
+ facility in 1995 (interestingly, as it turns out, I was first introduced
+ to a new preprocessor, GMS, at the same meeting).
+ I'm not sure that Steve and Mark remember the meeting or the design ideas,
+ but they basically remain intact:
+\layout Itemize
+
+Logical separation of the analytic element 
+\emph on 
+functions
+\emph default 
+ (dipoles/doublets, wells, etc.) from analytic element 
+\emph on 
+applications
+\emph default 
+ (wells, rivers, inhomogeneities)
+\layout Itemize
+
+Implementation of efficient functions for a few very flexible analytic element
+ functions (at that time, only wells, dipoles of complex strength, and ponds
+ were anticipated)
+\layout Itemize
+
+Make it all parallelizable with very little effort
+\layout Itemize
+
+Scrap FORTRAN 77 in favor of a more modern programming language
+\layout Standard
+
+I have been asked many times why ModAEM was written in Fortran-90 (and now
+ in Fortran-95), rather than in a 
+\begin_inset Quotes eld
+\end_inset 
+
+better
+\begin_inset Quotes erd
+\end_inset 
+
+ language like C++.
+ I struggled with the choice, but in the end I was advised by the folks
+ at CICA (Center for Innovative Computer Applications) that Fortran 90 and
+ High-Performance Fortran was a more flexible and workable alternative.
+ On numerous occasions, I've wished I had a fully object--oriented language
+ like C++, but I've never wished I'd had all the migration issues as C++
+ has evoloved for the past decade.
+ Fortran 90/95 was the smartest early choice I made.
+ ModAEM is still parallelizable, although no one I know has tried it on
+ SMP hardware yet.
+\layout Standard
+
+The earliest versions of ModAEM were experimental codes for testing the
+ parallel algorithms.
+ It wasn't a real modeling tool until
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+dots
+\end_inset 
+
+
+\layout Subsection*
+
+WhAEM for Windows
+\layout Standard
+
+Later in 1995, Henk Haitjema and I were hired by US EPA to develop a new
+ version of the WhAEM for DOS code that had been released in 1994.
+ The new WhAEM was to run under Windows 95 and its successors.
+ We needed a free solver engine that had available source code (GFLOW was
+ fully proprietary back then), so we decided that I should complete a simple
+ ModAEM for use in WhAEM.
+ This code eventually became ModAEM-1.0, and it was the computational heart
+ of WhAEM until it was replaced with a stripped--down GFLOW in 2002.
+\layout Standard
+
+ModAEM-1.0, or 
+\begin_inset Quotes eld
+\end_inset 
+
+EPA ModAEM
+\begin_inset Quotes erd
+\end_inset 
+
+ is a public--domain code that supports discharge--specified wells, discharge--s
+pecified and head--specified line sinks, no--flow boundaries, uniform flow,
+ and recharge ponds.
+ It also does streamline tracing and generates grids for contour lines.
+ To the best of my knowledge, EPA still has the source code on the CoSMOS
+ web site.
+\layout Standard
+
+In addition to its use in WhAEM, I used ModAEM-1.0 as a research code for
+ local 3-D models in my disseratation work.
+ Very little of that code exists now.
+\layout Subsection*
+
+The SFWMD years
+\layout Standard
+
+In 1998, I finished my Ph.D.
+ at Indiana and began working for the South Florida Water Management District
+ in West Palm Beach, FL.
+ I did some work with ModAEM, typically in the guise of WhAEM, and implemented
+ a few additional features, including resistance line sinks.
+ I also did experimental work on a regional transient flow model based on
+ ModAEM.
+ ModAEM was a useful research project, but there were few new applications.
+ 
+\layout Standard
+
+In 2000, my wife, infant son, and I returned to Bloomington, where I joined
+ WHPA Inc., a small consulting firm led my my best friend, Jack Wittman.
+\layout Subsection*
+
+ModAEM reborn -- the Idaho delineation project
+\layout Standard
+
+In late 2000, WHPA teamed with Barr Engineering on a challenging project:
+ the delineation of wellhead protection areas for over 450 wells in the
+ Treasure Valley, near Boise.
+ Two previous MODFLOW models, based on grid cells of a half--mile or more
+ in size, were available.
+ We needed a way to quickly delineate accurate capture zones for the wells
+ based on the MODFLOW flow fields.
+ I proposed that we rebuild ModAEM for the purpose, using the integrated--flux
+ boundary conditions to chop sub--domains out of the MODFLOW models, then
+ tracing particles in the new analytic element domains.
+ 
+\layout Standard
+
+This effort required some substantial enhancements to ModAEM: inhomogeneities
+ in transmissivity, rectangular area sinks, and bounded model domains.
+ In addition, I seized the opportunity to restructure the internals of ModAEM
+ to make it a more object--based design, including an 
+\begin_inset Quotes eld
+\end_inset 
+
+iterator
+\begin_inset Quotes erd
+\end_inset 
+
+ strategy that greatly improved the independence of the model components.
+\layout Standard
+
+The resulting code became ModAEM-1.2.
+ I planned to make a full release of ModAEM-1.2 when the manual was ready,
+ but time was limited, and it was not widely distributed.
+ For some internal applications, I added head--specified wells, general
+ polygonal area sinks and 3--D pathline tracing.
+ I began looking for other developers who would be interested in developing
+ ModAEM, and decided to release a version under the GNU General Public License,
+ as soon as I could.
+ 
+\layout Standard
+
+And by the way, we finished the job on time and within the budget!
+\layout Subsection*
+
+ModAEM in GMS?
+\layout Standard
+
+After the completion of the Idaho project, Jack and I presented the design
+ and philosphy behind ModAEM in a seminar at EPA's Athens Lab.
+ The positive feedback I received from the software engineers there was
+ encouraging.
+ Shortly thereafter, Norm Jones, the inventor of GMS, contacted me to inquire
+ about the potential for using ModAEM as an analytic element solver for
+ GMS.
+ Norm and I had numerous discussions, and a plan was developed for the work.
+ I set out to add some functions that would make the model sufficiently
+ generic to be useful in GMS: base and thickness inhomogeneities, improved
+ streamline tracing, improved bounded domains with general--head boundaries,
+ drains, and a number of GUI-related improvements were needed.
+\layout Standard
+
+Plus, a manual.
+ An early version of this manual was provided to Alan Lemon at BYU, and
+ he built the GMS front--end for ModAEM.
+ That work led to the release of ModAEM-1.4 in February, 2004.
+\layout Subsection*
+
+What's Next?
+\layout Standard
+
+After many years of work and several false starts, ModAEM is now a versatile
+ modeling tool with a growing community of users.
+ I am hopeful that a developer community will develop in the next few years,
+ and ModAEM will continue to grow in flexibility, performance, and modeling
+ power.
+ If you're interested in any aspect of ModAEM development, testing, validation,
+ documentation, or if you want to fund the effort somehow, please visit
+ the ModAEM Home Page at 
+\family typewriter 
+http://modaem.wittmanhydro.com
+\family default 
+.
+\layout Standard
+
+Like me, ModAEM now has two children.
+ Mark Bakker and I worked together on the design of the fully object--oriented
+ Python AE code Tim (now TimSL).
+ Nearly all of the solver logic and the internal organization is derived
+ from ModAEM's solver; however since Tim is a research code, the parallelism--im
+proving separation of functions from applications is omitted.
+ TimSL now has a sibling, TimML, Mark Bakker's Bessel--function based model.
+ 
+\layout Standard
+
+The Tim project provides a set of tools for analytic element education and
+ research.
+ ModAEM remains a stable, high--performance production code.
+ Both projects continue to cross--pollinate each other.
+ I expect that I will continue to develop and model with both codes for
+ a long time to come.
+ 
+\layout Section
+
+The Philosophy of ModAEM
+\layout Standard
+
+ModAEM has a set of governing principles.
+ These have been constant throughout the development of the code and I don't
+ anticipate changing them:
+\layout Description
+
+Keep\SpecialChar ~
+it\SpecialChar ~
+free This is embodied in the choice of the GNU General Public License
+ for ModAEM-1.4 and beyond.
+ Everyone is welcome to the source code, but if you enhance it and distribute
+ it, you must distribute the source code for the enhancements.
+ I have always hoped that ModAEM could become a powerful starting point
+ for other developers, and I hope to be taught by them!
+\layout Description
+
+Keep\SpecialChar ~
+it\SpecialChar ~
+generic That is, use as few mathematical functions as is necessary
+ to achieve the desired objectives.
+ To this day, ModAEM uses only relatively simple first--order and second--order
+ elements.
+ These are reliable, efficient, predictable, and sufficient for a wide variety
+ of practical applications.
+\layout Description
+
+Keep\SpecialChar ~
+it\SpecialChar ~
+parallel Make sure that the original design goal of a parallel analytic
+ element code remains.
+ The current code should be easily compiled with the --parallel switch with
+ compilers that support SMP hardware.
+ I wish I had one.
+\layout Description
+
+Keep\SpecialChar ~
+it\SpecialChar ~
+portable ModAEM does not use extensions to the Fortran 95 language.
+ It is clean and standard throughout.
+ It has been successfully compiled on numerous hardware and software platforms.
+\layout Description
+
+Assume\SpecialChar ~
+there's\SpecialChar ~
+a\SpecialChar ~
+preprocessor Nowadays, nobody wants to use a model that doesn't
+ have a nice preprocessor.
+ As a result, ModAEM simplifies the I/O model as much as possible.
+ Many difficult tasks are expected to be performed by the preprocessor,
+ for example, developing the topology of aquifer sub--domains.
+ This makes the code more robust, but harder to use 
+\begin_inset Quotes eld
+\end_inset 
+
+by hand
+\begin_inset Quotes erd
+\end_inset 
+
+.
+ I for one prefer using a good preprocessor.
+\layout Description
+
+Document\SpecialChar ~
+the\SpecialChar ~
+code ModAEM has always had detailed documentation built into
+ the source code.
+\layout Description
+
+Have\SpecialChar ~
+fun! For me, ModAEM has always been a pleasure and a great intellectual
+ challenge.
+ If it isn't fun, it isn't worth working on it!
+\layout Section
+
+Acknowledgements
+\layout Standard
+
+Steve Kraemer
+\layout Standard
+
+Mark Bakker
+\layout Standard
+
+Don Berry
+\layout Standard
+
+Henk Haitjema
+\layout Standard
+
+Jack
+\layout Standard
+
+Otto
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
+\layout Section
+
+How to read this manual
+\layout Standard
+
+The following conventions are used for formatting in this manual:
+\layout Description
+
+
+\family typewriter 
+\series medium 
+typewriter
+\family default 
+\series default 
+ text is used for sample input files
+\layout Description
+
+
+\family sans 
+\series medium 
+sans-serif
+\family default 
+\series default 
+ text is used for file names and other related items
+\layout Description
+
+
+\family sans 
+bold\SpecialChar ~
+sans-seri
+\family default 
+f text is used for ModAEM script file directives
+\layout Description
+
+bracketed\SpecialChar ~
+expressions such as 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ contain the dimensions for input data.
+ Some examples are 
+\begin_inset Formula $[-]$
+\end_inset 
+
+ for dimensionless quantities, 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ for length, 
+\begin_inset Formula $[L/T]$
+\end_inset 
+
+ for length per time (e.g.
+ a hydraulic conductivity of 
+\begin_inset Formula $100\, ft/d$
+\end_inset 
+
+).
+\layout Section
+
+Conventions for numeric input
+\begin_inset LatexCommand \label{sec:numeric-values}
+
+\end_inset 
+
+
+\layout Standard
+
+ModAEM makes use of 
+\begin_inset Quotes eld
+\end_inset 
+
+free--format
+\begin_inset Quotes erd
+\end_inset 
+
+ input for all numeric entries.
+ Since the computational heart of ModAEM is based on complex numbers, most
+ coordinate information is entered as complex quantities.
+ In this manual, the type of the input value is provided in curly braces,
+ e.g.
+ 
+\begin_inset Formula $\{ int\}$
+\end_inset 
+
+ for an integer value.
+ When directed to provide a numeric value, use the following rules:
+\layout Description
+
+integer\SpecialChar ~
+values\SpecialChar ~
+
+\begin_inset Formula $\{ int\}$
+\end_inset 
+
+ Positive or negative integer values are allowed.
+ ModAEM uses the Fortran 90 
+\family typewriter 
+SELECTED_INT_KIND
+\family default 
+ function to specify Chapter 1 About the Book the size of integer values
+ (the default is 4 bytes per value).
+ On 64-bit hardware (or on 32-bit hardware with compilers that support 
+\begin_inset Quotes eld
+\end_inset 
+
+quad--precision
+\begin_inset Quotes erd
+\end_inset 
+
+ values, you may overload the parameter 
+\family typewriter 
+ModAEM_Integer
+\family default 
+ in 
+\family sans 
+u_constants.f95
+\family default 
+ and rebuild ModAEM.
+ Note that this has not been tested; please report success or failure to
+ Vic Kelson.
+\newline 
+For integers, do not provide a decimal point.
+ For negative numbers, the 
+\begin_inset Formula $-$
+\end_inset 
+
+sign 
+\emph on 
+must
+\emph default 
+ be immediately before the first digit of the value.
+\begin_deeper 
+\layout Description
+
+right: 
+\family typewriter 
+3\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+-13241
+\layout Description
+
+wrong: 
+\family typewriter 
+-1.234\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+7E+07
+\end_deeper 
+\layout Description
+
+logical\SpecialChar ~
+values\SpecialChar ~
+
+\begin_inset Formula $\{ logical\}$
+\end_inset 
+
+ Values that may be either true or false.
+ ModAEM uses the Fortran 90 
+\family typewriter 
+SELECTED_LOGICAL_KIND
+\family default 
+ function to specify the size of logical values (the default is 4 bytes
+ per value).
+ If desired, you may overload the parameter 
+\family typewriter 
+ModAEM_Logical
+\family default 
+ in 
+\family sans 
+u_constants.f95
+\family default 
+ and rebuild ModAEM.
+\newline 
+For logicals, the only legal values are 
+\family typewriter 
+T
+\family default 
+ (true) or 
+\family typewriter 
+F
+\family default 
+ (false).
+ The value may be entered in either uppercase or lowercase.
+\begin_deeper 
+\layout Description
+
+right: 
+\family typewriter 
+T\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+F
+\layout Description
+
+wrong: 
+\family typewriter 
+yes\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+0
+\end_deeper 
+\layout Description
+
+real\SpecialChar ~
+values\SpecialChar ~
+
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+ Positive or negative floating--point values are allowed.
+ ModAEM uses the Fortran 90 
+\family typewriter 
+SELECTED_REAL_KIND
+\family default 
+ technique to specify the size of floating--point values (the default is
+ 8-bytes per value).
+ On 64-bit hardware (or on 32-bit hardware with compilers that support 
+\begin_inset Quotes eld
+\end_inset 
+
+quad--precision
+\begin_inset Quotes erd
+\end_inset 
+
+ values, you may overload the parameter 
+\family typewriter 
+ModAEM_Real
+\family default 
+ in 
+\family sans 
+u_constants.f95
+\family default 
+ and rebuild ModAEM
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Although in principle it would be possible to specify single precision,
+ it is discouraged.
+ On current 32-bit hardware, there is no speed benefit from the use of single
+ precision floating--point arithmetic.
+\end_inset 
+
+.
+ Note that this has not been tested; please report success or failure to
+ Vic Kelson.
+\newline 
+Floating--point numbers may or may not contain a decimal point.
+ If exponential notation is desired, use the characters 
+\family typewriter 
+
+\begin_inset Formula $E\pm XX$
+\end_inset 
+
+
+\family default 
+ as a suffix, where 
+\family typewriter 
+XX
+\family default 
+ is the exponent.
+ No space can lie between the 
+\begin_inset Formula $-$
+\end_inset 
+
+ sign and the first digit of precision or between the mantissa and exponent.
+\begin_deeper 
+\layout Description
+
+right: 
+\family typewriter 
+1.2\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+-3.1415926\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+6.02e+23
+\layout Description
+
+wrong: 
+\family typewriter 
+-\SpecialChar ~
+1.2\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+7.01\SpecialChar ~
+e+99
+\end_deeper 
+\layout Description
+
+complex\SpecialChar ~
+values\SpecialChar ~
+
+\begin_inset Formula $\{ complex\}$
+\end_inset 
+
+ Pairs of  floating--point values, surrounded by parentheses and separated
+ by a comma are allowed, where the first value is the real part and the
+ sceond value is the imaginary part.
+ ModAEM uses the Fortran 90 
+\family typewriter 
+SELECTED_REAL_KIND
+\family default 
+ technique to specify the size of floating--point values, including complex
+ values (the default is 8-bytes per value).
+ On 64-bit hardware (or on 32-bit hardware with compilers that support 
+\begin_inset Quotes eld
+\end_inset 
+
+quad--precision
+\begin_inset Quotes erd
+\end_inset 
+
+ values, you may overload the parameter 
+\family typewriter 
+ModAEM_Real
+\family default 
+ in 
+\family sans 
+u_constants.f95
+\family default 
+ and rebuild ModAEM.
+ Note that this has not been tested; please report success or failure to
+ Vic Kelson.
+\newline 
+Complex numbers may or may not contain a decimal point.
+ If exponential notation is desired, use the characters 
+\family typewriter 
+
+\begin_inset Formula $E\pm XX$
+\end_inset 
+
+
+\family default 
+ as a suffix, where 
+\begin_inset Formula XX
+
+\end_inset 
+
+ is the exponent.
+ No space can lie between the 
+\begin_inset Formula $-$
+\end_inset 
+
+ sign and the first digit of precision or between the mantissa and exponent.
+\begin_deeper 
+\layout Description
+
+right: 
+\family typewriter 
+(1.2,3.45)\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+(-3.1415926,0)
+\layout Description
+
+wrong: 
+\family typewriter 
+3+4i\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+\SpecialChar ~
+(3.54)
+\end_deeper 
+\layout Section
+
+The right--hand rule
+\begin_inset LatexCommand \label{sec:The-right--hand-rule}
+
+\end_inset 
+
+
+\layout Standard
+
+For some elements, e.g the boundary segments defined by the 
+\family sans 
+bdy
+\family default 
+ directive in module AQU, the orientation of the points making up the element
+ is significant.
+ In all cases, ModAEM makes use of the 
+\begin_inset Quotes eld
+\end_inset 
+
+right--hand rule
+\begin_inset Quotes erd
+\end_inset 
+
+.
+ The element is oriented such that if the modeler were to stand at the first
+ vertex facing the second vertex, the boundary condition is specified on
+ the 
+\begin_inset Quotes eld
+\end_inset 
+
+left
+\begin_inset Quotes erd
+\end_inset 
+
+ side of the element (the index finger of the right hand, extended along
+ the segment, points 
+\begin_inset Quotes eld
+\end_inset 
+
+in
+\begin_inset Quotes erd
+\end_inset 
+
+).
+ For example, for a flux--specified bdy element, the flux is numerically
+ positive if water moves from the right to the left.
+ Similarly, a head--specified boundary condition is to be met just to the
+ left of the element.
+\layout Standard
+
+This convention holds elsewhere in ModAEM, e.g.
+ in module HB0 and for th0.4 Supported analytic elements 
+\layout Standard
+
+Aquifers of varying propertiese extraction of data using the FLO directive
+ (see section 
+\begin_inset LatexCommand \ref{cmd:flo}
+
+\end_inset 
+
+), and also in many places within the ModAEM source code.
+\layout Chapter
+
+Groundwater modeling with ModAEM
+\begin_inset LatexCommand \label{cha:modeling-with-modaem}
+
+\end_inset 
+
+
+\layout Standard
+
+How do I build an analytic element model with ModAEM? How does ModAEM work?
+ 
+\layout Standard
+
+Using ModAEM is much like using any other analytic element code.
+ Somehow, the modeler constructs a script file that controls the creation
+ of the model, first defining the aquifer properties and their distribution,
+ then adds elements to the aquifer that simulate various features in the
+ flow system, such as rivers and wells.
+ The script file also directs the solution of the model problem and uses
+ various analytical tools to extract results as grids, trace streamlines,
+ and write reports.
+ Onc
+\layout Section
+
+About the AEM
+\layout Standard
+
+This section introduces some important principles of analytic element models,
+ with the purpose of introducing the new ModAEM user to analytic elements.
+ Those who are interested in the 
+\begin_inset Quotes eld
+\end_inset 
+
+gory details
+\begin_inset Quotes erd
+\end_inset 
+
+ of analytic elements should see Strack, 1989.
+ For a more complete discussion of modeling issues with analytic elements,
+ please see Haitjema, 1995.
+\layout Subsubsection
+
+What is an analytic element?
+\layout Standard
+
+The analytic element method is based on the superposition of analytic functions.
+ An 
+\emph on 
+analytic element
+\emph default 
+ is a mathematical function that may be superimposed with other analytic
+ elements to create a complete solution for a groundwater problem.
+ In practice, 2--D, steady--state analytic elements 
+\layout Subsection
+
+Discharge potentials 
+\layout Subsection
+
+Example solutions
+\layout Subsection
+
+Analytic element functions and superposition
+\layout Subsection
+
+Boundary conditions for complex models
+\layout Section
+
+Using the AEM
+\layout Subsection
+
+Keep it simple
+\layout Subsection
+
+Stepwise modeling approach
+\layout Subsection
+
+Gotchas and troubleshooting
+\layout Chapter
+
+ModAEM script files
+\begin_inset LatexCommand \label{cha:script-files}
+
+\end_inset 
+
+ 
+\layout Standard
+
+ModAEM execution is controlled by the use of a "ModAEM script file" (with
+ the extension 
+\family sans 
+.aem
+\family default 
+), and a "ModAEM name file" (called 
+\family sans 
+modaem.nam
+\family default 
+).
+ These files are the only input files that are required by the model.
+\layout Section
+
+The ModAEM name file 
+\family typewriter 
+modaem.nam
+\begin_inset LatexCommand \label{sub:name-file}
+
+\end_inset 
+
+ 
+\layout Standard
+
+The standard library for the Fortran-95 language does not provide a mechanism
+ for gathering command-line arguments (e.g.
+ the '
+\family typewriter 
+int main(int argc, char **argv)
+\family default 
+' in a C or C++ program or 
+\family typewriter 
+sys.argv[]
+\family default 
+ in Python).
+ Although nearly all current Fortran-95 compilers provide a library routine
+ for this task, they are not syntactically consistent.
+ One of the design objectives of the ModAEM project is that the code should
+ be as portable as possible, so language extensions have been carefully
+ avoided.
+ Therefore, the "official" ModAEM release code uses a file called 
+\family sans 
+modaem.nam
+\family default 
+ in the current working directory when the program begins execution to find
+ the ModAEM script file.
+ The name file provides the base file name for the ModAEM script file (and
+ may provide other features in the future).
+ Developers are encouraged to add platform-specific support for command-line
+ arguments if they desire
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+It is expected that developers (particularly those who need a platform-specific
+ version of ModAEM) will add the ability to fetch command-line arguments
+ in the version of ModAEM that ships with their code.
+ The addition of this feature is compiler-dependent.
+ Be advised that under the GNU General Public License (GPL), you are required
+ to provide the source code along with the executable (or at least tell
+ the user where to get it), when you first distribute a customized version
+ of ModAEM.
+ The author will provide a clearing-house for platform-specific and compiler--sp
+ecific versions of at the ModAEM website 
+\family typewriter 
+http://modaem.wittmanhydro.com
+\family default 
+.
+ It is understood that some vendors may wish to add a platform-specific
+ GUI-style display to ModAEM (e.g.
+ in a style similar to the MODFLOW/Win32 code that ships with the popular
+ 
+\emph on 
+Groundwater Vistas
+\emph default 
+ MODFLOW GUI).
+ It will be much appreciated if someone will make such a version available
+ under GPL.
+ Although it is much preferred that such an extension is released under
+ GPL, the copyright holders understand the developer's concerns and will
+ consider requests (we make no guarantees 
+\emph on 
+a priori
+\emph default 
+) for special licensing arrangements for such extensions.However, we do not
+ anticipate a willingness to engage in special licensing exceptions for
+ computational features that may be added to the code.
+\end_inset 
+
+.
+\layout Subsection
+
+Contents of the name file 
+\layout Standard
+
+The ModAEM name file 
+\family sans 
+modaem.nam
+\family default 
+ can be created with any text editor.
+ 
+\family sans 
+modaem.nam
+\family default 
+ contains up to three lines of text, as follows:
+\layout Paragraph
+
+Line 1 -- Base file name for the model run
+\layout Standard
+
+The first line of the name file contains the 
+\begin_inset Quotes eld
+\end_inset 
+
+base
+\begin_inset Quotes erd
+\end_inset 
+
+ name of the files for the model run.
+ For example, if the model input data are contained in a file called 
+\family sans 
+modaem.aem
+\family default 
+, then the contents of 
+\family sans 
+modaem.nam
+\family default 
+ would be:
+\layout LyX-Code
+
+modaem
+\layout Standard
+
+The extension 
+\family sans 
+.aem
+\family default 
+ is appended to the file name by ModAEM.
+ In addition, two output files will be created using the same base name,
+ '
+\family sans 
+modaem
+\family default 
+':
+\layout Description
+
+
+\family sans 
+\series medium 
+modaem.err
+\family default 
+\series default 
+ Will be written as the "message" file.
+ This file echoes program input and messages issued during execution.
+ It may be used as a run log file (and to see the results of some processing
+ directives).
+ Although some model results can be sent to the message file, it is not
+ appropriate for extracting model results (e.g.
+ heads) for use in GUI programs; the "inquiry" files written by module INQ
+ (Section 5.9) are designed for this feature.
+\layout Description
+
+
+\family sans 
+\series medium 
+modaem.out
+\family default 
+\series default 
+ Will be written as the "output" file.
+ This file recieves an HTML document listing of the solution results, which
+ may be useful in debugging.
+ The output file is not appropriate for loading results to be displayed
+ in GUI programs; the "inquiry" files written by module INQ (Section 5.9)
+ are designed for this feature.
+\layout Paragraph
+
+Line 2 -- Name of the previous solution file
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+The 
+\begin_inset Quotes eld
+\end_inset 
+
+load previous solution
+\begin_inset Quotes erd
+\end_inset 
+
+ feature is not available in ModAEM 1.4.0.
+ It will be implemented in ModAEM-1.4.1.
+\end_inset 
+
+
+\layout Standard
+
+The second file named in the name file is an optional file that contains
+ the saved results from a previous solution that are to be reloaded, for
+ example, to trace particles from a prior solution without the need for
+ re-solving.
+ If it is provided, the results are read from the previous solution file
+ after the problem is defined (see the 
+\family sans 
+\series bold 
+aem
+\family default 
+\series default 
+ directive and related information below), when the 
+\family sans 
+\series bold 
+sol
+\family default 
+\series default 
+ directive is encountered.
+ To 
+\begin_inset Quotes eld
+\end_inset 
+
+solve
+\begin_inset Quotes erd
+\end_inset 
+
+ the model byCool pictures? Why would we do all this work if we weren't
+ going to make cool pictures? -- Mark Bakker
+\layout Standard
+
+simply reloading the solution, issue the directive 
+\family typewriter 
+sol\SpecialChar ~
+0
+\family default 
+ after the problem definition is complete.
+ If the previous solution file is missing or if the file is empty, a warning
+ will be issued and execution will continue.
+ However, if the file is not empty, a fatal error results if the contents
+ of the previous solution file are inconsistent with the problem definition.
+\layout Standard
+
+The file name may have any extension that the modeler desires, although
+ by convention, the extention 
+\family sans 
+.pre
+\family default 
+ is recommended.
+ If the name of previous solution file is omitted from the name file, no
+ previous solution will be loaded.
+\layout Paragraph
+
+Line 3 -- Name of the file where solution results are to be written
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+The 
+\begin_inset Quotes eld
+\end_inset 
+
+save solution
+\begin_inset Quotes erd
+\end_inset 
+
+ feature is not available in ModAEM 1.4.0.
+ It will be implemented in ModAEM-1.4.1.
+\end_inset 
+
+
+\layout Standard
+
+The third file named in the name file is an optional file where the results
+ of the solution are to be written, for example, for use as the initial
+ condition in a future ModAEM run.
+ If it is provided, ModAEM will write the solution when the solution procedure
+ is complete.
+ The file may be reloaded by specifying it in the second line of a future
+ name file (see above).
+ 
+\layout Standard
+
+The file name may have any extension that the modeler desires, although
+ by convention, the extention 
+\family sans 
+.pre
+\family default 
+ is recommended.
+ If the name of the save file is omitted from the name file, no solution
+ will be saved.
+\layout Section
+
+The AEM script file (
+\family sans 
+.
+\series medium 
+aem
+\family default 
+\series default 
+ file) 
+\layout Standard
+
+The AEM script file provides model elements and processing directives to
+ ModAEM.
+ The AEM script file can have any base file name (as specified in the modaem.nam
+ file) and must have the extension 
+\family sans 
+.aem
+\family default 
+.
+ The AEM script file is a flat text file that can be created with any text
+ editor.
+ Program directives are entered one per line.
+\layout Standard
+
+The script file is divided into two sections, the "problem definition section"
+ (or "AEM section") and the "processing section".
+ Typically, ModAEM script files look like this:
+\layout LyX-Code
+
+aem
+\layout LyX-Code
+
+  aqu ...
+\layout LyX-Code
+
+    # aquifer description goes here
+\layout LyX-Code
+
+  end
+\layout LyX-Code
+
+  # other module sections go here...
+\layout LyX-Code
+
+  wl0 10
+\layout LyX-Code
+
+    ...
+ discharge-specified well data goes in here ...
+ 
+\layout LyX-Code
+
+    # end of well data 
+\layout LyX-Code
+
+  end 
+\layout LyX-Code
+
+  # end of aem data 
+\layout LyX-Code
+
+end 
+\layout LyX-Code
+
+# processing directives go here ...
+ 
+\layout LyX-Code
+
+# End-of-data mark 
+\layout LyX-Code
+
+eod
+\layout Standard
+
+The AEM section of the input file
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+The attractive indentation style of the input file is optional, but highly
+ recommended.
+ By convention, each section of the input file is indented two spaces for
+ readability.
+ ModAEM ignores the indentation when reading program input.
+ Currently (at this writing, we are at version 1.4.0-rc3),ModAEM behaves unpredict
+ibly when it encounters tab characters (ASCII 0x09); folding of tabs into
+ spaces on input will be implemented soon.
+\end_inset 
+
+ is the portion contained between the 
+\family typewriter 
+aem
+\family default 
+ and 
+\family typewriter 
+end
+\family default 
+ directives in lines 1 and 14 of the above listing.
+ Within the AEM section, input for the various element definition modules
+ (see Chapter 
+\begin_inset LatexCommand \ref{cha:script-files}
+
+\end_inset 
+
+) are provided.
+\layout Standard
+
+The processing section follows the problem definition section of the script
+ file.
+ The various processing directives that are available are discussed in Chapter
+ 
+\begin_inset LatexCommand \ref{cha:Processing-Directives}
+
+\end_inset 
+
+.
+\layout Subsection
+
+Directives which are common to all input modules
+\layout Standard
+
+The following directives are available in all ModAEM input modules.
+\layout Subsubsection
+
+Comments
+\layout Standard
+
+Comment lines in the AEM script file start with a hash mark (
+\family typewriter 
+#
+\family default 
+) in the first column.
+ Comment lines are ignored by ModaEM.
+ For example:
+\layout LyX-Code
+
+# This is a comment line
+\layout Subsubsection
+
+Exiting a module (
+\family sans 
+\series medium 
+end
+\family default 
+\series default 
+ directive) 
+\layout Standard
+
+The 
+\family typewriter 
+end
+\family default 
+ directive causes ModAEM to leave the current module.
+ For example, when in the 
+\family sans 
+wl0
+\family default 
+ module (which is started with the 
+\family typewriter 
+wl0
+\family default 
+ directive), the end directive returns processing to the AEM input module:
+\layout LyX-Code
+
+# the aem section is used to define the problem aem
+\layout LyX-Code
+
+# other module sections go here...
+ 
+\layout LyX-Code
+
+wl0 10
+\layout LyX-Code
+
+...
+ discharge-specified well data goes in here ...
+ 
+\layout LyX-Code
+
+# end of well data end # end of aem data end 
+\layout LyX-Code
+
+# processing directives go here ...
+ 
+\layout LyX-Code
+
+# End-of-data mark 
+\layout LyX-Code
+
+eod
+\layout Subsection
+
+Enabling debugging code (
+\family sans 
+\series medium 
+dbg
+\family default 
+\series default 
+ directive) 
+\layout Standard
+
+The 
+\family typewriter 
+dbg
+\family default 
+ directive is used to turn code marked as 'debug' code on or off during
+ execution (useful for program debugging).
+ Debug code is enabled or disabled at the level of a specific module.
+ The ModAEM source code contains many assertions that can be used to test
+ for internal errors in the code.
+ The 
+\family typewriter 
+dbg
+\family default 
+ command does not affect the detection of errors in program input, however.
+ This command will typically be used only by developers.
+\layout Subsection
+
+Other directives for specific tasks 
+\layout Subsubsection
+
+Begin defining a model problem domain (
+\family sans 
+\series medium 
+aem
+\family default 
+\series default 
+ directive)
+\layout Standard
+
+The aem directive begins the problem definition section of the ModAEM input
+ file.
+ See for a description of the various directives that may be used in the
+ problem definition section.
+\layout Paragraph
+
+Usage:
+\layout LyX-Code
+
+aem
+\layout LyX-Code
+
+  ...
+ put model definition directives here ...
+ 
+\layout LyX-Code
+
+end
+\layout Subsubsection
+
+Processing directives 
+\layout Standard
+
+The various processing directives that are available once a problem has
+ been defined in the AEM section are described in Chapter 
+\begin_inset LatexCommand \ref{cha:Processing-Directives}
+
+\end_inset 
+
+.
+\layout Chapter
+
+Aquifer specification
+\begin_inset LatexCommand \label{cha:aqu-module}
+
+\end_inset 
+
+
+\layout Standard
+
+The aquifer module (AQU) is used to define the layout and properties of
+ the ModAEM aquifer.
+ In ModAEM, an aquifer is considered to be a single, horizontal, two-dimensional
+ flow system.
+ A ModAEM aquifer may be bounded or unbounded spatially, with a variety
+ of boundary conditions specified at the perimeter of the bounded domain.
+ All aquifers in ModAEM may have heterogeneous hydraulic conductivity, base
+ elevation, thickness and porosity1, specified in "inhomogeneities".
+ An inhomogeneity is a bounded sub-region of the aquifer where the hydraulic
+ properties of the aquifer differ from the surrounding region.
+ In ModAEM, inhomogeneities may be nested within other inhomogeneities,
+ and may share common boundaries.
+\layout Section
+
+AQU Module Input 
+\layout Standard
+
+As with all other modules that are included in the problem definition section
+ of a ModAEM script file, input for module AQU is contained between the
+ 
+\family sans 
+aqu
+\family default 
+ directive and the 
+\family sans 
+end
+\family default 
+ directive.
+ Module AQU differes from some of the other ModAEM modules, in that it posesses
+ optional submodules.
+ The general layout for module AQU input is as follows:
+\layout LyX-Code
+
+# Create an aquifer 
+\layout LyX-Code
+
+aqu ndomains nstrings base thickness conductivity porosity
+\layout LyX-Code
+
+  ref <arguments> (optional) define a reference point and discharge 
+\layout LyX-Code
+
+  prm <arguments>
+\layout LyX-Code
+
+   (optional) define the aquifer perimeter 
+\layout LyX-Code
+
+  end 
+\layout LyX-Code
+
+  bdy <arguments>
+\layout LyX-Code
+
+   (optional) define flow conditions at the perimeter 
+\layout LyX-Code
+
+  end 
+\layout LyX-Code
+
+  in0 <arguments>
+\layout LyX-Code
+
+    (optional) define inhomogeneities 
+\layout LyX-Code
+
+  end
+\layout LyX-Code
+
+end
+\layout Standard
+
+The remainder of this section describes the detailed usage of the AQU module
+ directives.
+\layout Subsection
+
+Beginning the aquifer definition (derective 
+\family sans 
+\series medium 
+aqu
+\family default 
+\series default 
+)
+\layout Standard
+
+The 
+\family sans 
+aqu
+\family default 
+ directive starts the process of defining the aquifer layout.
+ In addition to the regional aquifer properties, the aqu directive allocates
+ space for the definition of subdomains of differing aquifer properties,
+ and boundary conditions for bounded models.
+\layout Subparagraph
+
+Usage:
+\layout LyX-Code
+
+aqu ndomains nstrings base thickness hyd-cond porosity initial-avg-head
+\layout Paragraph
+
+Parameters for the 
+\family sans 
+\series medium 
+aqu
+\family default 
+\series default 
+ directive:
+\layout Description
+
+
+\family typewriter 
+ndomains
+\family default 
+ The number of inhomogeneity domains in the aquifer, including the "outside"
+ unbounded domain (for a single homogeneous aquifer, use 1).
+ 
+\begin_inset Formula $\{ int\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+nstrings
+\family default 
+ The number of strings that are used to bound the inhomogeneity domains
+ (for a single inhomogeneous aquifer, use 0).
+ In ModAEM 1.4.0, inhomogeneities in aquifer base and thickness are unimplemented,
+ however values for these properties may be specified in the ModAEM script
+ file.
+ These features will be supported in a future version of ModAEM.
+ 
+\begin_inset Formula $\{ int\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+base
+\family default 
+ The base elevation of the aquifer 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+thickness
+\family default 
+ The thickness of the aquifer 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+conductivity
+\family default 
+ The hydraulic conductivity (real) of the aquifer 
+\begin_inset Formula $[L/T]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+porosity
+\family default 
+ Porosity of the aquifer as a fraction 
+\begin_inset Formula $[-]$
+\end_inset 
+
+.
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+initial-avg-head
+\family default 
+ This is an estimate of the average head in the aquifer.
+ It is used to pre--condition the solution when inhomogeneities in base
+ elevation or thickness are encountered and the flow condition is unconfined.
+ If you expect to be using inhomogeneities in base elevation or aquifer
+ thickness, a good estimate of the initial average head will greatly speed
+ the solution process.
+ If you are not using inhomogeneities in base elevation or aquifer thickness,
+ it is recommended that the value of 
+\begin_inset Formula $base+thickness$
+\end_inset 
+
+ be provided.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Paragraph
+
+Simple Aquifer Example 
+\layout Standard
+
+To build a simple infinite aquifer with no inhomogeneities, with base elevation
+ at 
+\begin_inset Formula $0\, ft$
+\end_inset 
+
+, thickness of 
+\begin_inset Formula $10\, ft$
+\end_inset 
+
+ hydraulic conductivity of 
+\begin_inset Formula $100\, ft/d$
+\end_inset 
+
+ , porosity of 
+\begin_inset Formula $0.25$
+\end_inset 
+
+ and an average head of 
+\begin_inset Formula $200\, ft$
+\end_inset 
+
+, only one domain and no strings are required.
+ The 
+\family sans 
+aqu
+\family default 
+ directives
+\layout LyX-Code
+
+aqu 1 0 0.0 10.0 100.0 0.25 200.0
+\layout LyX-Code
+
+end
+\layout Standard
+
+will create this aquifer.
+\layout Subsection
+
+Defining a reference flow field (directive 
+\family sans 
+\series medium 
+ref
+\family default 
+\series default 
+) 
+\begin_inset LatexCommand \label{sub:reference-flow-field}
+
+\end_inset 
+
+
+\layout Standard
+
+ModAEM differs from some analytic element codes in that the specification
+ of a reference point is often unnecessary.
+ Typically, the reference flow field is only needed in conceptual models
+ or when a site--scale model based on a uniform flow field has been measured
+ in the field.
+\layout Paragraph
+
+What is the reference flow field? 
+\layout Standard
+
+In an analytic element model, it is possible to define a problem in which
+ all of the elements (wells, etc.) possess a specified discharge (e.g.
+ the common conceptual model of one or more wells in a uniform flow field).
+ In these cases, a unique solution can be generated only if the user specifies
+ a point in the aquifer at which the head is known.
+ Specification of the reference point enables the specification of a "reference
+ flow field", a uniform flow discharge that will be present everywhere in
+ the aquifer, even if no elements are present.
+ The reference flow field is an abstraction, and should be used with care,
+ since it typically dominates the solution and increases the potential of
+ calibration errors.
+ In ModAEM, specification of the reference point is optional.
+ If the reference point it is omitted, ModAEM replaces it with a closure
+ condition based upon continuity of flow.
+ In ModAEM, there are three ways to provide the 
+\begin_inset Quotes eld
+\end_inset 
+
+far--field
+\begin_inset Quotes erd
+\end_inset 
+
+ regional flow conditions:
+\layout Description
+
+reference\SpecialChar ~
+head\SpecialChar ~
+and\SpecialChar ~
+uniform\SpecialChar ~
+flow In this case, the 
+\family sans 
+ref
+\family default 
+ directive is provided.
+ A reference point and a reference head, and also a far--field uniform flow
+ discharge is provided.
+ This strategy is typically used in conceptual problems and in simple site--scal
+e problems where the hydraulic gradient has been measured from field observation
+s.
+ Do not place the reference point within the area of interest if other elements,
+ e.g.
+ line sinks, are to be used.
+\layout Description
+
+bounded\SpecialChar ~
+aquifer\SpecialChar ~
+domains ModAEM-1.4 adds support for closed model domains via
+ the 
+\family sans 
+prm
+\family default 
+ and 
+\family sans 
+bdy
+\family default 
+ directives (see Section 
+\begin_inset LatexCommand \ref{sub:bounded-aquifers}
+
+\end_inset 
+
+, below).
+ When a bounded aquifer is provided, the reference point and uniform flow
+ rate must not be used.
+\layout Description
+
+unbounded\SpecialChar ~
+aquifers\SpecialChar ~
+with\SpecialChar ~
+
+\emph on 
+modeled
+\emph default 
+\SpecialChar ~
+far--field This is the most common strategy for large regional models to
+ be built with analytic elements.
+ Instead of a specific far--field flow condition, far--field elements are
+ placed in the model domain.
+ These elements generate the flow field at the perimeter of the study region,
+ and 
+\begin_inset Quotes eld
+\end_inset 
+
+insulate
+\begin_inset Quotes erd
+\end_inset 
+
+ the study region from the infinite mathematical domain.
+ In ModAEM, no reference point is required if at least one head--specified
+ boundary condition is provided in the model.
+ A continuity--of--flow condition is used instead
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+In ModAEM-1.0 and ModAEM-1.2, the reference point was always required.
+ In WhAEM, the GUI placed the reference point at a location far to the west
+ of the extent or model elements, with a reference head set at the average
+ of all head--specified conditions in the model.
+ ModAEM-1.4 eliminates this requirement.
+\end_inset 
+
+.
+ If a reference point is specified far from the study region, the model
+ will still function if the model is constructed properly (see Haitjema,
+ 1995).
+ Never place the reference point at a location within the study domain;
+ unpredictable and incorrect model output may result.
+\layout Standard
+
+The reference point and reference flow field are specified using the directive
+ 
+\family sans 
+ref
+\family default 
+ within the input for module AQU.
+ 
+\layout Paragraph
+
+Usage:
+\layout LyX-Code
+
+ref (x0,y0) h0 (Qx0,Qy0) 
+\layout Paragraph
+
+Parameters for the ref directive: 
+\layout Description
+
+
+\family typewriter 
+(x0,y0)
+\family default 
+ The location of the reference point, 
+\begin_inset Formula $z_{0}=x_{0}+iy_{0}$
+\end_inset 
+
+.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ complex\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+head
+\family default 
+ The head at the reference point.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+ 
+\layout Description
+
+
+\family typewriter 
+(Qx0,Qy0)
+\family default 
+ The reference flow field, 
+\begin_inset Formula $Q_{0}=Q_{x0}+iQ_{y0}$
+\end_inset 
+
+.
+ The magnitude of the value 
+\begin_inset Formula $Q_{0}$
+\end_inset 
+
+ is computed as 
+\begin_inset Formula $Q_{0}=k\times H\times dh/ds$
+\end_inset 
+
+ where 
+\begin_inset Formula $k$
+\end_inset 
+
+ is the hydraulic conductivity, 
+\begin_inset Formula $H$
+\end_inset 
+
+ is the saturated thickness and 
+\begin_inset Formula $dh/ds$
+\end_inset 
+
+ is the hydraulic gradient in the direction of flow.
+ The components are relative to the x-axis and y-axis; if 
+\begin_inset Formula $\theta$
+\end_inset 
+
+ is the angle relative to the x-axis in radians, the components 
+\begin_inset Formula $Q_{x0}$
+\end_inset 
+
+ and 
+\begin_inset Formula $Q_{y0}$
+\end_inset 
+
+ are computed as 
+\begin_inset Formula $Q_{x0}=Q_{0}cos\,\theta$
+\end_inset 
+
+ and 
+\begin_inset Formula $Q_{y0}=Q_{0}sin\,\theta$
+\end_inset 
+
+.
+ 
+\begin_inset Formula $[L^{2}/T]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ complex\}$
+\end_inset 
+
+
+\layout Paragraph
+
+Example of an aquifer with uniform flow and a reference point
+\layout LyX-Code
+
+aqu 1 0 0.0 10.0 100.0 0.25
+\layout LyX-Code
+
+  ref (0,0) 100.0 (10.0,0.0) on 
+\layout LyX-Code
+
+end
+\layout Standard
+
+This reference aquifer definition creates an unbounded aquifer with a uniform
+ flow field of 
+\begin_inset Formula $10.0\, m/d$
+\end_inset 
+
+ in the positive x-direction, with a head of 
+\begin_inset Formula $100\, m$
+\end_inset 
+
+ at the origin.
+\layout Section
+
+Creating a bounded aquifer (
+\family sans 
+\series medium 
+prm
+\family default 
+\series default 
+ and 
+\family sans 
+\series medium 
+bdy
+\family default 
+\series default 
+ directives)
+\begin_inset LatexCommand \label{sub:bounded-aquifers}
+
+\end_inset 
+
+ 
+\layout Standard
+
+ModAEM supports the option of bounded aquifer domains, with a variety of
+ boundary conditions specified at the perimeter of the flow domain (head
+ specified, flux specified, and general--head).
+ Bounded aquifers are defined in the ModAEM script file in two steps:
+\layout Enumerate
+
+Specifying the perimeter of the aquifer and any "islands" (sub-regions within
+ the aquifer that are to be ignored) 
+\layout Enumerate
+
+Specifying the boundary conditions for groundwater flow that are to be construct
+ed at the perimeter.
+\layout Standard
+
+It is important to understand that step (1) above actually has no affect
+ on the flow problem; it simply tells ModAEM which regions of the potentially
+ unbounded aquifer are to be ignored by the anaysis modules.
+ This is convenient when computing grids for contouring.
+ ModAEM returns an "inactive region" value whenever an analysis module requests
+ the head (or discharge or other value) at a point in the inactive region.
+ It is step (2) above that actually constructs the boundary conditions at
+ the aquifer perimeter.
+ Specification of the boundary conditions is sufficient to govern the flow
+ problem
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+For example, the GMS user interface handles the perimeter computations internall
+y; GMS does not write the 
+\family sans 
+prm
+\family default 
+ directive.
+\end_inset 
+
+.
+\layout Subsection
+
+Specifying the active region (
+\family sans 
+\series medium 
+prm
+\family default 
+\series default 
+ and 
+\family sans 
+\series medium 
+isl
+\family default 
+\series default 
+ directives) 
+\layout Standard
+
+The 
+\family sans 
+prm
+\family default 
+ (
+\begin_inset Quotes eld
+\end_inset 
+
+perimeter
+\begin_inset Quotes erd
+\end_inset 
+
+) directive begins the specification of the aquifer perimeter, while the
+ 
+\family sans 
+isl
+\family default 
+ (
+\begin_inset Quotes eld
+\end_inset 
+
+island
+\begin_inset Quotes erd
+\end_inset 
+
+') directive begins the specification of an inactive 'island' in the active
+ region.
+ The format of this section of the ModAEM script is as follows.
+\layout Paragraph
+
+Usage:
+\layout LyX-Code
+
+aqu...
+\layout LyX-Code
+
+  ref...
+\layout LyX-Code
+
+  prm nvertices nislands inactive-value
+\layout LyX-Code
+
+    (x1,y1) (x2,y2) 
+\layout LyX-Code
+
+    ...
+ 
+\layout LyX-Code
+
+  isl nvertices
+\layout LyX-Code
+
+    (x1,y1) (x2,y2) 
+\layout LyX-Code
+
+    ...
+ 
+\layout LyX-Code
+
+  isl nvertices
+\layout LyX-Code
+
+    (x1,y1) (x2,y2) 
+\layout LyX-Code
+
+    ...
+ 
+\layout LyX-Code
+
+end
+\layout Paragraph
+
+Parameters for perimeter specification (
+\family sans 
+\series medium 
+prm
+\family default 
+\series default 
+ directive):
+\layout Description
+
+
+\family typewriter 
+nvertices
+\family default 
+ The maximum number of vertices that define the perimeter.
+ The actual number of perimeter vertices (see below) must not exceed this
+ value.
+ 
+\begin_inset Formula $\{ int\}$
+\end_inset 
+
+ 
+\layout Description
+
+
+\family typewriter 
+nislands
+\family default 
+ The maximum number of islands within the perimeter.
+ The actual number of islands (see the 
+\family sans 
+isl 
+\family default 
+directive below) must not exceed this value.
+ 
+\begin_inset Formula $\{ int\}$
+\end_inset 
+
+ 
+\layout Description
+
+
+\family typewriter 
+inactive-value
+\family default 
+ The value to be returned when an analysis module requests a modeled value
+ outside the active area.
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Paragraph
+
+Specifying vertices along the perimeter
+\layout Standard
+
+Following the 
+\family sans 
+prm
+\family default 
+ directive, up to 
+\family typewriter 
+nvertices
+\family default 
+ vertices may be provided, one vertex per line in the input file.
+ Each vertex is a single complex coordinate.
+ Each vertex is a single point, 
+\begin_inset Formula $z_{p}=x_{p}+y_{p}$
+\end_inset 
+
+ for point 
+\begin_inset Formula $p$
+\end_inset 
+
+.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ complex\}$
+\end_inset 
+
+
+\layout Paragraph
+
+Parameters for island specification (
+\family sans 
+\series medium 
+isl
+\family default 
+\series default 
+ directive)
+\layout Description
+
+
+\family typewriter 
+nvertices
+\family default 
+ The maximum number of vertices defining the island.
+ The actual number of island vertices (see below) must not exceed this value.
+ 
+\begin_inset Formula $\{ int\}$
+\end_inset 
+
+ 
+\layout Paragraph
+
+Specifying vertices for each island
+\layout Standard
+
+Following the 
+\family sans 
+isl
+\family default 
+ directive, up to 
+\family typewriter 
+nvertices
+\family default 
+ vertices may be provided, one vertex per line in the input file.
+ Each vertex is a single point, 
+\begin_inset Formula $z_{p}=x_{p}+y_{p}$
+\end_inset 
+
+ for point 
+\begin_inset Formula $p$
+\end_inset 
+
+.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ complex\}$
+\end_inset 
+
+
+\layout Subsection
+
+Specifying conditions on the aquifer perimeter (
+\family sans 
+\series medium 
+bdy
+\family default 
+\series default 
+ directive) 
+\layout Standard
+
+The 
+\family sans 
+bdy
+\family default 
+ directive begins the definition of flow conditions at the perimeter of
+ a bounded aquifer.
+ For each segment of the boundary, a pair of vertices is provided, along
+ with the boundary condition to be met along the segment.
+ In the current release of ModAEM, this is the only instance where line
+ segments are fully defined in this manner.
+ When this was originally implemented in ModAEM-1.2, it was intended for
+ the construction of ModAEM sub--domain models from large regional MODFLOW
+ models (ref: Vic's talk at GSA -- Denver).
+ This input style is more flexible for preprocessing in 
+\begin_inset Quotes eld
+\end_inset 
+
+telescoping
+\begin_inset Quotes erd
+\end_inset 
+
+ domain models.
+ If a perimeter has been defined using the 
+\family sans 
+prm
+\family default 
+ and 
+\family sans 
+isl
+\family default 
+ directives, it is up to the modeler (or the preprocessor, if one is in
+ use) to ensure that the boundary elements provided via the 
+\family sans 
+bdy
+\family default 
+ directive completely bound the problem domain.
+\layout Paragraph
+
+Usage:
+\layout LyX-Code
+
+aqu ...
+\layout LyX-Code
+
+  ref ...
+ 
+\layout LyX-Code
+
+  prm ...
+\layout LyX-Code
+
+    (x,y)
+\layout LyX-Code
+
+    ...
+ 
+\layout LyX-Code
+
+  bdy nbdy
+\layout LyX-Code
+
+    (x1,y1) (x2,y2) flux head ghb-distance bdy-flag 
+\layout LyX-Code
+
+    ...
+ 
+\layout LyX-Code
+
+end
+\layout Paragraph
+
+Parameters for the bdy directive
+\layout Description
+
+
+\family typewriter 
+nbdy
+\family default 
+ The maximum number of boundary elements in the problem.
+ 
+\begin_inset Formula $\{ int\}$
+\end_inset 
+
+
+\layout Paragraph
+
+Specifying the boundary elements
+\layout Standard
+
+For each segment along the model's perimeter boundary, a line segment is
+ provided using the parameters below.
+ No more than 
+\family typewriter 
+nbdy
+\family default 
+ boundary segments are allowed.
+ The orientation of the boundary segments is important.
+ ModAEM makes use of the 
+\begin_inset Quotes eld
+\end_inset 
+
+right--hand
+\begin_inset Quotes erd
+\end_inset 
+
+ rule convention (section 
+\begin_inset LatexCommand \ref{sec:The-right--hand-rule}
+
+\end_inset 
+
+) is used.
+ Fluxes are numerically positive if they cross the element from right--to--left.
+ Note that this means that segments that define a polygonal outer boundary
+ is 
+\emph on 
+positively oriented
+\emph default 
+ (counterclockwise).
+ For segments that bound islands, the active region is on the left of a
+ polygon if the vertices are arranged counter--clockwise.
+\layout Description
+
+
+\family typewriter 
+(x1,y1)
+\family default 
+ The first point on the line segment, 
+\begin_inset Formula $z_{1}=x_{1}+iy_{1}$
+\end_inset 
+
+.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ complex\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+(x2,y2)
+\family default 
+ The second point on the line segment, 
+\begin_inset Formula $z_{2}=x_{2}+iy_{2}$
+\end_inset 
+
+.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ complex\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+flux
+\family default 
+ The value for the specified total volumentric flow rate across the segment,
+ e.g.
+ a cell-by-cell MODFLOW value.
+ The value is positive if water moves from right to left when viewed along
+ the path 
+\begin_inset Formula $z_{1}z_{2}.$
+\end_inset 
+
+ 
+\begin_inset Formula $[L^{3}/T]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+head
+\family default 
+ The specified head at the center of the segment 
+\begin_inset Formula $z_{1}z_{2}$
+\end_inset 
+
+.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+ghb-distance
+\family default 
+ The perpendicular distance from the element to a presumed specified head
+ located somewhere to the "right" of the element.
+ The general--head boundary creates head--dependent flux (Neumann) condition
+ across the element.
+ This is analogous to a MODFLOW GHB cell located at the edge of the model.
+ ModAEM computes a resistance for the GHB based on the provided distance
+ and the transmissivity of the sub--domain on the left side of the element.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Standard
+
+When a head-specified or general-head condition is required, the value of
+ the flux parameter is ignored.
+ Similarly, when a flux-specified condition is required, the value of the
+ head parameter is ignored.
+ This is intended for use as check information when ModAEM is used to model
+ a detailed region with perimeter boundaries from another model.
+ ModAEM reports the specified and modeled heads and fluxes for all 
+\family sans 
+bdy
+\family default 
+ elements in the output HTML file.
+\layout Paragraph
+
+Note
+\layout Standard
+
+The 
+\family sans 
+prm
+\family default 
+, 
+\family sans 
+isl
+\family default 
+, and 
+\family sans 
+bdy
+\family default 
+ directives are part of module AQU.
+ No 
+\family sans 
+end
+\family default 
+ directive is to be used to terminate these inputs (the 
+\family sans 
+end
+\family default 
+ directive terminates input to module AQU).
+ This is distinguished from the inhomogeneity submodule IN0, discussed in
+ section 
+\begin_inset LatexCommand \ref{sec:in0}
+
+\end_inset 
+
+.
+\layout Section
+
+The inhomogeneity submodule
+\begin_inset LatexCommand \label{sec:in0}
+
+\end_inset 
+
+
+\layout Standard
+
+The IN0 submodule provides the AQU aquifer module with support for subdomains
+ of differing properties.
+ IN0 does not provide 
+\begin_inset Quotes eld
+\end_inset 
+
+spatially--varying
+\begin_inset Quotes erd
+\end_inset 
+
+ properties, as MODFLOW does on a cell-by-cell basis --- each subdomain
+ possesses constant properties within the subdomain.
+ Subdomains are polygonal, and may have common boundaries.
+ In ModAEM, inhomogeneity domains may be constructed in two ways:
+\layout Description
+
+polygonal\SpecialChar ~
+boundaries\SpecialChar ~
+(Figure\SpecialChar ~
+
+\begin_inset LatexCommand \ref{cap:in0-polys}
+
+\end_inset 
+
+) This is similar to the commercial code GFLOW (Haitjema Consulting) and
+ the 2003 version of EPA WhAEM for Windows.
+ Each inhomogeneity must be bounded by a single closed contour.
+ Inhomogeneities may be nested, but their boundaries may not overlap or
+ intersect.
+\layout Description
+
+common\SpecialChar ~
+boundary\SpecialChar ~
+inhomogeneities\SpecialChar ~
+(Figure\SpecialChar ~
+
+\begin_inset LatexCommand \ref{cap:in0-strings}
+
+\end_inset 
+
+) This is similar to the commercial codes SLAEM and MLAEM (Strack Consulting).
+ In addition to simple closed polygons, inhomogeneity domains may share
+ edges.
+ This greatly complicates preprocessing, but is very useful, especially
+ for problems with a varying aquifer base elevation.
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed true
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename figures/in0-polys.PNG
+	width 6in
+	keepAspectRatio
+
+\end_inset 
+
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap:in0-polys}
+
+\end_inset 
+
+Potentiometric countours for two polygonal hydraulic conductivity inhomogeneitie
+s in a field of uniform flow.
+ Flow is from left to right (red contours represent higher potentiometric
+ heads).
+ The domains are specified as follows: domain 0 (the outside) has 
+\begin_inset Formula $K=10\, m/d$
+\end_inset 
+
+; domain 1 has 
+\begin_inset Formula $K=100\, m/d$
+\end_inset 
+
+ and is shaded in blue; domain #2 has 
+\begin_inset Formula $K=2\, m/d$
+\end_inset 
+
+ and is shaded in beige.
+ No string specifications (
+\family sans 
+str
+\family default 
+ directive) were required.
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed true
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename figures/in0-strings.PNG
+	width 6in
+	keepAspectRatio
+
+\end_inset 
+
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap:in0-strings}
+
+\end_inset 
+
+Potentiometric countours for two polygonal hydraulic conductivity inhomogeneitie
+s with a common boundary in a field of uniform flow.
+ Flow from left to right (red contours represent higher heads).
+ The domains are specified as follows: domain 0 (the outside) has 
+\begin_inset Formula $K=10\, m/d$
+\end_inset 
+
+; domain 1 has 
+\begin_inset Formula $K=100\, m/d$
+\end_inset 
+
+ and is shaded in blue; domain #2 has 
+\begin_inset Formula $K=2\, m/d$
+\end_inset 
+
+ and is shaded in beige.
+ Three strings are required; all share the same starting and ending points.
+ The three strings are specified as follows: string 1 (red) has 
+\begin_inset Formula $left=0$
+\end_inset 
+
+, 
+\begin_inset Formula $right=1$
+\end_inset 
+
+; string 2 (yellow) has 
+\begin_inset Formula $left=1$
+\end_inset 
+
+; 
+\begin_inset Formula $right=2$
+\end_inset 
+
+; string 3 (purple) has 
+\begin_inset Formula $left=2$
+\end_inset 
+
+, 
+\begin_inset Formula $right=0$
+\end_inset 
+
+.
+\end_inset 
+
+
+\layout Standard
+
+The following properties may be changed in ModAEM inhomogeneities:
+\layout Itemize
+
+Hydraulic conductivity, 
+\begin_inset Formula $K$
+\end_inset 
+
+
+\layout Itemize
+
+Aquifer base elevation, 
+\begin_inset Formula $b$
+\end_inset 
+
+ 
+\layout Itemize
+
+Aquifer thickness, 
+\begin_inset Formula $H$
+\end_inset 
+
+
+\layout Itemize
+
+Aquifer effective porosity, 
+\begin_inset Formula $n$
+\end_inset 
+
+
+\layout Standard
+
+In the case where base elevation and aquifer thickness are constant throughout
+ the model domain, or when the flow is confined everywhere in the model,
+ the equations solved by ModAEM for inhomogeneities are linear; only a few
+ iterations are needed to achieve an accurate solution.
+ In the case where the base elevation or aquifer thickness varies 
+\emph on 
+and
+\emph default 
+ there are regions within the model where the flow is unconfined, the solution
+ matrix contains coefficients that are dependent on the saturated thickness;
+ additional iterations are required to achieve an accurate solution.
+ For this reason, each subdomain in the model has an additional parameter,
+ the '
+\begin_inset Quotes erd
+\end_inset 
+
+initial average head
+\begin_inset Quotes erd
+\end_inset 
+
+.
+ The initial average head is the modeler's best estimate for the average
+ head in the subdomain.
+ It is used to compute the saturated thickness during the first model iteration.
+ Obviously, a good estimate for the initial average head helps the model
+ stability.
+\layout Subsection
+
+Specifying inhomogeneities
+\layout Standard
+
+As mentioned above, ModAEM allows for both closed polygonal inhomogeneities
+ that do not share edges and for complex polygonal inhomogeneities that
+ may have shared edges.
+ ModAEM requires that the specification of inhomogeneities be done in two
+ steps:
+\layout Enumerate
+
+Defining the polygonal regions using the 
+\family sans 
+dom
+\family default 
+ directive
+\layout Enumerate
+
+Where necessary, defining the strings of elements that implement the boundaries
+ using the 
+\family sans 
+str
+\family default 
+ directive.
+\layout Standard
+
+Task (2) can be very complicated.
+ Fortunately there are preprocessing tools such as GMS (EMS-I) and ArcInfo
+ that provide an 
+\begin_inset Quotes eld
+\end_inset 
+
+arc--node
+\begin_inset Quotes erd
+\end_inset 
+
+ data representation to make it simpler.
+ For many problems, inhomogeneities with common boundaries are unnecessary.
+ Fortunately, ModAEM makes it easier to specify these (see below).
+\layout Paragraph
+
+Usage:
+\layout LyX-Code
+
+aqu ndomains nstrings base ...
+\layout LyX-Code
+
+  in0
+\layout LyX-Code
+
+    dom nvertices base thickness hyd-cond porosity initial-avg-head id
+\layout LyX-Code
+
+      (x1,y1)
+\layout LyX-Code
+
+      (x2,y2)
+\layout LyX-Code
+
+      ...
+\layout LyX-Code
+
+    dom ...
+\layout LyX-Code
+
+      ...
+\layout LyX-Code
+
+    str nvertices left right id
+\layout LyX-Code
+
+      (x1,y1)
+\layout LyX-Code
+
+      (x2,y2)
+\layout LyX-Code
+
+      ...
+\layout LyX-Code
+
+    str ...
+\layout LyX-Code
+
+      ...
+\layout LyX-Code
+
+  end
+\layout LyX-Code
+
+end
+\layout Standard
+
+As noted above, the maximum number of domains and strings to be used are
+ specified in the 
+\family sans 
+aqu
+\family default 
+ directive that begins the aquifer specification.
+ The specification of inhomogeneities begins with the 
+\family sans 
+in0
+\family default 
+ directive, which enters the inhomogeneity specification section of the
+ ModAEM script file.
+ Inside the IN0 section of the script, domains are specified first, then
+ strings are defined that actually implement the boundaries
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+For problems without common boundaries, no string definitions are required;
+ ModAEM automatically builds strings for closed domains.
+\end_inset 
+
+.
+\layout Paragraph
+
+Parameters for domain specification (directive 
+\family sans 
+\series medium 
+dom
+\family default 
+\series default 
+)
+\layout Description
+
+
+\family typewriter 
+nvertices
+\family default 
+ The maximum number of vertices which may be used to delineate the boundary
+ of the domain.
+ 
+\begin_inset Formula $\{ int\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+base
+\family default 
+ The base elevation of the aquifer 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+thickness
+\family default 
+ The thickness of the aquifer 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+conductivity
+\family default 
+ The hydraulic conductivity (real) of the aquifer 
+\begin_inset Formula $[L/T]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+porosity
+\family default 
+ Porosity of the aquifer as a fraction 
+\begin_inset Formula $[-]$
+\end_inset 
+
+.
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+initial-avg-head
+\family default 
+ This is an estimate of the average head in the aquifer.
+ It is used to pre--condition the solution when inhomogeneities in base
+ elevation or thickness are encountered and the flow condition is unconfined.
+ If you expect to be using inhomogeneities in base elevation or aquifer
+ thickness, a good estimate of the initial average head will greatly speed
+ the solution process.
+ If you are not using inhomogeneities in base elevation or aquifer thickness,
+ it is recommended that the value of 
+\begin_inset Formula $base+thickness$
+\end_inset 
+
+ be provided.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+base The aquifer base elevation within the domain.
+ As usual, flow may be confined and/or unconfined within the domain.
+ If the flow is unconfined, additional iterations may be required for an
+ accurate solution.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+id
+\family default 
+ A unique identification number for the domain.
+ 
+\begin_inset Formula $\{ int\}$
+\end_inset 
+
+
+\layout Paragraph
+
+Specifying the vertices along the domain perimeter
+\layout Standard
+
+Following the 
+\family sans 
+dom
+\family default 
+ directive, up to 
+\family typewriter 
+nvertices
+\family default 
+ vertices may be provided, one vertex per line in the input file.
+ Each vertex is a single complex coordinate.
+ Each vertex is a single point, 
+\begin_inset Formula $z_{p}=x_{p}+y_{p}$
+\end_inset 
+
+ for point 
+\begin_inset Formula $p$
+\end_inset 
+
+.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ complex\}$
+\end_inset 
+
+
+\layout Paragraph
+
+Parameters for string specification (directive 
+\family sans 
+\series medium 
+str
+\family default 
+\series default 
+)
+\layout Standard
+
+As mentioned above, ModAEM makes things easier for modelers who build input
+ files by hand or from shapefiles that do not support an 
+\begin_inset Quotes eld
+\end_inset 
+
+arc/node
+\begin_inset Quotes erd
+\end_inset 
+
+ spatial data structure.
+ If no common boundaries are to be specified, e.g.
+ as in Figure 
+\begin_inset LatexCommand \ref{cap:in0-polys}
+
+\end_inset 
+
+, the str directive should be omitted.
+ ModAEM will automatically build closed strings of elements.
+ The following describes the input format for inhomogeneity strings (please
+ refer to Figure 
+\begin_inset LatexCommand \ref{cap:in0-strings}
+
+\end_inset 
+
+).
+\layout Description
+
+nvertices The maximum number of vertices which may be used to delineate
+ the string.
+ 
+\begin_inset Formula $\{ int\}$
+\end_inset 
+
+
+\layout Description
+
+left The ID number of the polygon that is to the left of the string (see
+ section 
+\begin_inset LatexCommand \ref{sec:The-right--hand-rule}
+
+\end_inset 
+
+).
+\layout Description
+
+right The ID number of the polygon that is to the left of the string (see
+ section 
+\begin_inset LatexCommand \ref{sec:The-right--hand-rule}
+
+\end_inset 
+
+).
+\layout Description
+
+closed Flag; if true, the string closes on itself, making a polygon.
+ If false, the string is an open polyline.
+ 
+\begin_inset Formula $\{ logical\}$
+\end_inset 
+
+
+\layout Description
+
+id A unique identification number for the string.
+\layout Chapter
+
+Element modules
+\layout Standard
+
+Once the aquifer is defined using module AQU (see Chapter 
+\begin_inset LatexCommand \ref{cha:aqu-module}
+
+\end_inset 
+
+), additional boundary conditions are added to the model by superposition.
+ This chapter describes the elements that are available in ModAEM.
+ Currently, the following element modules are provided:
+\layout Description
+
+Discharge--specified\SpecialChar ~
+wells\SpecialChar ~
+(WL0) These are wells for which the pumping rate
+ is known, for example, water supply wells or irrigation wells.
+ This is the most commonly--used type of well; both pumping wells and injection
+ wells are supported.
+ These are analougous to wells created with the MODFLOW WEL package.
+\layout Description
+
+Head--specified\SpecialChar ~
+wells\SpecialChar ~
+(WL1) These are wells for which the pumping rate is
+ not 
+\emph on 
+a priori
+\emph default 
+ known to the modeler.
+ The best example is a dewatering well that turns on and off according to
+ a water level measurement.
+ For WL1 elements, the modeler provides the location and radius of the well,
+ plus a location in the aquifer and a head value; ModAEM computes the pumping
+ rate of the well
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+As will be discussed in Section 
+\begin_inset LatexCommand \ref{sec:wl1-module}
+
+\end_inset 
+
+, WL1 wells should not be confused with calibration targets or inverse models.
+\end_inset 
+
+.
+ These are somewhat analogous to MODFLOW constant--head cells.
+\layout Description
+
+Discharge--specified\SpecialChar ~
+line\SpecialChar ~
+sinks\SpecialChar ~
+(LS0) These are line segments that add or remove
+ a specific amount of water along their length, where the modeler provides
+ the amount of water to be added.
+ Some examples of discharge--specified line sinks are infiltration galleries
+ or rivers in arid climates that are typically dry, but infiltrate water
+ at certain times of the year.
+ These are analougous to a group of wells created with the MODFLOW WEL package.
+\layout Description
+
+Head--specified\SpecialChar ~
+line\SpecialChar ~
+sinks\SpecialChar ~
+(LS1) These are line segments that add or remove
+ water along their lengths, but for which the pumping rate is not 
+\emph on 
+a priori
+\emph default 
+ known to the modeler, and where there is no 
+\begin_inset Quotes eld
+\end_inset 
+
+entry resistance
+\begin_inset Quotes erd
+\end_inset 
+
+, e.g a silty stream bed, between the line sink and the aa group ofquifer.
+ LS1 line sinks are often used to represent rivers in the far field when
+ the modeler wishes to use an unbounded aquifer with a modeled far field
+ (see Section 
+\begin_inset LatexCommand \ref{sub:reference-flow-field}
+
+\end_inset 
+
+).
+ These are somewhat analogous to a group of MODFLOW constant--head cells;
+ they differ because in MODFLOW, constant head cells are specified as part
+ of the aquifer, not as a separate element.
+\layout Description
+
+Resistance\SpecialChar ~
+line\SpecialChar ~
+sinks\SpecialChar ~
+(LS2) These are line segments that add or remove water
+ along their lengths, but for which the pumping rate is not 
+\emph on 
+a priori
+\emph default 
+ known to the modeler, and where an 
+\begin_inset Quotes eld
+\end_inset 
+
+entry resistance
+\begin_inset Quotes erd
+\end_inset 
+
+, e.g a silty stream bed, between the line sink and the aquifer is present.
+ LS2 line sinks are often used to represent surface waters or drains in
+ the near field.
+ LS2 line sinks may be created as rivers (analogous to the MODFLOW RIV package),
+ drains (analogous to the MODFLOW DRN package), or general--head boundaries
+ (analogous to the MODFLOW GHB package).
+ Streamflow routing may be performed for LS2 elements (in a manner similar
+ to the MODFLOW STR package), using the analysis module RT0 (see Section
+ 
+\begin_inset LatexCommand \ref{sec:rt0-module}
+
+\end_inset 
+
+).
+\layout Description
+
+Horizontal\SpecialChar ~
+no--flow\SpecialChar ~
+boundaries\SpecialChar ~
+(HB0) These are elements that create a linear
+ no--flow condition within the active area of a ModAEM model.
+ These may be used to model sheet pilings, slurry walls, faults, and other
+ linear no--flow conditions that require an active aquifer domain on both
+ sides of the line.
+ This should not be used for bounded models or for 
+\begin_inset Quotes eld
+\end_inset 
+
+islands
+\begin_inset Quotes erd
+\end_inset 
+
+ in an aquifer domain; use the BDY elements included in module AQU (Section
+ 
+\begin_inset LatexCommand \ref{sub:bounded-aquifers}
+
+\end_inset 
+
+) for details.
+ These are analougous to the MODFLOW HFB package.
+\layout Description
+
+Circular\SpecialChar ~
+area--sinks\SpecialChar ~
+(PD0) These are elements that provide an areal infiltration
+ or exfiltration rate over a circular sub--domain, using the 
+\begin_inset Quotes eld
+\end_inset 
+
+pond
+\begin_inset Quotes erd
+\end_inset 
+
+ function described by Strack (1989).
+ The 
+\begin_inset Quotes eld
+\end_inset 
+
+sink density
+\begin_inset Quotes erd
+\end_inset 
+
+, or rate of infitration per unit of surface area, is specified by the modeler.
+ These are typically used in example problems and for conceptual models,
+ although they are convenient for representing circular irrigators.
+ For most practical modeling applications, module PD0 is superceded by the
+ polygonal area--sink module AS0 (Section 
+\begin_inset LatexCommand \ref{sec:as0-module}
+
+\end_inset 
+
+).
+\layout Description
+
+Polygonal\SpecialChar ~
+area--sinks\SpecialChar ~
+(AS0) These are elements that provide an areal infiltration
+ or exfiltration rate over a polygonal sub--domain.
+ The 
+\begin_inset Quotes eld
+\end_inset 
+
+sink density
+\begin_inset Quotes erd
+\end_inset 
+
+, or rate of infitration per unit of surface area, is specified by the modeer.
+ These are typically used as sources of areal recharge, e.g.
+ from rainfall, or for infiltration galleries.
+ 
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
+\layout Section
+
+Discharge-specified wells (module WL0)
+\begin_inset LatexCommand \label{sec:wl0-module}
+
+\end_inset 
+
+
+\layout Standard
+
+Module WL0 creates discharge-specified wells.
+ ModAEM processing enters module WL0 in response to the wl0 directive.
+ 
+\layout Paragraph
+
+Usage:
+\layout LyX-Code
+
+wl0 nwells
+\layout LyX-Code
+
+  (xw,yw) pumping-rate radius id 
+\layout LyX-Code
+
+  ...
+ 
+\layout LyX-Code
+
+end
+\layout Paragraph
+
+Parameters for the 
+\family sans 
+wl0
+\family default 
+ directive
+\layout Description
+
+
+\family typewriter 
+nwells
+\family default 
+ The maximum number of wells in the problem 
+\layout Paragraph
+
+Specifying well elements
+\layout Standard
+
+The 
+\family sans 
+wl0
+\family default 
+ directive is followed by one record for every well in the model.
+ If more than nwells well elements is provided, an ModAEM will terminate
+ and report the error.
+ Each well record has the following parameters:
+\layout LyX-Code
+
+(xw,yw) pumping-rate radius id
+\layout Description
+
+
+\family typewriter 
+(xw,yw)
+\family default 
+ The coordinates of the center of the well.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ complex\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+pumping-rate
+\family default 
+ The pumping rate of the well.
+ The value is positive if the element removes water from the aquifer, negative
+ if it adds water to the aquifer
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Users who make use of ModAEM using the GMS preprocessor will note that GMS
+ makes use of the MODFLOW convention that abstraction of water from the
+ aquifer is negative, while injection is positive.
+ Conversion to ModAEM's convention is handled transparently by GMS.
+\end_inset 
+
+.
+ 
+\begin_inset Formula $[L^{3}/T]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+radius
+\family default 
+ The radius of the well.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+id
+\family default 
+ A unique identification number for the well.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
+\layout Section
+
+Head-specified wells (module WL1)
+\begin_inset LatexCommand \label{sec:wl1-module}
+
+\end_inset 
+
+
+\layout Standard
+
+Module WL1 creates head-specified wells.
+ Head-specified wells should be used in cases where a well is to be used
+ to maintain a particular water level at some location in the aquifer.
+ The model computes the pumping rate for each head--specified well element
+ that allows the model to match the specified head; these elements 
+\emph on 
+must not
+\emph default 
+ be used for the purpose of "calibrating" the model to known heads.
+ ModAEM processing enters module WL1 in response to the wl1 directive.
+ 
+\layout Paragraph
+
+Usage:
+\layout LyX-Code
+
+wl1 nwells
+\layout LyX-Code
+
+  (xw,yw) head (xc,yc) radius id
+\layout LyX-Code
+
+  ...
+ 
+\layout LyX-Code
+
+end
+\layout Paragraph
+
+Parameters for the 
+\family sans 
+wl1
+\family default 
+ directive
+\layout Standard
+
+
+\family typewriter 
+\series bold 
+nwells
+\family default 
+\series default 
+ The maximum number of wells in the problem 
+\layout Paragraph
+
+Specifying head--specified well elements
+\layout Standard
+
+The 
+\family sans 
+wl1
+\family default 
+ directive is followed by one record for every well in the model.
+ If more than nwells well elements is provided, an ModAEM will terminate
+ and report the error.
+ Each well record has the following parameters:
+\layout LyX-Code
+
+(xw,yw) head (xc,yc) radius id
+\layout Description
+
+
+\family typewriter 
+(xw,yw)
+\family default 
+ The coordinates of the center of the well.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ complex\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+head
+\family default 
+ The specified head at the control point.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+(xc,yc)
+\family default 
+ The coordinates of the point where the head condition is to be met.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ complex\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+radius
+\family default 
+ The radius of the well.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+id
+\family default 
+ A unique (integer) identification number for the well.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
+\layout Section
+
+Discharge-specified line-sinks (module LS0) 
+\begin_inset LatexCommand \label{sec:ls0-module}
+
+\end_inset 
+
+
+\layout Standard
+
+Module LS0 creates discharge-specified line-sinks.
+ These are line segments that add or remove a specific amount of water along
+ their length, where the modeler provides the amount of water to be added.
+ Some examples of discharge--specified line sinks are infiltration galleries
+ or rivers in arid climates that are typically dry, but infiltrate water
+ at certain times of the year.
+ These are analogous to a group of wells created with the MODFLOW WEL package.
+\layout Paragraph
+
+Usage:
+\layout LyX-Code
+
+ls0 nstrings
+\layout LyX-Code
+
+  str npts id
+\layout LyX-Code
+
+    (x,y) strength 
+\layout LyX-Code
+
+    ...
+\layout LyX-Code
+
+  str ...
+\layout LyX-Code
+
+    ...
+\layout LyX-Code
+
+end
+\layout Paragraph
+
+Parameters for the
+\family sans 
+ ls0
+\family default 
+ directive
+\layout Description
+
+
+\family typewriter 
+nstrings
+\family default 
+ The maximum number of discharge-specified line-sink strings in the problem.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Standard
+
+Following the 
+\family sans 
+ls0
+\family default 
+ directive, the user provides "strings" of line sinks using the 
+\family sans 
+str
+\family default 
+ directive.
+ A string of line sinks is composed of a list of vertices.
+ One line sink element is created for each pair of consecutive vertices.
+\layout Paragraph
+
+Creating a string of elements
+\layout LyX-Code
+
+str npts id
+\layout LyX-Code
+
+  (x,y) strength
+\layout LyX-Code
+
+  ...
+\layout Paragraph
+
+Parameters for the str directive 
+\layout Description
+
+
+\family typewriter 
+npts
+\family default 
+ The maximum number of vertices in the line-sink string.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+id
+\family default 
+ A unique identification number for the string.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Paragraph
+
+Specifying vertices for line--sink strings
+\layout Standard
+
+Following the 
+\family sans 
+str
+\family default 
+ directive, two or more data records define the vertices of the line--sink
+ string.
+ The parameters provided for each vertex are as follows.
+\layout Description
+
+
+\family typewriter 
+(x,y)
+\family default 
+ Coordinates of the vertex.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ complex\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+strength
+\family default 
+ The sink density 
+\begin_inset Formula $\sigma$
+\end_inset 
+
+ of the line--sink string at the vertex.
+ The total volumetric infiltration or abstraction along the line will be
+ the value 
+\begin_inset Formula $(\sigma_{1}+\sigma_{2})\frac{L}{2}$
+\end_inset 
+
+ 
+\begin_inset Formula $[L^{3}/T]$
+\end_inset 
+
+ where 
+\begin_inset Formula $\sigma_{1}$
+\end_inset 
+
+ and 
+\begin_inset Formula $\sigma_{2}$
+\end_inset 
+
+ are the strengths at consecutive vertices and 
+\begin_inset Formula $L$
+\end_inset 
+
+ is the distance between the vertices.
+ The sink density is defined as the total extraction rate of the line-sink
+ per unit length.
+ The value is positive if the element removes water from the aquifer, negative
+ if it adds water to the aquifer
+\begin_inset Foot
+collapsed false
+
+\layout Standard
+
+Users who make use of ModAEM using the GMS preprocessor will note that GMS
+ makes use of the MODFLOW convention that abstraction of water from the
+ aquifer is negative, while injection is positive.
+ Conversion to ModAEM's convention is handled transparently by GMS.
+\end_inset 
+
+.
+ 
+\begin_inset Formula $[L^{2}/T]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
+\layout Section
+
+Head-specified line-sinks (module LS1)
+\begin_inset LatexCommand \label{sec:ls1-module}
+
+\end_inset 
+
+
+\layout Standard
+
+Module LS1 creates head-specified line-sinks.
+ These are line segments that add or remove water along their lengths, but
+ for which the pumping rate is not 
+\emph on 
+a priori
+\emph default 
+ known to the modeler, and where there is no 
+\begin_inset Quotes eld
+\end_inset 
+
+entry resistance
+\begin_inset Quotes erd
+\end_inset 
+
+, e.g a silty stream bed, between the line sink and the aa group ofquifer.
+ LS1 line sinks are often used to represent rivers in the far field when
+ the modeler wishes to use an unbounded aquifer with a modeled far field
+ (see Section 
+\begin_inset LatexCommand \ref{sub:reference-flow-field}
+
+\end_inset 
+
+).
+ These are somewhat analogous to a group of MODFLOW constant--head cells;
+ they differ because in MODFLOW, constant head cells are specified as part
+ of the aquifer, not as a separate element.
+\layout Paragraph
+
+Usage:
+\layout LyX-Code
+
+ls1 nstrings
+\layout LyX-Code
+
+  str npts id
+\layout LyX-Code
+
+    (x,y) head 
+\layout LyX-Code
+
+    ...
+\layout LyX-Code
+
+  str ...
+\layout LyX-Code
+
+    ...
+\layout LyX-Code
+
+end
+\layout Paragraph
+
+Parameters for the
+\family sans 
+ ls1
+\family default 
+ directive
+\layout Description
+
+
+\family typewriter 
+nstrings
+\family default 
+ The maximum number of discharge-specified line--sink strings in the problem.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Standard
+
+Following the 
+\family sans 
+ls0
+\family default 
+ directive, the user provides "strings" of line sinks using the 
+\family sans 
+str
+\family default 
+ directive.
+ A string of line sinks is composed of a list of vertices.
+ One line sink element is created for each pair of consecutive vertices.
+\layout Paragraph
+
+Creating a string of elements
+\layout LyX-Code
+
+str npts id
+\layout LyX-Code
+
+  (x,y) head
+\layout LyX-Code
+
+  ...
+\layout Paragraph
+
+Parameters for the 
+\family sans 
+str
+\family default 
+ directive 
+\layout Description
+
+
+\family typewriter 
+npts
+\family default 
+ The maximum number of vertices in the line-sink string.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+id
+\family default 
+ A unique identification number for the string.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Paragraph
+
+Specifying vertices for line--sink strings
+\layout Standard
+
+Following the 
+\family sans 
+str
+\family default 
+ directive, two or more data records define the vertices of the line--sink
+ string.
+ The parameters provided for each vertex are as follows.
+\layout Description
+
+
+\family typewriter 
+(x,y)
+\family default 
+ Coordinates of the vertex.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ complex\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+head
+\family default 
+ The specified head at the center of the line-sink string.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
+\layout Section
+
+Line-sinks with entry resistance (module LS2)
+\begin_inset LatexCommand \label{sec:ls2-module}
+
+\end_inset 
+
+
+\layout Standard
+
+Module LS2 creates head-specified line-sinks.
+ These are line segments that add or remove water along their lengths, but
+ for which the pumping rate is not 
+\emph on 
+a priori
+\emph default 
+ known to the modeler, and where an 
+\begin_inset Quotes eld
+\end_inset 
+
+entry resistance
+\begin_inset Quotes erd
+\end_inset 
+
+, e.g a silty stream bed, between the line sink and the aquifer is present.
+ LS2 line sinks are often used to represent surface waters or drains in
+ the near field.
+ LS2 line sinks may be created as rivers (analogous to the MODFLOW RIV package),
+ drains (analogous to the MODFLOW DRN package), or general--head boundaries
+ (analogous to the MODFLOW GHB package).
+ Streamflow routing may be performed for LS2 elements (in a manner similar
+ to the MODFLOW STR package), using the analysis module RT0 (see Section
+ 
+\begin_inset LatexCommand \ref{sec:rt0-module}
+
+\end_inset 
+
+).
+\layout Paragraph
+
+Usage:
+\layout LyX-Code
+
+ls2 nstrings
+\layout LyX-Code
+
+  str npts mode conductance id
+\layout LyX-Code
+
+    (x,y) head bottom
+\layout LyX-Code
+
+    ...
+\layout LyX-Code
+
+  str ...
+\layout LyX-Code
+
+    ...
+\layout LyX-Code
+
+end
+\layout Paragraph
+
+Parameters for the
+\family sans 
+ ls2
+\family default 
+ directive
+\layout Description
+
+
+\family typewriter 
+nstrings
+\family default 
+ The maximum number of discharge-specified line--sink strings in the problem.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Standard
+
+Following the 
+\family sans 
+ls0
+\family default 
+ directive, the user provides "strings" of line sinks using the 
+\family sans 
+str
+\family default 
+ directive.
+ A string of line sinks is composed of a list of vertices.
+ One line sink element is created for each pair of consecutive vertices.
+\layout Paragraph
+
+Creating a string of elements
+\layout LyX-Code
+
+str npts mode conductance id
+\layout LyX-Code
+
+  (x,y) head bottom
+\layout LyX-Code
+
+  ...
+\layout Paragraph
+
+Parameters for the 
+\family sans 
+str
+\family default 
+ directive 
+\layout Description
+
+
+\family typewriter 
+npts
+\family default 
+ The maximum number of vertices in the line-sink string.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+id
+\family default 
+ A unique identification number for the string.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+mode
+\family default 
+ Defines the behavior of the line sink.
+ The value provided is an integer from the list below:
+\begin_deeper 
+\layout Description
+
+
+\family typewriter 
+general-head\SpecialChar ~
+boundary\SpecialChar ~
+(0)
+\family default 
+ The boundary is always active, in a manner analogous with the MODFLOW GHB
+ package.
+\layout Description
+
+
+\family typewriter 
+river\SpecialChar ~
+(1)
+\family default 
+ The line sink becomes a discharge--specified feature if the head in the
+ aquifer falls below the bottom of the resistance layer (a 
+\begin_inset Quotes eld
+\end_inset 
+
+percolating
+\begin_inset Quotes erd
+\end_inset 
+
+ condition).
+ In this case, the infiltration density is computed as 
+\begin_inset Formula $\sigma=c\times(h_{r}-h_{b})$
+\end_inset 
+
+ where 
+\begin_inset Formula $c$
+\end_inset 
+
+ is the conductance of the line sink (see below), 
+\begin_inset Formula $h_{r}$
+\end_inset 
+
+ is the specified stage in the river, and 
+\begin_inset Formula $h_{b}$
+\end_inset 
+
+is the elevation of the bottom of the resistance layer for this line sink.
+ This is analogous to the MODFLOW RIV package.
+\layout Description
+
+
+\family typewriter 
+drain\SpecialChar ~
+(2)
+\family default 
+ The line sink will be removed from the solution with a sink density of
+ zero when the head in the aquifer falls below the bottom of the drain.
+ This is analogous to the MODFLOW DRN package.
+\end_deeper 
+\layout Description
+
+
+\family typewriter 
+conductance
+\family default 
+ The conductance for the line sink.
+ The conductance is defined in a manner consistent with MODFLOW; for a river,
+ the conductance is defined to be 
+\begin_inset Formula $c=w\times\frac{k_{c}}{t_{c}}\,[L/T]$
+\end_inset 
+
+, where 
+\begin_inset Formula $c$
+\end_inset 
+
+ is the conductance, 
+\begin_inset Formula $w$
+\end_inset 
+
+ is the width of the stream, 
+\begin_inset Formula $k_{c}$
+\end_inset 
+
+ is the vertical hydraulic conductivity of the resistance layer, and 
+\begin_inset Formula $t_{c}$
+\end_inset 
+
+ is the thickness of the resistance layer.
+ 
+\begin_inset Formula $[L/T]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+id
+\family default 
+ A unique identification number for this string.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Paragraph
+
+Specifying vertices for line--sink strings
+\layout Standard
+
+Following the 
+\family sans 
+str
+\family default 
+ directive, two or more data records define the vertices of the line--sink
+ string.
+ The parameters provided for each vertex are as follows.
+\layout Description
+
+
+\family typewriter 
+(x,y)
+\family default 
+ Coordinates of the vertex.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ complex\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+head
+\family default 
+ The specified head at this vertex.
+ The model interpolates the head along the line segment.
+ Since the head is specified at the center of the line segment, the average
+ of the bottom elevation between adjacent vertices is used.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+bottom The elevation of the bottom of the resistance layer at this vertex.
+ The model interpolates the bottom elevation along the line segment.
+ Since the head is specified at the center of the line segment, the average
+ of the bottom elevation between adjacent vertices is used.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
+\layout Section
+
+No--flow boundary walls (module HB0)
+\begin_inset LatexCommand \label{sec:hb0-module}
+
+\end_inset 
+
+
+\layout Standard
+
+Module HB0 creates no--flow boundary walls (e.g.
+ sheet pilings or slurry walls).
+ These are elements that create a linear no--flow condition within the active
+ area of a ModAEM model.
+ These may be used to model sheet pilings, slurry walls, faults, and other
+ linear no--flow conditions that require an active aquifer domain on both
+ sides of the line.
+ This should not be used for bounded models or for 
+\begin_inset Quotes eld
+\end_inset 
+
+islands
+\begin_inset Quotes erd
+\end_inset 
+
+ in an aquifer domain; use the BDY elements included in module AQU (Section
+ 
+\begin_inset LatexCommand \ref{sub:bounded-aquifers}
+
+\end_inset 
+
+) for details.
+ These are analogous to the MODFLOW HFB package.
+\layout Paragraph
+
+Usage:
+\layout LyX-Code
+
+hb0 nstrings
+\layout LyX-Code
+
+  str npts id
+\layout LyX-Code
+
+    (x,y)
+\layout LyX-Code
+
+    ...
+\layout LyX-Code
+
+  str ...
+\layout LyX-Code
+
+    ...
+\layout LyX-Code
+
+end
+\layout Paragraph
+
+Parameters for the
+\family sans 
+ hb0
+\family default 
+ directive
+\layout Description
+
+
+\family typewriter 
+nstrings
+\family default 
+ The maximum number of no--flow strings in the problem.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Standard
+
+Following the 
+\family sans 
+hb0
+\family default 
+ directive, the user provides "strings" of line sinks using the 
+\family sans 
+str
+\family default 
+ directive.
+ A no--flow string is composed of a list of vertices.
+ One line doublet element is created for each pair of consecutive vertices.
+\layout Paragraph
+
+Creating a string of elements
+\layout LyX-Code
+
+str npts id
+\layout LyX-Code
+
+  (x,y) strength
+\layout LyX-Code
+
+  ...
+\layout Paragraph
+
+Parameters for the str directive 
+\layout Description
+
+
+\family typewriter 
+npts
+\family default 
+ The maximum number of vertices in the line-sink string.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+id
+\family default 
+ A unique identification number for the string.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Paragraph
+
+Specifying vertices for line--sink strings
+\layout Standard
+
+Following the 
+\family sans 
+str
+\family default 
+ directive, two or more data records define the vertices of the no--flow
+ string.
+ The parameters provided for each vertex are as follows.
+\layout Description
+
+
+\family typewriter 
+(x,y)
+\family default 
+ Coordinates of the vertex.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ complex\}$
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
+\layout Section
+
+Discharge-specified circular area-sinks (module PD0)
+\begin_inset LatexCommand \label{sec:pd0-module}
+
+\end_inset 
+
+
+\layout Standard
+
+Module PD0 creates discharge-specified circular area-sinks (colloquially
+ known as "ponds").
+ 
+\layout Paragraph
+
+Usage:
+\layout LyX-Code
+
+pd0 nponds
+\layout LyX-Code
+
+  (xw,yw) strength radius id 
+\layout LyX-Code
+
+  ...
+ 
+\layout LyX-Code
+
+end
+\layout Paragraph
+
+Parameters for the 
+\family sans 
+pd0
+\family default 
+ directive
+\layout Description
+
+
+\family typewriter 
+nwells
+\family default 
+ The maximum number of wells in the problem 
+\layout Paragraph
+
+Specifying well elements
+\layout Standard
+
+The 
+\family sans 
+wl0
+\family default 
+ directive is followed by one record for every well in the model.
+ If more than nwells well elements is provided, an ModAEM will terminate
+ and report the error.
+ Each well record has the following parameters:
+\layout LyX-Code
+
+(xw,yw) sink-density radius id
+\layout Description
+
+
+\family typewriter 
+(xw,yw)
+\family default 
+ The coordinates of the center of the pond.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ complex\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+sink-density
+\family default 
+ The sink density of the pond.
+ This is the value 
+\begin_inset Formula $\gamma=Q_{p}/A_{p}$
+\end_inset 
+
+, where 
+\begin_inset Formula $\gamma\,[L/T]$
+\end_inset 
+
+ is the sink density, 
+\begin_inset Formula $Q_{p}\,[L^{3}/T]$
+\end_inset 
+
+ is the total amount of water infiltrated or abstracted by the pond, and
+ 
+\begin_inset Formula $A_{p}\,[L^{2}]$
+\end_inset 
+
+ is the area of the pond.
+ The value is positive if the element removes water from the aquifer, negative
+ if it adds water to the aquifer
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Users who make use of ModAEM using the GMS preprocessor will note that GMS
+ makes use of the MODFLOW convention that abstraction of water from the
+ aquifer is negative, while injection is positive.
+ Conversion to ModAEM's convention is handled transparently by GMS.
+\end_inset 
+
+.
+ 
+\begin_inset Formula $[L/T]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+radius
+\family default 
+ The radius of the pond.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+id
+\family default 
+ A unique identification number for the pond.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
+\layout Section
+
+Polygonal area-sinks (module AS0)
+\begin_inset LatexCommand \label{sec:as0-module}
+
+\end_inset 
+
+
+\layout Standard
+
+Module AS0 creates discharge-specified polygonal area-sinks.
+ These are elements that provide an areal infiltration or exfiltration rate
+ over a polygonal sub--domain.
+ The 
+\begin_inset Quotes eld
+\end_inset 
+
+sink density
+\begin_inset Quotes erd
+\end_inset 
+
+, or rate of infitration per unit of surface area, is specified by the modeer.
+ These are typically used as sources of areal recharge, e.g.
+ from rainfall, or for infiltration galleries.
+ 
+\layout Paragraph
+
+Usage:
+\layout LyX-Code
+
+as0 nareas
+\layout LyX-Code
+
+  str npts strength id
+\layout LyX-Code
+
+    (x,y) 
+\layout LyX-Code
+
+    ...
+\layout LyX-Code
+
+  str ...
+\layout LyX-Code
+
+    ...
+\layout LyX-Code
+
+end
+\layout Paragraph
+
+Parameters for the
+\family sans 
+ as0
+\family default 
+ directive
+\layout Description
+
+nareas The maximum number of discharge-specified line-sink strings in the
+ problem.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Standard
+
+Following the 
+\family sans 
+as0
+\family default 
+ directive, the user provides polygons using the 
+\family sans 
+str
+\family default 
+ directive.
+ A polygon is composed of a list of vertices.
+ It is not necessary to duplicate the first vertex to close the polygon;
+ ModAEM automatically closes the polygon.
+\layout Paragraph
+
+Creating an element
+\layout LyX-Code
+
+str npts sink-density top/bottom id
+\layout LyX-Code
+
+  (x,y) 
+\layout LyX-Code
+
+  ...
+\layout Paragraph
+
+Parameters for the str directive 
+\layout Description
+
+
+\family typewriter 
+npts
+\family default 
+ The maximum number of vertices in the line-sink string.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+sink-density
+\family default 
+ The sink density of the area sink.
+ This is the value 
+\begin_inset Formula $\gamma=Q_{p}/A_{p}$
+\end_inset 
+
+, where 
+\begin_inset Formula $\gamma\,[L/T]$
+\end_inset 
+
+ is the sink density, 
+\begin_inset Formula $Q_{p}\,[L^{3}/T]$
+\end_inset 
+
+ is the total amount of water infiltrated or abstracted by the element,
+ and 
+\begin_inset Formula $A_{p}\,[L^{2}]$
+\end_inset 
+
+ is the area of the polygon.
+ The value is positive if the element removes water from the aquifer, negative
+ if it adds water to the aquifer
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Users who make use of ModAEM using the GMS preprocessor will note that GMS
+ makes use of the MODFLOW convention that abstraction of water from the
+ aquifer is negative, while injection is positive.
+ Conversion to ModAEM's convention is handled transparently by GMS.
+\end_inset 
+
+.
+ 
+\begin_inset Formula $[L/T]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ real\}$
+\end_inset 
+
+
+\layout Description
+
+
+\family typewriter 
+top/bottom 
+\family default 
+An integer that specifies whether the area sinks are to be placed at the
+ aquifer top (
+\family typewriter 
+\series bold 
+0
+\family default 
+\series default 
+) or bottom (
+\family typewriter 
+\series bold 
+1
+\family default 
+\series default 
+).
+ 
+\layout Description
+
+
+\family typewriter 
+id
+\family default 
+ A unique identification number for the string.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\layout Paragraph
+
+Specifying vertices for polygons
+\layout Standard
+
+Following the 
+\family sans 
+str
+\family default 
+ directive, two or more data records define the vertices of the area--sink
+ perimeter.
+ The parameters provided for each vertex are as follows.
+\layout Description
+
+
+\family typewriter 
+(x,y)
+\family default 
+ Coordinates of the vertex.
+ 
+\begin_inset Formula $[L]$
+\end_inset 
+
+ 
+\begin_inset Formula $\{ complex\}$
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
+\layout Chapter
+
+Processing Directives
+\begin_inset LatexCommand \label{cha:Processing-Directives}
+
+\end_inset 
+
+ 
+\layout Standard
+
+This chapter describes processing directives that control the solution process
+ and general imspection of values for ModAEM.
+ Many of the directives described here are most commonly used for program
+ debugging, experimentation and development of example problems.
+ When computing results that are to be used for analysis purposes (e.g.
+ within GUI--based modeling environments), the modules GRI (grid/contour
+ generation), EXT (data extraction), INQ (element results inquiry), and
+ OBS (observation data)
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Available in ModAEM-1.4.1 and later versions.
+\end_inset 
+
+.
+ See Chapter 
+\begin_inset LatexCommand \ref{cha:Analysis-modules}
+
+\end_inset 
+
+ for details about the analysis modules.
+\layout Standard
+
+Each of these directives is given outside the 
+\begin_inset Quotes eld
+\end_inset 
+
+AEM section
+\begin_inset Quotes erd
+\end_inset 
+
+ of the ModAEM script.
+ The general layout of the script is as follows, with the processing directives
+ marked in bold face.
+\layout LyX-Code
+
+aem
+\layout LyX-Code
+
+  aqu ...
+\layout LyX-Code
+
+    ref ...
+\layout LyX-Code
+
+    bdy ...
+\layout LyX-Code
+
+    in0 ...
+\layout LyX-Code
+
+      ...
+\layout LyX-Code
+
+    end
+\layout LyX-Code
+
+  end
+\layout LyX-Code
+
+  # other elements go here
+\layout LyX-Code
+
+end
+\layout LyX-Code
+
+
+\series bold 
+# processing directives go here
+\layout LyX-Code
+
+
+\series bold 
+sol ...
+\layout LyX-Code
+
+
+\series bold 
+hea ...
+\layout LyX-Code
+
+eod
+\layout Standard
+
+In nearly every case, the first processing directive issued should be 
+\family typewriter 
+\series bold 
+sol x
+\family default 
+\series default 
+, where 
+\family typewriter 
+\series bold 
+x
+\family default 
+\series default 
+ is the number of iterations (if a solution is to be loaded, use 
+\family typewriter 
+\series bold 
+sol 0
+\family default 
+\series default 
+ to simply load the saved results file).
+ After the solution is complete, the other directives will be useful.
+\layout Paragraph
+
+Processing directives for solving and reporting solution results 
+\layout Description
+
+
+\family typewriter 
+SOL
+\family default 
+ Solves the model, based on the available input and results from a previous
+ solution loaded from disk
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Available in ModAEM-1.4.1 and later versions.
+\end_inset 
+
+.
+\layout Description
+
+
+\family typewriter 
+RPT
+\family default 
+ Generates a report of all solution information in HTML format.
+\layout Paragraph
+
+Processing directives that retrieve data from the model at a specific point
+\layout Description
+
+
+\family typewriter 
+HEA
+\family default 
+ Reports the head at some location in the model to the error log file.
+\layout Description
+
+
+\family typewriter 
+POT
+\family default 
+ Reports the complex potential at some location in the model to the error
+ log file.
+\layout Description
+
+
+\family typewriter 
+DIS
+\family default 
+ Reports the discharge at some location in the model to the error log file.
+\layout Description
+
+
+\family typewriter 
+VEL
+\family default 
+ Reports the velocity at some location in the model to the error log file.
+\layout Description
+
+
+\family typewriter 
+RCH
+\family default 
+ Reports the net exfiltration rate at some location in the model to the
+ error log file.
+\layout Description
+
+
+\family typewriter 
+THK
+\family default 
+ Reports the saturated thickness at some location in the model to the error
+ log file.
+\layout Paragraph
+
+Processing directives that compute numerical approximations for model testing
+\layout Description
+
+
+\family typewriter 
+GRA
+\family default 
+ Reports the numerical gradient at some location in the model to the error
+ log file.
+\layout Description
+
+
+\family typewriter 
+LAP
+\family default 
+ Reports the numerical laplacian at some location in the model to the error
+ log file.
+\layout Paragraph
+
+Processing directives that compute values for a line segment
+\layout Description
+
+
+\family typewriter 
+FLO
+\family default 
+ Reports the integrated flow across a line segment in the model to the error
+ log file.
+\layout Standard
+
+The remainder of this chapter describes the general--purpose processing
+ directives in detail.
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
+\layout Section
+
+Directive SOL -- solve the model 
+\layout Standard
+
+After a model has been defined (using the AEM module input section), it
+ must be solved prior to performing any analyses.
+ ModAEM uses an iterative solution scheme -- at each iteration, the solution
+ is improved based on the previous iteration, including the incorporation
+ of non--linear elements such as resistance line sinks or inhomogeneity
+ boundaries in regions where the flow is unconfined.
+\layout Paragraph
+
+Usage:
+\layout LyX-Code
+
+sol niter
+\layout Paragraph
+
+Parameters for the sol directive:
+\layout Description
+
+niter The number of iterations to be performed.
+ 
+\begin_inset Formula $\{ integer\}$
+\end_inset 
+
+
+\newline 
+The number of iterations to be used depends strongly on the problem to be
+ solved.
+ The following list describes the issues that determine the number of iterations
+ needed for model convergence.
+ Note that this list is a rule--of--thumb; your mileage may vary
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+dots
+\end_inset 
+
+
+\begin_deeper 
+\layout Description
+
+1--2\SpecialChar ~
+iterations Simple models that are linear at all points in the domain.
+ Typically, this means that the flow is confined everywhere and that no
+ resistance line sinks that can be removed from solution (that is, 
+\begin_inset Quotes eld
+\end_inset 
+
+river
+\begin_inset Quotes erd
+\end_inset 
+
+ and 
+\begin_inset Quotes eld
+\end_inset 
+
+drain
+\begin_inset Quotes erd
+\end_inset 
+
+ line sinks) are present.
+ These problems should give accurate solutions with only 1--2 iterations.
+\layout Description
+
+3--8\SpecialChar ~
+iterations More complex models that make use of 
+\begin_inset Quotes eld
+\end_inset 
+
+river
+\begin_inset Quotes erd
+\end_inset 
+
+ and 
+\begin_inset Quotes eld
+\end_inset 
+
+drain
+\begin_inset Quotes erd
+\end_inset 
+
+ line sinks, or have large areas in the model domain in which the flow is
+ unconfined, but where the aquifer base elevation and thickness are constant
+ everywhere will typically converge in 8 iterations or less.
+\layout Description
+
+more\SpecialChar ~
+iterations Very complex models in which the aquifer base elevation and/or
+ thickness varies and the flow is unconfined, or problems where baseflow
+ routing is in use
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Available in ModAEM-1.4.1 and later.
+\end_inset 
+
+.
+ May require 10 or more iterations to achieve convergence.
+\end_deeper 
+\layout Subsection
+
+Loading a previous solution
+\layout Standard
+
+In ModAEM-1.4.1 and later versions, an option exists to load a previous solution.
+ When this feature is in use, the solution is actually loaded as part of
+ the 
+\begin_inset Quotes eld
+\end_inset 
+
+pre--solve
+\begin_inset Quotes erd
+\end_inset 
+
+ step (see the ModAEM Programmer's Guide or the source code for details).
+ The problem definition, i.e.
+ the aquifer definition and creation of all elements must be complete prior
+ to loading the results.
+\layout Standard
+
+Because the previous solution is loaded in response to the 
+\family sans 
+sol
+\family default 
+ directive a special version of the directive, 
+\family typewriter 
+\series bold 
+sol 0
+\family default 
+\series default 
+, is provided.
+ By issuing the 
+\family sans 
+sol
+\family default 
+ directive with no iterations, the previous solution will be loaded, and
+ all of ModAEM's internal data structures will be restored, but no addition
+ solution step will be performed.
+ Whenever a previous solution is to be used, the 
+\family typewriter 
+\series bold 
+sol 0
+\family default 
+\series default 
+ directive should be the first directive in the ModAEM script after the
+ AEM section is complete.
+\layout Subsection
+
+Saving a solution for future re--use
+\layout Standard
+
+If the modeler provides a name for a 
+\begin_inset Quotes eld
+\end_inset 
+
+solution save file
+\begin_inset Quotes erd
+\end_inset 
+
+ on line 3 of the ModAEM name file, ModAEM stores the solution there as
+ the final step in the 
+\begin_inset Quotes eld
+\end_inset 
+
+post--solve
+\begin_inset Quotes erd
+\end_inset 
+
+ procedure.
+ No directives are required in the ModAEM script file.
+\layout Section
+
+Directive RPT -- report the solution in HTML format
+\layout Standard
+
+Add words
+\layout Section
+
+Directives that compute analytic values at a single point
+\layout Standard
+
+5.2 HEA - report the modeled head Reports the potentiometric head at a specified
+ point to the "message" file (.err file) and console.
+ A solution must be present (see the sol directive) prior to issing this
+ directive.
+ The directive
+\layout Standard
+
+hea (x,y) reports the modeled potentiometric head at the point 
+\backslash 
+Gamma x
+\backslash 
+Delta y
+\backslash 
+Theta .
+\layout Standard
+
+Example
+\layout Standard
+
+HEA (100.0,100.0)
+\layout Standard
+
+reports the head at the coordinate 
+\backslash 
+Gamma 100
+\backslash 
+Delta 100
+\backslash 
+Theta .
+\layout Standard
+
+5.3 POT - report the modeled complex potential Reports the complex potential
+ at a specified point to the "message" file and console.
+ A solution must be present (see the sol directive) prior to issing this
+ directive.
+ The directive
+\layout Standard
+
+pot (x,y) reports the complex potential 
+\backslash 
+Omega 
+\backslash 
+Lambda 
+\backslash 
+Phi 
+\backslash 
+Xi i
+\backslash 
+Psi at the point 
+\backslash 
+Gamma x
+\backslash 
+Delta y
+\backslash 
+Theta .
+\layout Standard
+
+Example
+\layout Standard
+
+pot (100.0,100.0)
+\layout Standard
+
+reports the head at the coordinate 
+\backslash 
+Gamma 100
+\backslash 
+Delta 100
+\backslash 
+Theta .
+\layout Standard
+
+5.4 GRA - report the modeled numerical gradient in potential Reports the
+ numerical gradient (in discharge potential) at a specified point to the
+ "message" file (.err file) and console.
+ This directive is commonly used in program debugging; the numerical gradient
+ should have the same value as the total discharge (see the dis directive
+ in 5.5).
+ A solution must be present (see the sol directive) prior to issing this
+ directive.
+ The directive:
+\layout Standard
+
+gra [z] delta reports the gradient at the complex coordinate z 
+\backslash 
+Lambda x 
+\backslash 
+Xi iy.
+ Note that in Fortran free-format reads, the two parts of the complex coordinate
+ are provided as 
+\backslash 
+Gamma x
+\backslash 
+Delta y
+\backslash 
+Theta pairs.
+ Thus, the directive
+\layout Standard
+
+gra (100.0,100.0) 1.0 reports the gradient at the coordinate 
+\backslash 
+Gamma 100
+\backslash 
+Delta 100
+\backslash 
+Theta .
+\layout Standard
+
+5.5 DIS - report the total aquifer discharge Repors the total aquifer discharge
+ at a specified point to the "message" file (.err file) and console.
+ The total discharge is a two-dimensional analogue for the specific discharge;
+ it is defined as the horizontal component of the specific discharge, integrated
+ from the aquifer bottom to the aquifer top.
+ A solution must be present (see the sol directive) prior to issing this
+ directive.
+ The directive
+\layout Standard
+
+dis (x,y) reports the total aquifer discharge Q0 
+\backslash 
+Gamma L2
+\backslash 
+Theta T 
+\backslash 
+Delta at the point 
+\backslash 
+Gamma x
+\backslash 
+Delta y
+\backslash 
+Theta .
+\layout Standard
+
+Example
+\layout Standard
+
+dis (100.0,100.0)
+\layout Standard
+
+reports the discharge at the coordinate 
+\backslash 
+Gamma 100
+\backslash 
+Delta 100
+\backslash 
+Theta .
+\layout Standard
+
+DIS (100.0,100.0)
+\layout Section
+
+Directives that compute numerical approximations for testing
+\layout Standard
+
+Two directives are provided that approximately compute the gradient in the
+ potential and laplacian of the potential, for the purpose of testing the
+ analytic functions that underlie all ModAEM computations.
+\layout Section
+
+Directives that compute a net analytic value for a line segment
+\layout Standard
+
+5.6 FLO
+\begin_inset LatexCommand \label{cmd:flo}
+
+\end_inset 
+
+ - report the total flow across a path Directs ModAEM to report the total
+ integrated groundwater flow across a linear path connecting two specified
+ points to the "message" file (.err file) and console.
+ A solution must be present (see the sol directive) prior to issing this
+ directive.
+ The directive
+\layout Standard
+
+flo (x1,y1) (x2,y2) reports the integrated groundwater flux across the line-segm
+ent connecting 
+\backslash 
+Gamma x1 
+\backslash 
+Delta y1
+\backslash 
+Theta and 
+\backslash 
+Gamma x2 
+\backslash 
+Delta y2
+\backslash 
+Theta in units of 
+\backslash 
+Gamma L3
+\backslash 
+Theta T 
+\backslash 
+Delta .
+\layout Standard
+
+Example The directive
+\layout Standard
+
+flo (50.0,50.0) (100.0,100.0) reports the discharge between the coordinates
+ 
+\backslash 
+Gamma 50
+\backslash 
+Delta 50
+\backslash 
+Theta and 
+\backslash 
+Gamma 100
+\backslash 
+Delta 100
+\backslash 
+Theta .
+\layout Section
+
+Extracting model results in machine-readable format (module INQ)
+\begin_inset LatexCommand \label{sec:module-INQ}
+
+\end_inset 
+
+
+\layout Standard
+
+Module INQ provides the ability to extract results from the model in a machine-r
+eadable format that is convenient for post-processing tools and graphical
+ user interface (GUI) programs.
+\layout Standard
+
+This section needs to be completed
+\layout Chapter
+
+Analysis modules
+\begin_inset LatexCommand \label{cha:Analysis-modules}
+
+\end_inset 
+
+
+\layout Section
+
+Streamline tracing (module TR0)
+\begin_inset LatexCommand \label{sec:tr0-module}
+
+\end_inset 
+
+
+\layout Section
+
+Streamflow routing (module RT0)
+\begin_inset LatexCommand \label{sec:rt0-module}
+
+\end_inset 
+
+
+\layout Standard
+
+5.7 Generating grids in SURFERTMor MATLABTMformat (module GRI) Module GRI
+ provides a facility for the construction of grids (e.g.
+ for contour plotting) in a format compatible with SURFERtexttrademark or
+ Matlabtexttrademark.
+ Within the grid module, the window to be gridded must be specified, along
+ with the number of points on the long axis of the grid.
+ ModAEM processing enters module GRI when it encounters a gri directive.
+ The following directives control the operation of the grid module.
+\layout Standard
+
+5.7.1 Selecting the output file type (opt directive) The opt directive instructs
+ the grid module which type of output file to create.
+ Usage:
+\layout Standard
+
+opt grid-type The opt directive expects one parameter, as follows.
+ grid-type Choose surfer for an ASCII SURFERTM-compatible grid (with the
+ extension .grd) and matlab for
+\layout Standard
+
+an ASCII MATLABTM-compatible grid (with the extension .m).
+ If the OPT directive is omitted, the grid-type will default to surfer.
+\layout Standard
+
+Example To select a MatlabTM-compatible output file, issue the directive
+\layout Standard
+
+opt matlab
+\layout Standard
+
+5.7.2 Defining the grid window (win directive) Defines the window to be gridded.
+ Usage :
+\layout Standard
+
+win (x1,y1) (x2,y2) The win directive expects the following parameters.
+ (x1,y1) The lower-left corner of the (rectangular) region to be gridded.
+ (x2,y2) The upper-right corner of the (rectangular) region to be gridded.
+\layout Standard
+
+Example
+\layout Standard
+
+win (-100.0,-100.0) (100.0,100.0)
+\layout Standard
+
+sets the lower-left and upper-right corners of the window for the GRI module
+ at the coordinates 
+\backslash 
+Gamma 
+\backslash 
+Delta 
+\backslash 
+Gamma 100
+\backslash 
+Delta 
+\backslash 
+Delta 
+\backslash 
+Gamma 100
+\backslash 
+Theta and
+\backslash 
+Gamma 
+\layout Standard
+
+100
+\backslash 
+Delta 100
+\backslash 
+Theta , respectively.
+\layout Standard
+
+5.7.3 Choosing the grid resolution (dim directive) Sets the number of grid
+ points along the long axis of the window.
+ Usage:
+\layout Standard
+
+dim npts The dim directive expects one parameter as follows.
+ npts The number of evenly-spaced points to compute along the long axis
+ of the rectangular grid region.
+ Module GRI
+\layout Standard
+
+will compute an appropriate number of points along the short axis to ensure
+ that the grid has regular spacing in both directions.
+\layout Standard
+
+Example To make grid(s) with a resolution of 50 points along the long axis,
+ issue the directive
+\layout Standard
+
+gri 50
+\layout Standard
+
+5.7.4 Computing a grid and writing it to a file (directives hea, pot, psi,
+ q_x, and q_y) Once the grid type, grid region, and grid resolution are
+ specified (see the directives opt, dim, and win above), grid files may
+ be computed for a variety of model output values.
+ Currently the following directives are available:
+\layout Standard
+
+HEA - Create a grid of heads Usage:
+\layout Standard
+
+hea base-filename generates a grid of the potentiometric head f on the file
+ base-filename_head.grd (or base-filename_head.m)
+\layout Standard
+
+POT - Create a grid of potentials Usage:
+\layout Standard
+
+pot base-filename generates a grid of the discharge potential 
+\backslash 
+Phi on the file base-filename_potential.grd (or base-filename_potential.m)
+\layout Standard
+
+PSI - Create a grid of stream functions Usage:
+\layout Standard
+
+psi base-filename generates a grid of the streamfunction 
+\backslash 
+Psi on the file base-filename_psi.grd (or base-filename_psi.m)
+\layout Standard
+
+Q_X - Create a grid of discharges in the x-direction Usage:
+\layout Standard
+
+q_x base-filename generates a grid of the total aquifer discharge in the
+ x-direction potentiometric heads on the file base-filename_qx.grd (or base-filen
+ame_qx.m)
+\layout Standard
+
+Q_Y - Create a grid of discharges in the y-direction Usage:
+\layout Standard
+
+q_y base-filename generates a grid of the total aquifer discharge in the
+ y-direction on the file base-filename_qy.grd (or base-filename_qy.m)
+\layout Standard
+
+5.8 Module TR0 - Trace The TR0 directive instructs ModAEM to enter the trace
+ module, which is used to trace 2-D streamlines.
+ The TR0 directive must have a matching END directive.
+ Within the TR0 module, the following directives are valid:
+\layout Standard
+
+WIN - Set the tracing window.
+ Default tuning parameters are derived from the window size.
+\layout Standard
+
+TUN - Set tuning parameters Sets tuning parameters for the tracing algorithm.
+ Usage:
+\layout Standard
+
+TUN step prox frac small step The base step size prox The proximity (in
+ terms of the current step size) to boundary conditions for reducing the
+ step size frac The factor for step size reductions small Smallest allowable
+ step size
+\layout Standard
+
+TIM - Specify maximum time allowed for particle tracing POI - Release a
+ single particle at the specified location LIN - Release particles along
+ a line N particles along a line
+\layout Standard
+
+GRI - Release a grid of particles in the sub-window WL0 - Release N particles
+ in reverse from the well bore of a WL0 (discharge-specified well) element.
+ WL1 - Release N particles in reverse from the well bore of a WL1 (head-specifie
+d well) element.
+\layout Chapter
+
+Validation 
+\layout Standard
+
+This chapter will describe the validation problems that ship with the official
+ ModAEM release.
+\layout Chapter
+
+ModAEM Tools 
+\layout Standard
+
+This chapter describes various preprocessing and postprocessing tools that
+ are either included in the ModAEM distribution or are available from third-part
+y vendors.
+\layout Standard
+
+
+\begin_inset LatexCommand \BibTeX[plain]{}
+
+\end_inset 
+
+
+\layout Chapter
+\start_of_appendix 
+Mathematical formulation of ModAEM elements
+\layout Standard
+
+Ugh...
+\the_end

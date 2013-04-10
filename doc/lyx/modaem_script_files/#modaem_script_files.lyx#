@@ -1,0 +1,705 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass book
+\use_default_options false
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_amsmath 1
+\use_esint 0
+\use_mhchem 0
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Chapter
+ModAEM script files
+\begin_inset CommandInset label
+LatexCommand label
+name "cha:script-files"
+
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Standard
+ModAEM execution is controlled by the use of a "ModAEM script file" (with
+ the extension 
+\family sans
+.aem
+\family default
+), and a "ModAEM name file" (called 
+\family sans
+modaem.nam
+\family default
+).
+ These files are the only input files that are required by the model.
+\end_layout
+
+\begin_layout Section
+The ModAEM name file 
+\family typewriter
+modaem.nam
+\begin_inset CommandInset label
+LatexCommand label
+name "sub:name-file"
+
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Standard
+The standard library for the Fortran-95 language does not provide a mechanism
+ for gathering command-line arguments (e.g.
+ the '
+\family typewriter
+int main(int argc, char **argv)
+\family default
+' in a C or C++ program or 
+\family typewriter
+sys.argv[]
+\family default
+ in Python).
+ Although nearly all current Fortran-95 compilers provide a library routine
+ for this task, they are not syntactically consistent.
+ One of the design objectives of the ModAEM project is that the code should
+ be as portable as possible, so language extensions have been carefully
+ avoided.
+ Therefore, the "official" ModAEM release code uses a file called 
+\family sans
+modaem.nam
+\family default
+ in the current working directory when the program begins execution to find
+ the ModAEM script file.
+ The name file provides the base file name for the ModAEM script file (and
+ may provide other features in the future).
+ Developers are encouraged to add platform-specific support for command-line
+ arguments if they desire
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+It is expected that developers (particularly those who need a platform-specific
+ version of ModAEM) will add the ability to fetch command-line arguments
+ in the version of ModAEM that ships with their code.
+ The addition of this feature is compiler-dependent.
+ Be advised that under the GNU General Public License (GPL), you are required
+ to provide the source code along with the executable (or at least tell
+ the user where to get it), when you first distribute a customized version
+ of ModAEM.
+ The author will provide a clearing-house for platform-specific and compiler--sp
+ecific versions of at the ModAEM website 
+\family typewriter
+http://modaem.wittmanhydro.com
+\family default
+.
+ It is understood that some vendors may wish to add a platform-specific
+ GUI-style display to ModAEM (e.g.
+ in a style similar to the MODFLOW/Win32 code that ships with the popular
+ 
+\emph on
+Groundwater Vistas
+\emph default
+ MODFLOW GUI).
+ It will be much appreciated if someone will make such a version available
+ under GPL.
+ Although it is much preferred that such an extension is released under
+ GPL, the copyright holders understand the developer's concerns and will
+ consider requests (we make no guarantees 
+\emph on
+a priori
+\emph default
+) for special licensing arrangements for such extensions.However, we do not
+ anticipate a willingness to engage in special licensing exceptions for
+ computational features that may be added to the code.
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Contents of the name file 
+\end_layout
+
+\begin_layout Standard
+The ModAEM name file 
+\family sans
+modaem.nam
+\family default
+ can be created with any text editor.
+ 
+\family sans
+modaem.nam
+\family default
+ contains up to three lines of text, as follows:
+\end_layout
+
+\begin_layout Paragraph
+Line 1 -- Base file name for the model run
+\end_layout
+
+\begin_layout Standard
+The first line of the name file contains the 
+\begin_inset Quotes eld
+\end_inset
+
+base
+\begin_inset Quotes erd
+\end_inset
+
+ name of the files for the model run.
+ For example, if the model input data are contained in a file called 
+\family sans
+modaem.aem
+\family default
+, then the contents of 
+\family sans
+modaem.nam
+\family default
+ would be:
+\end_layout
+
+\begin_layout LyX-Code
+modaem
+\end_layout
+
+\begin_layout Standard
+The extension 
+\family sans
+.aem
+\family default
+ is appended to the file name by ModAEM.
+ In addition, two output files will be created using the same base name,
+ '
+\family sans
+modaem
+\family default
+':
+\end_layout
+
+\begin_layout Description
+
+\family sans
+\series medium
+modaem.err
+\family default
+\series default
+ Will be written as the "message" file.
+ This file echoes program input and messages issued during execution.
+ It may be used as a run log file (and to see the results of some processing
+ directives).
+ Although some model results can be sent to the message file, it is not
+ appropriate for extracting model results (e.g.
+ heads) for use in GUI programs; the "inquiry" files written by module INQ
+ (Section 5.9) are designed for this feature.
+\end_layout
+
+\begin_layout Description
+
+\family sans
+\series medium
+modaem.out
+\family default
+\series default
+ Will be written as the "output" file.
+ This file recieves an HTML document listing of the solution results, which
+ may be useful in debugging.
+ The output file is not appropriate for loading results to be displayed
+ in GUI programs; the "inquiry" files written by module INQ (Section 5.9)
+ are designed for this feature.
+\end_layout
+
+\begin_layout Paragraph
+Line 2 -- Name of the previous solution file
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+The 
+\begin_inset Quotes eld
+\end_inset
+
+load previous solution
+\begin_inset Quotes erd
+\end_inset
+
+ feature is not available in ModAEM 1.4.0.
+ It will be implemented in ModAEM-1.4.1.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The second file named in the name file is an optional file that contains
+ the saved results from a previous solution that are to be reloaded, for
+ example, to trace particles from a prior solution without the need for
+ re-solving.
+ If it is provided, the results are read from the previous solution file
+ after the problem is defined (see the 
+\family sans
+\series bold
+aem
+\family default
+\series default
+ directive and related information below), when the 
+\family sans
+\series bold
+sol
+\family default
+\series default
+ directive is encountered.
+ To 
+\begin_inset Quotes eld
+\end_inset
+
+solve
+\begin_inset Quotes erd
+\end_inset
+
+ the model byCool pictures? Why would we do all this work if we weren't
+ going to make cool pictures? -- Mark Bakker
+\end_layout
+
+\begin_layout Standard
+simply reloading the solution, issue the directive 
+\family typewriter
+sol
+\begin_inset space ~
+\end_inset
+
+0
+\family default
+ after the problem definition is complete.
+ If the previous solution file is missing or if the file is empty, a warning
+ will be issued and execution will continue.
+ However, if the file is not empty, a fatal error results if the contents
+ of the previous solution file are inconsistent with the problem definition.
+\end_layout
+
+\begin_layout Standard
+The file name may have any extension that the modeler desires, although
+ by convention, the extention 
+\family sans
+.pre
+\family default
+ is recommended.
+ If the name of previous solution file is omitted from the name file, no
+ previous solution will be loaded.
+\end_layout
+
+\begin_layout Paragraph
+Line 3 -- Name of the file where solution results are to be written
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+The 
+\begin_inset Quotes eld
+\end_inset
+
+save solution
+\begin_inset Quotes erd
+\end_inset
+
+ feature is not available in ModAEM 1.4.0.
+ It will be implemented in ModAEM-1.4.1.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The third file named in the name file is an optional file where the results
+ of the solution are to be written, for example, for use as the initial
+ condition in a future ModAEM run.
+ If it is provided, ModAEM will write the solution when the solution procedure
+ is complete.
+ The file may be reloaded by specifying it in the second line of a future
+ name file (see above).
+ 
+\end_layout
+
+\begin_layout Standard
+The file name may have any extension that the modeler desires, although
+ by convention, the extention 
+\family sans
+.pre
+\family default
+ is recommended.
+ If the name of the save file is omitted from the name file, no solution
+ will be saved.
+\end_layout
+
+\begin_layout Section
+The AEM script file (
+\family sans
+.
+\series medium
+aem
+\family default
+\series default
+ file) 
+\end_layout
+
+\begin_layout Standard
+The AEM script file provides model elements and processing directives to
+ ModAEM.
+ The AEM script file can have any base file name (as specified in the modaem.nam
+ file) and must have the extension 
+\family sans
+.aem
+\family default
+.
+ The AEM script file is a flat text file that can be created with any text
+ editor.
+ Program directives are entered one per line.
+\end_layout
+
+\begin_layout Standard
+The script file is divided into two sections, the "problem definition section"
+ (or "AEM section") and the "processing section".
+ Typically, ModAEM script files look like this:
+\end_layout
+
+\begin_layout LyX-Code
+aem
+\end_layout
+
+\begin_layout LyX-Code
+  aqu ...
+\end_layout
+
+\begin_layout LyX-Code
+    # aquifer description goes here
+\end_layout
+
+\begin_layout LyX-Code
+  end
+\end_layout
+
+\begin_layout LyX-Code
+  # other module sections go here...
+\end_layout
+
+\begin_layout LyX-Code
+  wl0 10
+\end_layout
+
+\begin_layout LyX-Code
+    ...
+ discharge-specified well data goes in here ...
+ 
+\end_layout
+
+\begin_layout LyX-Code
+    # end of well data 
+\end_layout
+
+\begin_layout LyX-Code
+  end 
+\end_layout
+
+\begin_layout LyX-Code
+  # end of aem data 
+\end_layout
+
+\begin_layout LyX-Code
+end 
+\end_layout
+
+\begin_layout LyX-Code
+# processing directives go here ...
+ 
+\end_layout
+
+\begin_layout LyX-Code
+# End-of-data mark 
+\end_layout
+
+\begin_layout LyX-Code
+eod
+\end_layout
+
+\begin_layout Standard
+The AEM section of the input file
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+The attractive indentation style of the input file is optional, but highly
+ recommended.
+ By convention, each section of the input file is indented two spaces for
+ readability.
+ ModAEM ignores the indentation when reading program input.
+ Currently (at this writing, we are at version 1.4.0-rc3),ModAEM behaves unpredict
+ibly when it encounters tab characters (ASCII 0x09); folding of tabs into
+ spaces on input will be implemented soon.
+\end_layout
+
+\end_inset
+
+ is the portion contained between the 
+\family typewriter
+aem
+\family default
+ and 
+\family typewriter
+end
+\family default
+ directives in lines 1 and 14 of the above listing.
+ Within the AEM section, input for the various element definition modules
+ (see Chapter 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "cha:script-files"
+
+\end_inset
+
+) are provided.
+\end_layout
+
+\begin_layout Standard
+The processing section follows the problem definition section of the script
+ file.
+ The various processing directives that are available are discussed in Chapter
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "cha:Processing-Directives"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Directives which are common to all input modules
+\end_layout
+
+\begin_layout Standard
+The following directives are available in all ModAEM input modules.
+\end_layout
+
+\begin_layout Subsubsection
+Comments
+\end_layout
+
+\begin_layout Standard
+Comment lines in the AEM script file start with a hash mark (
+\family typewriter
+#
+\family default
+) in the first column.
+ Comment lines are ignored by ModaEM.
+ For example:
+\end_layout
+
+\begin_layout LyX-Code
+# This is a comment line
+\end_layout
+
+\begin_layout Subsubsection
+Exiting a module (
+\family sans
+\series medium
+end
+\family default
+\series default
+ directive) 
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+end
+\family default
+ directive causes ModAEM to leave the current module.
+ For example, when in the 
+\family sans
+wl0
+\family default
+ module (which is started with the 
+\family typewriter
+wl0
+\family default
+ directive), the end directive returns processing to the AEM input module:
+\end_layout
+
+\begin_layout LyX-Code
+# the aem section is used to define the problem aem
+\end_layout
+
+\begin_layout LyX-Code
+# other module sections go here...
+ 
+\end_layout
+
+\begin_layout LyX-Code
+wl0 10
+\end_layout
+
+\begin_layout LyX-Code
+...
+ discharge-specified well data goes in here ...
+ 
+\end_layout
+
+\begin_layout LyX-Code
+# end of well data end # end of aem data end 
+\end_layout
+
+\begin_layout LyX-Code
+# processing directives go here ...
+ 
+\end_layout
+
+\begin_layout LyX-Code
+# End-of-data mark 
+\end_layout
+
+\begin_layout LyX-Code
+eod
+\end_layout
+
+\begin_layout Subsection
+Enabling debugging code (
+\family sans
+\series medium
+dbg
+\family default
+\series default
+ directive) 
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+dbg
+\family default
+ directive is used to turn code marked as 'debug' code on or off during
+ execution (useful for program debugging).
+ Debug code is enabled or disabled at the level of a specific module.
+ The ModAEM source code contains many assertions that can be used to test
+ for internal errors in the code.
+ The 
+\family typewriter
+dbg
+\family default
+ command does not affect the detection of errors in program input, however.
+ This command will typically be used only by developers.
+\end_layout
+
+\begin_layout Subsection
+Other directives for specific tasks 
+\end_layout
+
+\begin_layout Subsubsection
+Begin defining a model problem domain (
+\family sans
+\series medium
+aem
+\family default
+\series default
+ directive)
+\end_layout
+
+\begin_layout Standard
+The aem directive begins the problem definition section of the ModAEM input
+ file.
+ See for a description of the various directives that may be used in the
+ problem definition section.
+\end_layout
+
+\begin_layout Paragraph
+Usage:
+\end_layout
+
+\begin_layout LyX-Code
+aem
+\end_layout
+
+\begin_layout LyX-Code
+  ...
+ put model definition directives here ...
+ 
+\end_layout
+
+\begin_layout LyX-Code
+end
+\end_layout
+
+\begin_layout Subsubsection
+Processing directives 
+\end_layout
+
+\begin_layout Standard
+The various processing directives that are available once a problem has
+ been defined in the AEM section are described in Chapter 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "cha:Processing-Directives"
+
+\end_inset
+
+.
+\end_layout
+
+\end_body
+\end_document

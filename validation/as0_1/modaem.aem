@@ -1,0 +1,53 @@
+# Test a single areasink
+ aem
+   aqu 1 0 0.0 10.0 100.0 0.25
+     ref (-100.0,0.0) 100.0 (0.0,0.0)
+   end
+   as0 2 0
+     str 4 -0.1 1
+       (-100.0, -100.0)
+       ( -50.0, -100.0)
+       ( -50.0,  100.0)
+       (-100.0,  100.0)
+     str 4  0.1 1
+       ( 100.0, -100.0)
+       (  50.0, -100.0)
+       (  50.0,  100.0)
+       ( 100.0,  100.0)
+   end
+   hb0 1
+     str 20 1
+       (  60.0, -200.0)
+       (  60.0, -190.0)
+       (  60.0, -150.0)
+       (  60.0, -100.0)
+       (  60.0,  -50.0)
+       (  60.0,    0.0)
+       (  60.0,   50.0)
+       (  60.0,  100.0)
+       (  60.0,  150.0)
+       (  60.0,  190.0)
+       (  60.0,  200.0)
+   end
+ end
+# Solve it (one iteration)
+ sol 1
+# Make a grid of heads and streamfunctions for SURFER
+ gri
+   opt matlab
+   win (-300.0,-300.0) (300.0,300.0)
+   dim 50
+   hea modaem
+   pot modaem
+   psi modaem
+ end
+# Dump my data structures to the .out file
+ rpt
+# Do inquiry
+ inq
+   fil modaem.inq
+   hb0
+   as0
+ end
+# That's all, folks!
+ eod

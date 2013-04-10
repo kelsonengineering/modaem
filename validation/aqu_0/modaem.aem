@@ -1,0 +1,27 @@
+# Test a single aquifer with uniform flow
+ aem
+   aqu 1 0 0.0 10.0 100.0 0.25 100.0
+     ref (0.0,0.0) 100.0 (1.0,0.0)
+   end
+ end
+# Solve it (one iteration)
+ sol 1
+# Make a grid of heads and streamfunctions for SURFER
+ gri
+   opt surfer
+   win (-100.0,-100.0) (100.0,100.0)
+   dim 50
+   hea modaem
+   psi modaem
+ end
+ tr0 
+   fil modaem
+   tun 1 3 0.1 3
+   win (-100,-100) (100,100)
+   poi (-80,50) 0 0 0 1
+   poi (-80,45) 0 0 0 -1
+ end
+# Dump my data structures to the .out file
+ rpt
+# That's all, folks!
+ eod

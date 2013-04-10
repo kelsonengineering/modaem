@@ -1,0 +1,34 @@
+# Test problem for vertical tracing with a circular pond
+ aem
+   aqu 1 0 0.0 10.0 100.0 0.25 100.0
+     ref (0.0,1000.0) 100.0 (0.0,0.0)
+   end
+   pd0 1
+     (0.0,0.0) -0.1 1000.0 0
+   end
+ end
+# Solve it (one iteration)
+ sol 1
+# Make a grid of heads and streamfunctions for SURFER
+ gri
+   opt surfer
+   win (-2000.0,-2000.0) (2000.0,2000.0)
+   dim 50
+   hea modaem
+   pot modaem
+ end
+# Do some inquiries
+ dis (100,0)
+ gra (100,0) 0.0001
+ lap (100,0) 0.0001
+# Trace a pathline
+ tr0
+   fil modaem
+   win (-2000,-2000) (2000,2000)
+   tun 10 3 0.5 1
+   poi (10,0) 10 0 0 1
+ end
+# Dump my data structures to the .out file
+ rpt
+# That's all, folks!
+ eod

@@ -1,0 +1,46 @@
+# Test a single aquifer with uniform flow
+ aem
+   aqu 1 0 0.0 10.0 100.0 0.25 100.0
+     ref (0.0,0.0) 100.0 (1.0,0.0)
+   end
+   wl0 1
+     (100.0,0.0) 0 0.1 1
+     #ppw 0.0 5.0 1.0
+     # For drawdown simulations...
+     ddn 1000.0
+   end
+ end
+# Solve it (one iteration)
+ sol 1
+ inq
+   fil modaem-unstressed.inq
+   aqu
+   wl0
+ end
+#
+# Turn on the drawdwown flag and re-solve
+ ddn
+ sol 2
+ gri
+   opt surfer
+   win (-200.0,-200.0) (200.0,200.0)
+   dim 50
+   hea modaem
+   psi modaem
+ end
+ inq
+   fil modaem-stressed.inq
+   aqu
+   wl0
+ end
+# Dump my data structures to the .out file
+ rpt
+# Trace particles from the well
+ tr0
+   fil modaem
+   win (-200.0,-200.0) (200.0,200.0)
+   tun 1 3 0.1 3
+   wl0 1 16 0 0 0 0
+ end
+# That's all, folks!
+ eod

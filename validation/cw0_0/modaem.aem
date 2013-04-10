@@ -1,0 +1,60 @@
+# Test a single aquifer with a radial collector well!
+# dbg t
+ aem
+   aqu 1 0 0.0 50.0 200.0 0.25 100.0
+#     ref (0,0) 100 (0.0,0.0)
+   end
+   ls2 1
+     str 10 1 100 1
+       (100,-300) 101.5 90.0
+       (100,-200) 101.0 90.0
+       (100,-100) 100.5 90.0
+       (100,-50) 100.25 90.0
+       (100,0) 100.0 90.0
+       (100,50) 99.75 90.0
+       (100,100)  99.5 90.0
+       (100,200)  99.0 90.0
+       (100,300) 98.5 90.0
+   end
+   cw0 2
+     # well <max_radials> <zc> <rc> <rrad> <q> <resistance> <blank> <resolution> <id>
+     # pumping well
+     wel 8 (150,0) 6 100000 4 F 100
+       ( 150,  50) 0.5 0.01 10
+       ( 100,   0) 0.5 0.01 10
+       ( 150, -50) 0.5 0.01 10
+       ( 200,   0) 0.5 0.01 10
+#     wel 8 (-150,0) 6 -100000 4 F 2
+#       (-150,  50) 0.5 0.01 10
+#       (-100,   0) 0.5 0.01 10
+#       (-150, -50) 0.5 0.01 10
+#       (-200,   0) 0.5 0.01 10
+   end
+ end
+# Solve it (one iteration)
+ sol 20 1
+
+# Make a grid of heads and streamfunctions for SURFER
+ gri
+   opt SURFER
+   win (0.0,-300.0) (600.0,300.0)
+   dim 150
+   hea modaem
+   psi modaem
+ end
+# Tracing...
+ tr0
+   fil modaem.tr0
+   win (-1000.0,-2000.0) (4000.0,2000.0)
+   cw0 100 32 0.0 0 0 300 
+ end
+# Dump my data structures to the .out file
+ rpt
+# do inquiry
+ inq
+   fil cw0.out
+   win (-200.0,-300.0) (600.0,300.0)
+   cw0 
+ end
+# That's all, folks!
+ eod

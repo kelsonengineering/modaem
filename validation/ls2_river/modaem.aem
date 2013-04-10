@@ -1,0 +1,70 @@
+# Test a single aquifer with uniform flow
+ aem
+   aqu 1 0 0.0 10.0 100.0 0.25
+   end
+   as0 1 0
+     str 4 -0.020 999
+       (-300, -300)
+       ( 300, -300)
+       ( 300,  300)
+       (-300,  300)
+     end
+   ls1 2
+     str 5 1001
+       (-200, -200) 100
+       (-200, -100) 100
+       (-200,    0) 100
+       (-200,  100) 100
+       (-200,  200) 100
+     str 5 1001
+       ( 200, -200) 100
+       ( 200, -100) 100
+       ( 200,    0) 100
+       ( 200,  100) 100
+       ( 200,  200) 100
+   end
+   ls2 1
+     str 5 1 10 1001
+       (   0, -100) 101.0 0.5
+       (   0,  -50) 101.0 0.5
+       (   0,    0) 101.0 0.5
+       (   0,   50) 101.0 0.5
+       (   0,  100) 101.0 0.5
+   end
+ end
+# Pre-solve Inquiry
+ inq
+   fil modaem_pre.inq
+   aqu
+   ls2
+ end
+# Solve it (one iteration)
+ sol 8
+# Make a grid of heads and streamfunctions for SURFER
+ gri
+   opt matlab
+   win (-200.0,-200.0) (200.0,200.0)
+   dim 50
+   hea modaem
+   psi modaem
+ end
+# Dump my data structures to the .out file
+ rpt
+# Inquiry
+ inq
+   fil modaem.inq
+   hea (0,-75) 1
+   hea (0,-25) 2
+   hea (0,25) 3
+   hea (0,75) 4
+   pot (0,-75) 1
+   pot (0,-25) 2
+   pot (0,25) 3
+   pot (0,75) 4
+   aqu
+   as0
+   ls1
+   ls2
+ end
+# That's all, folks!
+ eod

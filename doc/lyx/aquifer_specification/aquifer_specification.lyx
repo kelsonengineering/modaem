@@ -1,0 +1,1767 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass book
+\use_default_options false
+\begin_modules
+eqs-within-sections
+figs-within-sections
+\end_modules
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_amsmath 1
+\use_esint 0
+\use_mhchem 0
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Standard
+Aquifer specification
+\begin_inset CommandInset label
+LatexCommand label
+name "cha:aqu-module"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The aquifer module (AQU) is used to define the layout and properties of
+ the ModAEM aquifer.
+ In ModAEM, an aquifer is considered to be a single, horizontal, two-dimensional
+ flow system.
+ A ModAEM aquifer may be bounded or unbounded spatially, with a variety
+ of boundary conditions specified at the perimeter of the bounded domain.
+ All aquifers in ModAEM may have heterogeneous hydraulic conductivity, base
+ elevation, thickness and porosity, specified in "inhomogeneities".
+ An inhomogeneity is a bounded sub-region of the aquifer where the hydraulic
+ properties of the aquifer differ from the surrounding region.
+ In ModAEM, inhomogeneities may be nested within other inhomogeneities,
+ and may share common boundaries.
+\end_layout
+
+\begin_layout Section
+Aquifers in ModAEM
+\end_layout
+
+\begin_layout Standard
+Like most analytic element models, ModAEM supports heterogeneous aquifers
+ in which aquifer properties are constant within polygonal domains (aquifer
+ properties are 
+\begin_inset Quotes eld
+\end_inset
+
+piecewise--constant
+\begin_inset Quotes erd
+\end_inset
+
+).
+ In ModAEM, each subdomain may have its own aquifer base and top elevation,
+ hydraulic conductivity, and porosity.
+\end_layout
+
+\begin_layout Section
+AQU Module Input 
+\end_layout
+
+\begin_layout Standard
+As with all other modules that are included in the problem definition section
+ of a ModAEM script file, input for module AQU is contained between the
+ 
+\family sans
+aqu
+\family default
+ directive and the 
+\family sans
+end
+\family default
+ directive.
+ Module AQU differs from some of the other ModAEM modules, in that it posesses
+ optional submodules.
+ The general layout for module AQU input is as follows:
+\end_layout
+
+\begin_layout LyX-Code
+# Create an aquifer 
+\end_layout
+
+\begin_layout LyX-Code
+aqu ndomains nstrings base thickness conductivity porosity
+\end_layout
+
+\begin_layout LyX-Code
+  ref <arguments> (optional) define a reference point and discharge 
+\end_layout
+
+\begin_layout LyX-Code
+  bdy <arguments>
+\end_layout
+
+\begin_layout LyX-Code
+   (optional) define flow conditions at the perimeter 
+\end_layout
+
+\begin_layout LyX-Code
+  end 
+\end_layout
+
+\begin_layout LyX-Code
+  in0 <arguments>
+\end_layout
+
+\begin_layout LyX-Code
+    (optional) define inhomogeneities 
+\end_layout
+
+\begin_layout LyX-Code
+  end
+\end_layout
+
+\begin_layout LyX-Code
+end
+\end_layout
+
+\begin_layout Standard
+The remainder of this section describes the detailed usage of the AQU module
+ directives.
+\end_layout
+
+\begin_layout Subsection
+Beginning the aquifer definition (directive 
+\family sans
+\series medium
+aqu
+\family default
+\series default
+)
+\end_layout
+
+\begin_layout Standard
+The 
+\family sans
+aqu
+\family default
+ directive starts the process of defining the aquifer layout.
+ In addition to the regional aquifer properties, the aqu directive allocates
+ space for the definition of subdomains of differing aquifer properties,
+ and boundary conditions for bounded models.
+\end_layout
+
+\begin_layout Subparagraph
+Usage:
+\end_layout
+
+\begin_layout LyX-Code
+aqu ndomains nstrings base thickness hyd-cond porosity initial-avg-head
+\end_layout
+
+\begin_layout Paragraph
+Parameters for the 
+\family sans
+\series medium
+aqu
+\family default
+\series default
+ directive:
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+ndomains
+\family default
+ The number of inhomogeneity domains in the aquifer, including the "outside"
+ unbounded domain (for a single homogeneous aquifer, use 1).
+ 
+\begin_inset Formula $\{int\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+nstrings
+\family default
+ The number of strings that are used to bound the inhomogeneity domains
+ (for a single inhomogeneous aquifer, use 0) 
+\begin_inset Formula $\{int\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+base
+\family default
+ The base elevation of the aquifer 
+\begin_inset Formula $[L]$
+\end_inset
+
+ 
+\begin_inset Formula $\{real\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+thickness
+\family default
+ The thickness of the aquifer 
+\begin_inset Formula $[L]$
+\end_inset
+
+ 
+\begin_inset Formula $\{real\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+conductivity
+\family default
+ The hydraulic conductivity of the aquifer 
+\begin_inset Formula $[L/T]$
+\end_inset
+
+ 
+\begin_inset Formula $\{real\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+porosity
+\family default
+ Porosity of the aquifer as a fraction 
+\begin_inset Formula $[-]$
+\end_inset
+
+ 
+\begin_inset Formula $\{real\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+initial-avg-head
+\family default
+ This is an estimate of the average head in the aquifer.
+ It is used to pre--condition the solution when inhomogeneities in base
+ elevation or thickness are encountered and the flow condition is unconfined.
+ If you expect to be using inhomogeneities in base elevation or aquifer
+ thickness, a good estimate of the initial average head will greatly speed
+ the solution process.
+ If you are not using inhomogeneities in base elevation or aquifer thickness,
+ it is recommended that the value of 
+\begin_inset Formula $base+thickness$
+\end_inset
+
+ be provided.
+ 
+\begin_inset Formula $[L]$
+\end_inset
+
+ 
+\begin_inset Formula $\{real\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+Simple Aquifer Example 
+\end_layout
+
+\begin_layout Standard
+To build a simple infinite aquifer with no inhomogeneities, with base elevation
+ at 
+\begin_inset Formula $0\, ft$
+\end_inset
+
+, thickness of 
+\begin_inset Formula $10\, ft$
+\end_inset
+
+ hydraulic conductivity of 
+\begin_inset Formula $100\, ft/d$
+\end_inset
+
+ , porosity of 
+\begin_inset Formula $0.25$
+\end_inset
+
+ and an average head of 
+\begin_inset Formula $200\, ft$
+\end_inset
+
+, only one domain and no strings are required.
+ The 
+\family sans
+aqu
+\family default
+ directives
+\end_layout
+
+\begin_layout LyX-Code
+aqu 1 0 0.0 10.0 100.0 0.25 200.0
+\end_layout
+
+\begin_layout LyX-Code
+end
+\end_layout
+
+\begin_layout Standard
+will create this aquifer.
+\end_layout
+
+\begin_layout Subsection
+Defining a reference flow field (directive 
+\family sans
+\series medium
+ref
+\family default
+\series default
+) 
+\begin_inset CommandInset label
+LatexCommand label
+name "sub:reference-flow-field"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+ModAEM differs from some analytic element codes in that the specification
+ of a reference point is often unnecessary.
+ Typically, the reference flow field is only needed in conceptual models
+ or when a site--scale model based on a uniform flow field has been measured
+ in the field.
+\end_layout
+
+\begin_layout Paragraph
+What is the reference flow field? 
+\end_layout
+
+\begin_layout Standard
+In an analytic element model, it is possible to define a problem in which
+ all of the elements (wells, etc.) possess a specified discharge (e.g.
+ the common conceptual model of one or more wells in a uniform flow field).
+ In these cases, a unique solution can be generated only if the user specifies
+ a point in the aquifer at which the head is known.
+ Specification of the reference point enables the specification of a "reference
+ flow field", a uniform flow discharge that will be present everywhere in
+ the aquifer, even if no elements are present.
+ The reference flow field is an abstraction, and should be used with care,
+ since it typically dominates the solution and increases the potential of
+ calibration errors.
+ In ModAEM, specification of the reference point is optional.
+ If the reference point it is omitted, ModAEM replaces it with a closure
+ condition based upon continuity of flow.
+ In ModAEM, there are three ways to provide the 
+\begin_inset Quotes eld
+\end_inset
+
+far--field
+\begin_inset Quotes erd
+\end_inset
+
+ regional flow conditions:
+\end_layout
+
+\begin_layout Description
+reference
+\begin_inset space ~
+\end_inset
+
+head
+\begin_inset space ~
+\end_inset
+
+and
+\begin_inset space ~
+\end_inset
+
+uniform
+\begin_inset space ~
+\end_inset
+
+flow In this case, the 
+\family sans
+ref
+\family default
+ directive is provided.
+ A reference point and a reference head, and also a far--field uniform flow
+ discharge is provided.
+ This strategy is typically used in conceptual problems and in simple site--scal
+e problems where the hydraulic gradient has been measured from field observation
+s.
+ Do not place the reference point within the area of interest if other elements,
+ e.g.
+ line sinks, are to be used.
+\end_layout
+
+\begin_layout Description
+bounded
+\begin_inset space ~
+\end_inset
+
+aquifer
+\begin_inset space ~
+\end_inset
+
+domains ModAEM includes support for closed model domains via the 
+\family sans
+bdy
+\family default
+ directive (see Section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sub:bounded-aquifers"
+
+\end_inset
+
+, below).
+ When a bounded aquifer is provided, the reference point and uniform flow
+ rate must not be used.
+\end_layout
+
+\begin_layout Description
+unbounded
+\begin_inset space ~
+\end_inset
+
+aquifers
+\begin_inset space ~
+\end_inset
+
+with
+\begin_inset space ~
+\end_inset
+
+
+\emph on
+modeled
+\emph default
+
+\begin_inset space ~
+\end_inset
+
+far--field This is the most common strategy for large regional models to
+ be built with analytic elements.
+ Instead of a specific far--field flow condition, far--field elements are
+ placed in the model domain.
+ These elements generate the flow field at the perimeter of the study region,
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+insulate
+\begin_inset Quotes erd
+\end_inset
+
+ the study region from the infinite mathematical domain.
+ In ModAEM, no reference point is required if at least one head--specified
+ boundary condition is provided in the model.
+ A continuity--of--flow condition is used instead
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+In ModAEM-1.0 and ModAEM-1.2, the reference point was always required.
+ In WhAEM, the GUI placed the reference point at a location far to the west
+ of the extent or model elements, with a reference head set at the average
+ of all head--specified conditions in the model.
+ ModAEM-1.4 eliminates this requirement.
+\end_layout
+
+\end_inset
+
+.
+ If a reference point is specified far from the study region, the model
+ will still function if the model is constructed properly (see Haitjema,
+ 1995).
+ Never place the reference point at a location within the study domain;
+ unpredictable and incorrect model output may result.
+\end_layout
+
+\begin_layout Standard
+The reference point and reference flow field are specified using the directive
+ 
+\family sans
+ref
+\family default
+ within the input for module AQU.
+ 
+\end_layout
+
+\begin_layout Paragraph
+Usage:
+\end_layout
+
+\begin_layout LyX-Code
+ref (x0,y0) h0 (Qx0,Qy0) 
+\end_layout
+
+\begin_layout Paragraph
+Parameters for the ref directive: 
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+(x0,y0)
+\family default
+ The location of the reference point, 
+\begin_inset Formula $z_{0}=x_{0}+iy_{0}$
+\end_inset
+
+.
+ 
+\begin_inset Formula $[L]$
+\end_inset
+
+ 
+\begin_inset Formula $\{complex\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+head
+\family default
+ The head at the reference point.
+ 
+\begin_inset Formula $[L]$
+\end_inset
+
+ 
+\begin_inset Formula $\{real\}$
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+(Qx0,Qy0)
+\family default
+ The reference flow field, 
+\begin_inset Formula $Q_{0}=Q_{x0}+iQ_{y0}$
+\end_inset
+
+.
+ The magnitude of the value 
+\begin_inset Formula $Q_{0}$
+\end_inset
+
+ is computed as 
+\begin_inset Formula $Q_{0}=k\times H\times dh/ds$
+\end_inset
+
+ where 
+\begin_inset Formula $k$
+\end_inset
+
+ is the hydraulic conductivity, 
+\begin_inset Formula $H$
+\end_inset
+
+ is the saturated thickness and 
+\begin_inset Formula $dh/ds$
+\end_inset
+
+ is the hydraulic gradient in the direction of flow.
+ The components are relative to the x-axis and y-axis; if 
+\begin_inset Formula $\theta$
+\end_inset
+
+ is the angle relative to the x-axis in radians, the components 
+\begin_inset Formula $Q_{x0}$
+\end_inset
+
+ and 
+\begin_inset Formula $Q_{y0}$
+\end_inset
+
+ are computed as 
+\begin_inset Formula $Q_{x0}=Q_{0}cos\,\theta$
+\end_inset
+
+ and 
+\begin_inset Formula $Q_{y0}=Q_{0}sin\,\theta$
+\end_inset
+
+.
+ 
+\begin_inset Formula $[L^{2}/T]$
+\end_inset
+
+ 
+\begin_inset Formula $\{complex\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+Example of an aquifer with uniform flow and a reference point
+\end_layout
+
+\begin_layout LyX-Code
+aqu 1 0 0.0 10.0 100.0 0.25
+\end_layout
+
+\begin_layout LyX-Code
+  ref (0,0) 100.0 (10.0,0.0) on 
+\end_layout
+
+\begin_layout LyX-Code
+end
+\end_layout
+
+\begin_layout Standard
+This reference aquifer definition creates an unbounded aquifer with a uniform
+ flow field of 
+\begin_inset Formula $10.0\, m/d$
+\end_inset
+
+ in the positive x-direction, with a head of 
+\begin_inset Formula $100\, m$
+\end_inset
+
+ at the origin.
+\end_layout
+
+\begin_layout Section
+Creating a bounded aquifer (
+\family sans
+\series medium
+bdy
+\family default
+\series default
+ directive)
+\begin_inset CommandInset label
+LatexCommand label
+name "sub:bounded-aquifers"
+
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Standard
+ModAEM supports the option of bounded aquifer domains, with a variety of
+ boundary conditions specified at the perimeter of the flow domain (head
+ specified, flux specified, and general--head).
+ Bounded aquifers are defined in the ModAEM script file in two steps:
+\end_layout
+
+\begin_layout Enumerate
+Specifying the perimeter of the aquifer and any "islands" (sub-regions within
+ the aquifer that are to be ignored) 
+\end_layout
+
+\begin_layout Enumerate
+Specifying the boundary conditions for groundwater flow that are to be construct
+ed at the perimeter.
+\end_layout
+
+\begin_layout Standard
+It is important to understand that step (1) above actually has no affect
+ on the flow problem; it simply tells ModAEM which regions of the potentially
+ unbounded aquifer are to be ignored by the anaysis modules.
+ This is convenient when computing grids for contouring.
+ ModAEM returns an "inactive region" value whenever an analysis module requests
+ the head (or discharge or other value) at a point in the inactive region.
+ It is step (2) above that actually constructs the boundary conditions at
+ the aquifer perimeter.
+ Specification of the boundary conditions is sufficient to govern the flow
+ problem
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+For example, the GMS user interface handles the perimeter computations internall
+y.
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Specifying conditions on the aquifer perimeter (
+\family sans
+\series medium
+bdy
+\family default
+\series default
+ directive) 
+\end_layout
+
+\begin_layout Standard
+The 
+\family sans
+bdy
+\family default
+ directive begins the definition of flow conditions at the perimeter of
+ a bounded aquifer.
+ For each segment of the boundary, a pair of vertices is provided, along
+ with the boundary condition to be met along the segment.
+ In the current release of ModAEM, this is the only instance where line
+ segments are fully defined in this manner.
+ When this was originally implemented in ModAEM-1.2, it was intended for
+ the construction of ModAEM sub--domain models from large regional MODFLOW
+ models (ref: Vic's talk at GSA -- Denver).
+ This input style is more flexible for preprocessing in 
+\begin_inset Quotes eld
+\end_inset
+
+telescoping
+\begin_inset Quotes erd
+\end_inset
+
+ domain models.
+ The boundary segments must uniquely bound a closed region; ModAEM will
+ automatically build the bounding polygon for the 
+\family sans
+bdy
+\family default
+ elements.
+ A fatal error will be issued if the boundary elements do not bound a unique,
+ conticuous polygonal region.
+ If the model requires that inactive regions be included within a model
+ (in either a bounded or unbounded aquifer), see the 
+\family sans
+isl
+\family default
+ command within module HB0.
+\end_layout
+
+\begin_layout Paragraph
+Usage:
+\end_layout
+
+\begin_layout LyX-Code
+aqu ...
+\end_layout
+
+\begin_layout LyX-Code
+  ref ...
+ 
+\end_layout
+
+\begin_layout LyX-Code
+  bdy nbdy
+\end_layout
+
+\begin_layout LyX-Code
+    (x1,y1) (x2,y2) head flux ghb-distance bdy-flag 
+\end_layout
+
+\begin_layout LyX-Code
+    ...
+ 
+\end_layout
+
+\begin_layout LyX-Code
+end
+\end_layout
+
+\begin_layout Paragraph
+Parameters for the bdy directive
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+nbdy
+\family default
+ The maximum number of boundary elements in the problem.
+ 
+\begin_inset Formula $\{int\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+Specifying the boundary elements
+\end_layout
+
+\begin_layout Standard
+For each segment along the model's perimeter boundary, a line segment is
+ provided using the parameters below.
+ No more than 
+\family typewriter
+nbdy
+\family default
+ boundary segments are allowed.
+ The orientation of the boundary segments is important.
+ ModAEM makes use of the 
+\begin_inset Quotes eld
+\end_inset
+
+right--hand
+\begin_inset Quotes erd
+\end_inset
+
+ rule convention (section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:The-right--hand-rule"
+
+\end_inset
+
+) is used.
+ Fluxes are numerically positive if they cross the element from right--to--left.
+ Note that this means that segments that define a polygonal outer boundary
+ is 
+\emph on
+positively oriented
+\emph default
+ (counterclockwise).
+ For segments that bound islands, the active region is on the left of a
+ polygon if the vertices are arranged counter--clockwise.
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+(x1,y1)
+\family default
+ The first point on the line segment, 
+\begin_inset Formula $z_{1}=x_{1}+iy_{1}$
+\end_inset
+
+.
+ 
+\begin_inset Formula $[L]$
+\end_inset
+
+ 
+\begin_inset Formula $\{complex\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+(x2,y2)
+\family default
+ The second point on the line segment, 
+\begin_inset Formula $z_{2}=x_{2}+iy_{2}$
+\end_inset
+
+.
+ 
+\begin_inset Formula $[L]$
+\end_inset
+
+ 
+\begin_inset Formula $\{complex\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+flux
+\family default
+ The value for the specified total volumentric flow rate across the segment,
+ e.g.
+ a cell-by-cell MODFLOW value.
+ The value is positive if water moves from right to left when viewed along
+ the path 
+\begin_inset Formula $z_{1}z_{2}.$
+\end_inset
+
+ 
+\begin_inset Formula $[L^{3}/T]$
+\end_inset
+
+ 
+\begin_inset Formula $\{real\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+head
+\family default
+ The specified head at the center of the segment 
+\begin_inset Formula $z_{1}z_{2}$
+\end_inset
+
+.
+ 
+\begin_inset Formula $[L]$
+\end_inset
+
+ 
+\begin_inset Formula $\{real\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+ghb-distance
+\family default
+ The perpendicular distance from the element to a presumed specified head
+ located somewhere to the "right" of the element.
+ The general--head boundary creates head--dependent flux (Neumann) condition
+ across the element.
+ This is analogous to a MODFLOW GHB cell located at the edge of the model.
+ ModAEM computes a resistance for the GHB based on the provided distance
+ and the transmissivity of the sub--domain on the left side of the element.
+ 
+\begin_inset Formula $[L]$
+\end_inset
+
+ 
+\begin_inset Formula $\{real\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+bdy-flag
+\family default
+ A flag that controls the boundary--condition type.
+ Codes are 0 (head), 1 (flux), and 2 (general--head).
+\end_layout
+
+\begin_layout Standard
+When a head-specified or general-head condition is required, the value of
+ the flux parameter is ignored.
+ Similarly, when a flux-specified condition is required, the value of the
+ head parameter is ignored.
+ This is intended for use as check information when ModAEM is used to model
+ a detailed region with perimeter boundaries from another model.
+ ModAEM reports the specified and modeled heads and fluxes for all 
+\family sans
+bdy
+\family default
+ elements in the output HTML file.
+\end_layout
+
+\begin_layout Paragraph
+Note
+\end_layout
+
+\begin_layout Standard
+The 
+\family sans
+bdy
+\family default
+ directives are part of module AQU.
+ No 
+\family sans
+end
+\family default
+ directive is to be used to terminate the input of boundary segments (the
+ 
+\family sans
+end
+\family default
+ directive terminates input to module AQU).
+ This is distinguished from the inhomogeneity submodule IN0, discussed in
+ section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:in0"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Section
+The inhomogeneity submodule
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:in0"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The IN0 submodule provides the AQU aquifer module with support for subdomains
+ of differing properties.
+ IN0 does not provide 
+\begin_inset Quotes eld
+\end_inset
+
+spatially--varying
+\begin_inset Quotes erd
+\end_inset
+
+ properties, as MODFLOW does on a cell-by-cell basis --- each subdomain
+ possesses constant properties within the subdomain.
+ Subdomains are polygonal, and may have common boundaries.
+ In ModAEM, inhomogeneity domains may be constructed in two ways:
+\end_layout
+
+\begin_layout Description
+polygonal
+\begin_inset space ~
+\end_inset
+
+boundaries
+\begin_inset space ~
+\end_inset
+
+(Figure
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "cap:in0-polys"
+
+\end_inset
+
+) This is similar to the commercial code GFLOW (Haitjema Consulting) and
+ the 2003 version of EPA WhAEM for Windows.
+ Each inhomogeneity must be bounded by a single closed contour.
+ Inhomogeneities may be nested, but their boundaries may not overlap or
+ intersect.
+\end_layout
+
+\begin_layout Description
+common
+\begin_inset space ~
+\end_inset
+
+boundary
+\begin_inset space ~
+\end_inset
+
+inhomogeneities
+\begin_inset space ~
+\end_inset
+
+(Figure
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "cap:in0-strings"
+
+\end_inset
+
+) This is similar to the commercial codes SLAEM and MLAEM (Strack Consulting).
+ In addition to simple closed polygons, inhomogeneity domains may share
+ edges.
+ This greatly complicates preprocessing, but is very useful, especially
+ for problems with a varying aquifer base elevation.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/in0-polys.PNG
+	width 6in
+	keepAspectRatio
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "cap:in0-polys"
+
+\end_inset
+
+Potentiometric countours for two polygonal hydraulic conductivity inhomogeneitie
+s in a field of uniform flow.
+ Flow is from left to right (red contours represent higher potentiometric
+ heads).
+ The domains are specified as follows: domain 0 (the outside) has 
+\begin_inset Formula $K=10\, m/d$
+\end_inset
+
+; domain 1 has 
+\begin_inset Formula $K=100\, m/d$
+\end_inset
+
+ and is shaded in blue; domain #2 has 
+\begin_inset Formula $K=2\, m/d$
+\end_inset
+
+ and is shaded in beige.
+ No string specifications (
+\family sans
+str
+\family default
+ directive) were required.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/in0-strings.PNG
+	width 6in
+	keepAspectRatio
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "cap:in0-strings"
+
+\end_inset
+
+Potentiometric countours for two polygonal hydraulic conductivity inhomogeneitie
+s with a common boundary in a field of uniform flow.
+ Flow from left to right (red contours represent higher heads).
+ The domains are specified as follows: domain 0 (the outside) has 
+\begin_inset Formula $K=10\, m/d$
+\end_inset
+
+; domain 1 has 
+\begin_inset Formula $K=100\, m/d$
+\end_inset
+
+ and is shaded in blue; domain #2 has 
+\begin_inset Formula $K=2\, m/d$
+\end_inset
+
+ and is shaded in beige.
+ Three strings are required; all share the same starting and ending points.
+ The three strings are specified as follows: string 1 (red) has 
+\begin_inset Formula $left=0$
+\end_inset
+
+, 
+\begin_inset Formula $right=1$
+\end_inset
+
+; string 2 (yellow) has 
+\begin_inset Formula $left=1$
+\end_inset
+
+; 
+\begin_inset Formula $right=2$
+\end_inset
+
+; string 3 (purple) has 
+\begin_inset Formula $left=2$
+\end_inset
+
+, 
+\begin_inset Formula $right=0$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The following properties may be changed in ModAEM inhomogeneities:
+\end_layout
+
+\begin_layout Itemize
+Hydraulic conductivity, 
+\begin_inset Formula $K$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+Aquifer base elevation, 
+\begin_inset Formula $b$
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Itemize
+Aquifer thickness, 
+\begin_inset Formula $H$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+Aquifer effective porosity, 
+\begin_inset Formula $n$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In the case where base elevation and aquifer thickness are constant throughout
+ the model domain, or when the flow is confined everywhere in the model,
+ the equations solved by ModAEM for inhomogeneities are linear; only a few
+ iterations are needed to achieve an accurate solution.
+ In the case where the base elevation or aquifer thickness varies 
+\emph on
+and
+\emph default
+ there are regions within the model where the flow is unconfined, the solution
+ matrix contains coefficients that are dependent on the saturated thickness;
+ additional iterations are required to achieve an accurate solution.
+ For this reason, each subdomain in the model has an additional parameter,
+ the '
+\begin_inset Quotes erd
+\end_inset
+
+initial average head
+\begin_inset Quotes erd
+\end_inset
+
+.
+ The initial average head is the modeler's best estimate for the average
+ head in the subdomain.
+ It is used to compute the saturated thickness during the first model iteration.
+ Obviously, a good estimate for the initial average head helps the model
+ stability.
+\end_layout
+
+\begin_layout Subsection
+Specifying inhomogeneities
+\end_layout
+
+\begin_layout Standard
+As mentioned above, ModAEM allows for both closed polygonal inhomogeneities
+ that do not share edges and for complex polygonal inhomogeneities that
+ may have shared edges.
+ ModAEM requires that the specification of inhomogeneities be done in two
+ steps:
+\end_layout
+
+\begin_layout Enumerate
+Defining the polygonal regions using the 
+\family sans
+dom
+\family default
+ directive
+\end_layout
+
+\begin_layout Enumerate
+Where necessary, defining the strings of elements that implement the boundaries
+ using the 
+\family sans
+str
+\family default
+ directive.
+\end_layout
+
+\begin_layout Standard
+Task (2) can be very complicated.
+ Fortunately there are preprocessing tools such as GMS (EMS-I) and ArcInfo
+ that provide an 
+\begin_inset Quotes eld
+\end_inset
+
+arc--node
+\begin_inset Quotes erd
+\end_inset
+
+ data representation to make it simpler.
+ For many problems, inhomogeneities with common boundaries are unnecessary.
+ Fortunately, ModAEM makes it easier to specify these (see below).
+\end_layout
+
+\begin_layout Paragraph
+Usage:
+\end_layout
+
+\begin_layout LyX-Code
+aqu ndomains nstrings base ...
+\end_layout
+
+\begin_layout LyX-Code
+  in0
+\end_layout
+
+\begin_layout LyX-Code
+    dom nvertices base thickness hyd-cond porosity initial-avg-head id
+\end_layout
+
+\begin_layout LyX-Code
+      (x1,y1)
+\end_layout
+
+\begin_layout LyX-Code
+      (x2,y2)
+\end_layout
+
+\begin_layout LyX-Code
+      ...
+\end_layout
+
+\begin_layout LyX-Code
+    dom ...
+\end_layout
+
+\begin_layout LyX-Code
+      ...
+\end_layout
+
+\begin_layout LyX-Code
+    str nvertices left right id
+\end_layout
+
+\begin_layout LyX-Code
+      (x1,y1)
+\end_layout
+
+\begin_layout LyX-Code
+      (x2,y2)
+\end_layout
+
+\begin_layout LyX-Code
+      ...
+\end_layout
+
+\begin_layout LyX-Code
+    str ...
+\end_layout
+
+\begin_layout LyX-Code
+      ...
+\end_layout
+
+\begin_layout LyX-Code
+  end
+\end_layout
+
+\begin_layout LyX-Code
+end
+\end_layout
+
+\begin_layout Standard
+As noted above, the maximum number of domains and strings to be used are
+ specified in the 
+\family sans
+aqu
+\family default
+ directive that begins the aquifer specification.
+ The specification of inhomogeneities begins with the 
+\family sans
+in0
+\family default
+ directive, which enters the inhomogeneity specification section of the
+ ModAEM script file.
+ Inside the IN0 section of the script, domains are specified first, then
+ strings are defined that actually implement the boundaries
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+For problems without common boundaries, no string definitions are required;
+ ModAEM automatically builds strings for closed domains.
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Paragraph
+Parameters for domain specification (directive 
+\family sans
+\series medium
+dom
+\family default
+\series default
+)
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+nvertices
+\family default
+ The maximum number of vertices which may be used to delineate the boundary
+ of the domain.
+ 
+\begin_inset Formula $\{int\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+base
+\family default
+ The base elevation of the aquifer 
+\begin_inset Formula $[L]$
+\end_inset
+
+ 
+\begin_inset Formula $\{real\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+thickness
+\family default
+ The thickness of the aquifer 
+\begin_inset Formula $[L]$
+\end_inset
+
+ 
+\begin_inset Formula $\{real\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+conductivity
+\family default
+ The hydraulic conductivity (real) of the aquifer 
+\begin_inset Formula $[L/T]$
+\end_inset
+
+ 
+\begin_inset Formula $\{real\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+porosity
+\family default
+ Porosity of the aquifer as a fraction 
+\begin_inset Formula $[-]$
+\end_inset
+
+ 
+\begin_inset Formula $\{real\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+initial-avg-head
+\family default
+ This is an estimate of the average head in the aquifer.
+ It is used to pre--condition the solution when inhomogeneities in base
+ elevation or thickness are encountered and the flow condition is unconfined.
+ If you expect to be using inhomogeneities in base elevation or aquifer
+ thickness, a good estimate of the initial average head will greatly speed
+ the solution process.
+ If you are not using inhomogeneities in base elevation or aquifer thickness,
+ it is recommended that the value of 
+\begin_inset Formula $base+thickness$
+\end_inset
+
+ be provided.
+ 
+\begin_inset Formula $[L]$
+\end_inset
+
+ 
+\begin_inset Formula $\{real\}$
+\end_inset
+
+base The aquifer base elevation within the domain.
+ As usual, flow may be confined and/or unconfined within the domain.
+ If the flow is unconfined, additional iterations may be required for an
+ accurate solution.
+ 
+\begin_inset Formula $[L]$
+\end_inset
+
+ 
+\begin_inset Formula $\{real\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+id
+\family default
+ A unique identification number for the domain.
+ 
+\begin_inset Formula $\{int\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+Specifying the vertices along the domain perimeter
+\end_layout
+
+\begin_layout Standard
+Following the 
+\family sans
+dom
+\family default
+ directive, up to 
+\family typewriter
+nvertices
+\family default
+ vertices may be provided, one vertex per line in the input file.
+ Each vertex is a single complex coordinate.
+ Each vertex is a single point, 
+\begin_inset Formula $z_{p}=x_{p}+y_{p}$
+\end_inset
+
+ for point 
+\begin_inset Formula $p$
+\end_inset
+
+.
+ 
+\begin_inset Formula $[L]$
+\end_inset
+
+ 
+\begin_inset Formula $\{complex\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+Parameters for string specification (directive 
+\family sans
+\series medium
+str
+\family default
+\series default
+)
+\end_layout
+
+\begin_layout Standard
+As mentioned above, ModAEM makes things easier for modelers who build input
+ files by hand or from shapefiles that do not support an 
+\begin_inset Quotes eld
+\end_inset
+
+arc/node
+\begin_inset Quotes erd
+\end_inset
+
+ spatial data structure.
+ If no common boundaries are to be specified, e.g.
+ as in Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "cap:in0-polys"
+
+\end_inset
+
+, the str directive should be omitted.
+ ModAEM will automatically build closed strings of elements.
+ The following describes the input format for inhomogeneity strings (please
+ refer to Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "cap:in0-strings"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Description
+nvertices The maximum number of vertices which may be used to delineate
+ the string.
+ 
+\begin_inset Formula $\{int\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+left The ID number of the polygon that is to the left of the string (see
+ section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:The-right--hand-rule"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Description
+right The ID number of the polygon that is to the left of the string (see
+ section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:The-right--hand-rule"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Description
+closed Flag; if true, the string closes on itself, making a polygon.
+ If false, the string is an open polyline.
+ 
+\begin_inset Formula $\{logical\}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+id A unique identification number for the string.
+\end_layout
+
+\end_body
+\end_document

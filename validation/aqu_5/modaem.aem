@@ -1,0 +1,80 @@
+# Test a single aquifer with two polygonal inhomogeneities with a shared boundary
+ aem
+   aqu 3 10 0.0 10.0 100.0 0.25
+     ref (-500,0) 100 (1,0)
+    in0
+      dom 20 0.0 10.0 5.0 0.25 10 1000
+        (0.0,100.0)
+        (0.0,0.0)
+        (100.0,0.0)
+        (100.0,100.0)
+      dom 20 0.0 10.0 500.0 0.25 10 1001
+        (0.0,0.0)
+        (0.0,-100.0)
+        (100.0,-100.0)
+        (100.0,0.0)
+     str 30 1000 0 F 101
+       (100,0)
+       (100,20)
+       (100,40)
+       (100,60)
+       (100,80)
+       (100,100)
+       (80,100)
+       (60,100)
+       (40,100)
+       (20,100)
+       (0.0,100.0)
+       (0.0,80.0)
+       (0.0,60.0)
+       (0.0,40.0)
+       (0.0,20.0)
+       (0.0,0.0)
+     str 30 1000 1001 f 102
+       (0.0,0.0)
+       (20.0,0.0)
+       (40.0,0.0)
+       (60.0,0.0)
+       (80.0,0.0)
+       (100.0,0.0)
+     str 30 1001 0 f 105
+       (0,0)
+       (0,-20)
+       (0,-40)
+       (0,-60)
+       (0,-80)
+       (0,-100)
+       (20,-100)
+       (40,-100)
+       (60,-100)
+       (80,-100)
+       (100,-100)
+       (100,-80)
+       (100,-60)
+       (100,-40)
+       (100,-20)
+       (100,0)
+    end
+   end
+ end
+ rpt
+# Solve it (one iteration)
+ sol 4
+# Make a grid of heads and streamfunctions for SURFER
+ gri
+   opt matlab
+   win (-300.0,-200.0) (300.0,200.0)
+   dim 57
+   hea modaem
+   pot modaem
+   psi modaem
+ end
+# Dump my data structures to the .out file
+ rpt
+#
+ inq
+   fil modaem.inq
+   aqu
+ end
+# That's all, folks!
+ eod

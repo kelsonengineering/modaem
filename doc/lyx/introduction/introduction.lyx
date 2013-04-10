@@ -1,0 +1,1234 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass book
+\use_default_options false
+\begin_modules
+eqs-within-sections
+figs-within-sections
+\end_modules
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_amsmath 1
+\use_esint 0
+\use_mhchem 0
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Standard
+Introduction
+\begin_inset CommandInset label
+LatexCommand label
+name "cha:Introduction"
+
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Standard
+This manual describes the results of over ten years of effort (much of it
+ the 
+\begin_inset Quotes eld
+\end_inset
+
+on again, off again
+\begin_inset Quotes erd
+\end_inset
+
+ variety).
+ ModAEM has been through four major revisions, several research branches,
+ and has been used for countless wellhead protection models, even though
+ most ModAEM users never knew they were using it! This chapter is to introduces
+ to the history and philosophy of ModAEM.
+ 
+\end_layout
+
+\begin_layout Section
+History
+\end_layout
+
+\begin_layout Standard
+This is an approximate chronology of the major events in the development
+ of ModAEM:
+\end_layout
+
+\begin_layout Subsection*
+Beginnings
+\end_layout
+
+\begin_layout Standard
+Like every graduate student, I began this project thinking that I could
+ quickly write a code that did what my major professor's code did.
+ I learned about analytic elements from Dr.
+ Henk Haitjema at Indiana University.
+ Henk was a student of Otto Strack, and wrote the first AE code, SYLENS.
+ Otto later developed the more comprehensive codes SLAEM, SLAEMS, MLAEM,
+ MVAEM and more codes of which I am unaware.
+ SLAEM and its children have always been proprietary codes.
+ Henk needed a research and teaching code, and he developed the code GFLOW
+ in the late 1980's and early 1990's.
+ GFLOW is a popular commercial code, and recently, Henk began to make source
+ code available for it.
+\end_layout
+
+\begin_layout Standard
+I first started hacking around with analytic element codes in 1992--1993,
+ when I began working on my Ph.D.
+ My first effort was an 
+\begin_inset Quotes eld
+\end_inset
+
+integrated flux
+\begin_inset Quotes erd
+\end_inset
+
+ boundary condition that persists into ModAEM (and GFLOW) today.
+ It was implemented in SLWL, which was (and for many is still) the 
+\emph on
+lingua franca
+\emph default
+ for beginning analytic element programmers.
+ 
+\end_layout
+
+\begin_layout Standard
+I spent more of my time working on preprocessing tools for analytic elements
+ and the use of analytic element models as screening tools for numerical
+ models, and also on FRACFLOW, a model of flow in discrete fracture networks.
+\end_layout
+
+\begin_layout Standard
+In 1994, I began work on what would become ModAEM.
+ As part of a research project funded by U.S.
+ EPA, I was offered the opportunity to develop and test an analytic element
+ code that would run on massively--parallel computers.
+ I began with a cobbled--up version of SLWL, but the old--style FORTRAN
+ 77 nature of the code made parallelization on message--passing hardware
+ difficult in those days (as it most likely would be now).
+ After doing benchmarks with my mangled SLWL, it was clear that an improved
+ design was needed
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+
+\backslash
+dots
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+Early ModAEM
+\end_layout
+
+\begin_layout Standard
+The essential design of ModAEM was conceived during a series of long discussions
+ between Mark Bakker, Steve Kraemer, and myself during a High Performance
+ Computing Consortium workshop at EPA's Research Triangle Park facility
+ in 1995 (I was first introduced to the 
+\begin_inset Quotes eld
+\end_inset
+
+new
+\begin_inset Quotes erd
+\end_inset
+
+ GMS preprocessor at the same meeting).
+ I'm not sure that Steve and Mark remember the meeting or the design ideas,
+ but they basically remain intact:
+\end_layout
+
+\begin_layout Itemize
+Logical separation of the analytic element 
+\emph on
+functions
+\emph default
+ (dipoles/doublets, wells, etc.) from analytic element 
+\emph on
+applications
+\emph default
+ (wells, rivers, inhomogeneities)
+\end_layout
+
+\begin_layout Itemize
+Implementation of efficient functions for a few very flexible analytic element
+ functions (at that time, only wells, dipoles of complex strength, and ponds
+ were anticipated)
+\end_layout
+
+\begin_layout Itemize
+Make it all parallelizable with very little effort
+\end_layout
+
+\begin_layout Itemize
+Abandon FORTRAN 77 in favor of a more modern programming language
+\end_layout
+
+\begin_layout Standard
+I have been asked many times why ModAEM was written in Fortran-90 (and now
+ in Fortran-95), rather than in a 
+\begin_inset Quotes eld
+\end_inset
+
+better
+\begin_inset Quotes erd
+\end_inset
+
+ language like C++.
+ I struggled with the choice, but in the end I was advised by the folks
+ at CICA (Center for Innovative Computer Applications) that Fortran 90 and
+ High-Performance Fortran was a more flexible and workable alternative for
+ parallel hardware.
+ On many occasions, I've wished I had a fully object--oriented language
+ like C++, but I've never wished I'd had all the migration issues as C++
+ has evolved for the past decade.
+ Fortran 90/95 was a fine choice.
+ ModAEM is still parallelizable, although no one I know has tried it on
+ SMP hardware yet.
+ 
+\end_layout
+
+\begin_layout Standard
+The earliest versions of ModAEM were experimental codes for testing the
+ parallel algorithms.
+ It wasn't a real modeling tool until
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+dots
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+WhAEM for Windows
+\end_layout
+
+\begin_layout Standard
+Later in 1995, Henk Haitjema and I were hired by US EPA to develop a new
+ version of the WhAEM for DOS code that had been released in 1994.
+ The new WhAEM was to run under Windows 95 and its successors.
+ We needed a free solver engine that had available source code (GFLOW was
+ fully proprietary back then), so we decided that I should complete a simple
+ ModAEM for use in WhAEM.
+ This code eventually became ModAEM-1.0, and it was the computational heart
+ of WhAEM until it was replaced with a stripped--down GFLOW in 2002.
+\end_layout
+
+\begin_layout Standard
+ModAEM-1.0, or 
+\begin_inset Quotes eld
+\end_inset
+
+EPA ModAEM
+\begin_inset Quotes erd
+\end_inset
+
+ is a public--domain code that supports discharge--specified wells, discharge--s
+pecified and head--specified line sinks, no--flow boundaries, uniform flow,
+ and recharge ponds.
+ It also does streamline tracing and generates grids for contour lines.
+ To the best of my knowledge, EPA still has the source code on the CoSMOS
+ web site.
+\end_layout
+
+\begin_layout Standard
+In addition to its use in WhAEM, I used ModAEM-1.0 as a research code for
+ local 3-D models in my disseratation work.
+ Very little of that code exists now.
+\end_layout
+
+\begin_layout Subsection*
+The SFWMD years
+\end_layout
+
+\begin_layout Standard
+In 1998, I finished my Ph.D.
+ at Indiana and began working for the South Florida Water Management District
+ in West Palm Beach, FL.
+ I did some work with ModAEM, typically in the guise of WhAEM, and implemented
+ a few additional features, including resistance line sinks.
+ I also did experimental work on a regional transient flow model based on
+ ModAEM.
+ ModAEM was a useful research project, but there were few new applications.
+ 
+\end_layout
+
+\begin_layout Standard
+In 2000, my wife, infant son, and I returned to Bloomington, where I joined
+ WHPA Inc., a small consulting firm led by my best friend, Jack Wittman.
+\end_layout
+
+\begin_layout Subsection*
+ModAEM reborn -- the Idaho delineation project
+\end_layout
+
+\begin_layout Standard
+In late 2000, WHPA teamed with Barr Engineering on a challenging project:
+ the delineation of wellhead protection areas for over 450 wells in the
+ Treasure Valley, near Boise.
+ Two previous MODFLOW models, based on grid cells of a half--mile or more
+ in size, were available.
+ We needed a way to quickly delineate accurate capture zones for the wells
+ based on the MODFLOW flow fields.
+ I proposed that we rebuild ModAEM for the purpose, using the integrated--flux
+ boundary conditions to chop sub--domains out of the MODFLOW models; we
+ could then trace particles in the equivalent analytic element domains.
+ 
+\end_layout
+
+\begin_layout Standard
+This effort required some substantial enhancements to ModAEM: inhomogeneities
+ in transmissivity, rectangular area sinks, and bounded model domains.
+ In addition, I restructured the internals of ModAEM to make it more object--bas
+ed, including an 
+\begin_inset Quotes eld
+\end_inset
+
+iterator
+\begin_inset Quotes erd
+\end_inset
+
+ strategy that improved the independence of the code components.
+\end_layout
+
+\begin_layout Standard
+The resulting code became ModAEM-1.2.
+ I planned to make a full release of ModAEM-1.2 when the manual was ready,
+ but time was limited, and it was not widely distributed.
+ For some internal applications, I added head--specified wells, general
+ polygonal area sinks and 3--D pathline tracing.
+ I began looking for other developers who would be interested in developing
+ ModAEM, and decided to release a version under the GNU General Public License,
+ as soon as I could.
+ 
+\end_layout
+
+\begin_layout Standard
+And by the way, we finished the job on time and within the budget!
+\end_layout
+
+\begin_layout Subsection*
+ModAEM in GMS?
+\end_layout
+
+\begin_layout Standard
+After the completion of the Idaho project, Jack and I presented the design
+ and philosphy behind ModAEM in a seminar at EPA's Athens Lab.
+ The positive feedback I received from the software engineers there was
+ encouraging.
+ Shortly thereafter, Norm Jones, the inventor of GMS, contacted me to inquire
+ about the potential for using ModAEM as an analytic element solver for
+ GMS.
+ Norm and I had numerous discussions, and a plan was developed for the work.
+ I set out to add some functions that would make the model sufficiently
+ generic to be useful in GMS: base and thickness inhomogeneities, including
+ common boundaries; improved streamline tracing; improved bounded domains
+ with general--head boundaries; drains; and a number of GUI-related improvements
+ were needed.
+\end_layout
+
+\begin_layout Standard
+Plus, a manual.
+ An early version of this manual was provided to Alan Lemon at BYU, and
+ he built the GMS front--end for ModAEM.
+ That work led to the release of ModAEM-1.4 in February, 2004.
+\end_layout
+
+\begin_layout Subsection*
+What's Next?
+\end_layout
+
+\begin_layout Standard
+After many years of work and several false starts, ModAEM is now a versatile
+ modeling tool with a growing community of users.
+ I am hopeful that a developer community will develop, and ModAEM will continue
+ to grow in flexibility, performance, and modeling power.
+ If you're interested in any aspect of ModAEM development, testing, validation,
+ documentation, or if you want to fund the effort somehow, please visit
+ the ModAEM Home Page at 
+\family typewriter
+http://www.wittmanhydro.com/modaem.
+\end_layout
+
+\begin_layout Standard
+Like me, ModAEM now has two children.
+ Mark Bakker and I worked together on the design of the fully object--oriented
+ Python AE code Tim (now TimSL).
+ Nearly all of the solver logic and the internal organization is derived
+ from ModAEM's solver; however since Tim is a research code, the parallelism--im
+proving separation of functions from applications is omitted.
+ TimSL now has a sibling, TimML, Mark Bakker's Bessel--function based model.
+ 
+\end_layout
+
+\begin_layout Standard
+The Tim project provides a set of tools for analytic element education and
+ research.
+ ModAEM remains a stable, high--performance production code.
+ Both projects continue to cross--pollinate each other.
+ I expect that I will continue to develop and model with both codes for
+ a long time to come.
+ 
+\end_layout
+
+\begin_layout Section
+The Philosophy of ModAEM
+\end_layout
+
+\begin_layout Standard
+ModAEM has a set of governing principles.
+ These have been constant throughout the development of the code and I don't
+ anticipate changing them:
+\end_layout
+
+\begin_layout Description
+Keep
+\begin_inset space ~
+\end_inset
+
+it
+\begin_inset space ~
+\end_inset
+
+free This is embodied in the choice of the GNU General Public License for
+ ModAEM-1.4 and beyond.
+ Everyone is welcome to the source code, but if you enhance it and distribute
+ it, you must distribute the source code for the enhancements.
+ I have always hoped that ModAEM could become a powerful starting point
+ for other developers, and I hope to be taught by them!
+\end_layout
+
+\begin_layout Description
+Keep
+\begin_inset space ~
+\end_inset
+
+it
+\begin_inset space ~
+\end_inset
+
+generic That is, use as few mathematical functions as is necessary to achieve
+ the desired objectives.
+ To this day, ModAEM uses only relatively simple first--order and second--order
+ elements.
+ These are reliable, efficient, predictable, and sufficient for a wide variety
+ of practical applications.
+\end_layout
+
+\begin_layout Description
+Keep
+\begin_inset space ~
+\end_inset
+
+it
+\begin_inset space ~
+\end_inset
+
+parallel Make sure that the original design goal of a parallel analytic
+ element code remains.
+ The current code should be easily compiled with the --parallel switch with
+ compilers that support SMP hardware.
+ I wish I had one.
+\end_layout
+
+\begin_layout Description
+Keep
+\begin_inset space ~
+\end_inset
+
+it
+\begin_inset space ~
+\end_inset
+
+portable ModAEM does not use extensions to the Fortran 95 language.
+ It is clean and standard throughout.
+ It has been successfully compiled on numerous hardware and software platforms.
+\end_layout
+
+\begin_layout Description
+Assume
+\begin_inset space ~
+\end_inset
+
+there's
+\begin_inset space ~
+\end_inset
+
+a
+\begin_inset space ~
+\end_inset
+
+preprocessor Nowadays, nobody wants to use a model that doesn't have a nice
+ preprocessor.
+ As a result, ModAEM simplifies the I/O model as much as possible.
+ Many difficult tasks are expected to be performed by the preprocessor,
+ for example, developing the topology of aquifer sub--domains.
+ This makes the code more robust, but harder to use 
+\begin_inset Quotes eld
+\end_inset
+
+by hand
+\begin_inset Quotes erd
+\end_inset
+
+.
+ I for one prefer using a good preprocessor.
+\end_layout
+
+\begin_layout Description
+Document
+\begin_inset space ~
+\end_inset
+
+the
+\begin_inset space ~
+\end_inset
+
+code ModAEM has always had detailed documentation built into the source
+ code.
+\end_layout
+
+\begin_layout Description
+Have
+\begin_inset space ~
+\end_inset
+
+fun! For me, ModAEM has always been a pleasure and a great intellectual
+ challenge.
+ If it isn't fun, it isn't worth working on it!
+\end_layout
+
+\begin_layout Section
+Acknowledgements
+\end_layout
+
+\begin_layout Standard
+Steve Kraemer
+\end_layout
+
+\begin_layout Standard
+Mark Bakker
+\end_layout
+
+\begin_layout Standard
+Don Berry
+\end_layout
+
+\begin_layout Standard
+Henk Haitjema
+\end_layout
+
+\begin_layout Standard
+Jack
+\end_layout
+
+\begin_layout Standard
+Otto
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+
+\backslash
+newpage
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+How to read this manual
+\end_layout
+
+\begin_layout Standard
+The following conventions are used for formatting in this manual:
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+\series medium
+typewriter
+\family default
+\series default
+ text is used for sample input files
+\end_layout
+
+\begin_layout Description
+
+\family sans
+\series medium
+sans-serif
+\family default
+\series default
+ text is used for file names and other related items
+\end_layout
+
+\begin_layout Description
+
+\family sans
+bold
+\begin_inset space ~
+\end_inset
+
+sans-seri
+\family default
+f text is used for ModAEM script file directives
+\end_layout
+
+\begin_layout Description
+bracketed
+\begin_inset space ~
+\end_inset
+
+expressions such as 
+\begin_inset Formula $[L]$
+\end_inset
+
+ contain the dimensions for input data.
+ Some examples are 
+\begin_inset Formula $[-]$
+\end_inset
+
+ for dimensionless quantities, 
+\begin_inset Formula $[L]$
+\end_inset
+
+ for length, 
+\begin_inset Formula $[L/T]$
+\end_inset
+
+ for length per time (e.g.
+ a hydraulic conductivity of 
+\begin_inset Formula $100\, ft/d$
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Section
+Conventions for numeric input
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:numeric-values"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+ModAEM makes use of 
+\begin_inset Quotes eld
+\end_inset
+
+free--format
+\begin_inset Quotes erd
+\end_inset
+
+ input for all numeric entries.
+ Since the computational heart of ModAEM is based on complex numbers, most
+ coordinate information is entered as complex quantities.
+ In this manual, the type of the input value is provided in curly braces,
+ e.g.
+ 
+\begin_inset Formula $\{int\}$
+\end_inset
+
+ for an integer value.
+ When directed to provide a numeric value, use the following rules:
+\end_layout
+
+\begin_layout Description
+integer
+\begin_inset space ~
+\end_inset
+
+values
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset Formula $\{int\}$
+\end_inset
+
+ Positive or negative integer values are allowed.
+ ModAEM uses the Fortran 90 
+\family typewriter
+SELECTED_INT_KIND
+\family default
+ function to specify Chapter 1 About the Book the size of integer values
+ (the default is 4 bytes per value).
+ On 64-bit hardware (or on 32-bit hardware with compilers that support 
+\begin_inset Quotes eld
+\end_inset
+
+quad--precision
+\begin_inset Quotes erd
+\end_inset
+
+ values, you may overload the parameter 
+\family typewriter
+ModAEM_Integer
+\family default
+ in 
+\family sans
+u_constants.f95
+\family default
+ and rebuild ModAEM.
+ Note that this has not been tested; please report success or failure to
+ Vic Kelson.
+\begin_inset Newline newline
+\end_inset
+
+For integers, do not provide a decimal point.
+ For negative numbers, the 
+\begin_inset Formula $-$
+\end_inset
+
+sign 
+\emph on
+must
+\emph default
+ be immediately before the first digit of the value.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+right: 
+\family typewriter
+3
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+-13241
+\end_layout
+
+\begin_layout Description
+wrong: 
+\family typewriter
+-1.234
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+7E+07
+\end_layout
+
+\end_deeper
+\begin_layout Description
+logical
+\begin_inset space ~
+\end_inset
+
+values
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset Formula $\{logical\}$
+\end_inset
+
+ Values that may be either true or false.
+ ModAEM uses the Fortran 90 
+\family typewriter
+SELECTED_LOGICAL_KIND
+\family default
+ function to specify the size of logical values (the default is 4 bytes
+ per value).
+ If desired, you may overload the parameter 
+\family typewriter
+ModAEM_Logical
+\family default
+ in 
+\family sans
+u_constants.f95
+\family default
+ and rebuild ModAEM.
+\begin_inset Newline newline
+\end_inset
+
+For logicals, the only legal values are 
+\family typewriter
+T
+\family default
+ (true) or 
+\family typewriter
+F
+\family default
+ (false).
+ The value may be entered in either uppercase or lowercase.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+right: 
+\family typewriter
+T
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+F
+\end_layout
+
+\begin_layout Description
+wrong: 
+\family typewriter
+yes
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+0
+\end_layout
+
+\end_deeper
+\begin_layout Description
+real
+\begin_inset space ~
+\end_inset
+
+values
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset Formula $\{real\}$
+\end_inset
+
+ Positive or negative floating--point values are allowed.
+ ModAEM uses the Fortran 90 
+\family typewriter
+SELECTED_REAL_KIND
+\family default
+ technique to specify the size of floating--point values (the default is
+ 8-bytes per value).
+ On 64-bit hardware (or on 32-bit hardware with compilers that support 
+\begin_inset Quotes eld
+\end_inset
+
+quad--precision
+\begin_inset Quotes erd
+\end_inset
+
+ values, you may overload the parameter 
+\family typewriter
+ModAEM_Real
+\family default
+ in 
+\family sans
+u_constants.f95
+\family default
+ and rebuild ModAEM
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+Although in principle it would be possible to specify single precision,
+ it is discouraged.
+ On current 32-bit hardware, there is no speed benefit from the use of single
+ precision floating--point arithmetic.
+\end_layout
+
+\end_inset
+
+.
+ Note that this has not been tested; please report success or failure to
+ Vic Kelson.
+\begin_inset Newline newline
+\end_inset
+
+Floating--point numbers may or may not contain a decimal point.
+ If exponential notation is desired, use the characters 
+\family typewriter
+
+\begin_inset Formula $E\pm XX$
+\end_inset
+
+
+\family default
+ as a suffix, where 
+\family typewriter
+XX
+\family default
+ is the exponent.
+ No space can lie between the 
+\begin_inset Formula $-$
+\end_inset
+
+ sign and the first digit of precision or between the mantissa and exponent.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+right: 
+\family typewriter
+1.2
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+-3.1415926
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+6.02e+23
+\end_layout
+
+\begin_layout Description
+wrong: 
+\family typewriter
+-
+\begin_inset space ~
+\end_inset
+
+1.2
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+7.01
+\begin_inset space ~
+\end_inset
+
+e+99
+\end_layout
+
+\end_deeper
+\begin_layout Description
+complex
+\begin_inset space ~
+\end_inset
+
+values
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset Formula $\{complex\}$
+\end_inset
+
+ Pairs of  floating--point values, surrounded by parentheses and separated
+ by a comma are allowed, where the first value is the real part and the
+ sceond value is the imaginary part.
+ ModAEM uses the Fortran 90 
+\family typewriter
+SELECTED_REAL_KIND
+\family default
+ technique to specify the size of floating--point values, including complex
+ values (the default is 8-bytes per value).
+ On 64-bit hardware (or on 32-bit hardware with compilers that support 
+\begin_inset Quotes eld
+\end_inset
+
+quad--precision
+\begin_inset Quotes erd
+\end_inset
+
+ values, you may overload the parameter 
+\family typewriter
+ModAEM_Real
+\family default
+ in 
+\family sans
+u_constants.f95
+\family default
+ and rebuild ModAEM.
+ Note that this has not been tested; please report success or failure to
+ Vic Kelson.
+\begin_inset Newline newline
+\end_inset
+
+Complex numbers may or may not contain a decimal point.
+ If exponential notation is desired, use the characters 
+\family typewriter
+
+\begin_inset Formula $E\pm XX$
+\end_inset
+
+
+\family default
+ as a suffix, where 
+\begin_inset Formula XX
+
+\end_inset
+
+ is the exponent.
+ No space can lie between the 
+\begin_inset Formula $-$
+\end_inset
+
+ sign and the first digit of precision or between the mantissa and exponent.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+right: 
+\family typewriter
+(1.2,3.45)
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+(-3.1415926,0)
+\end_layout
+
+\begin_layout Description
+wrong: 
+\family typewriter
+3+4i
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+(3.54)
+\end_layout
+
+\end_deeper
+\begin_layout Section
+The right--hand rule
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:The-right--hand-rule"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For some elements, e.g the boundary segments defined by the 
+\family sans
+bdy
+\family default
+ directive in module AQU, the orientation of the points making up the element
+ is significant.
+ In all cases, ModAEM makes use of the 
+\begin_inset Quotes eld
+\end_inset
+
+right--hand rule
+\begin_inset Quotes erd
+\end_inset
+
+.
+ The element is oriented such that if the modeler were to stand at the first
+ vertex facing the second vertex, the boundary condition is specified on
+ the 
+\begin_inset Quotes eld
+\end_inset
+
+left
+\begin_inset Quotes erd
+\end_inset
+
+ side of the element (the index finger of the right hand, extended along
+ the segment, points 
+\begin_inset Quotes eld
+\end_inset
+
+in
+\begin_inset Quotes erd
+\end_inset
+
+).
+ For example, for a flux--specified bdy element, the flux is numerically
+ positive if water moves from the right to the left.
+ Similarly, a head--specified boundary condition is to be met just to the
+ left of the element.
+\end_layout
+
+\begin_layout Standard
+This convention holds elsewhere in ModAEM, e.g.
+ in module HB0 and for th
+\end_layout
+
+\begin_layout Standard
+0.4 Supported analytic elements 
+\end_layout
+
+\begin_layout Standard
+Aquifers of varying propertiese extraction of data using the FLO directive
+ (see section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "cmd:flo"
+
+\end_inset
+
+), and also in many places within the ModAEM source code.
+\end_layout
+
+\end_body
+\end_document

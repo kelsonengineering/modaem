@@ -1,0 +1,86 @@
+# Test a single aquifer with a polygonal inhomogeneity in uniform flow
+ aem
+   aqu 5 5 0.0 1000.0 10.0 0.25 100.0
+     ref (10.0,-5000.0) 99.0 (5.0,0.0)
+     in0
+       dom 60 50.0 1000.0 10.0 0.25 1000.0 1000
+         (-10,-10)
+         (-9,-10)
+         (-8,-10)
+         (-6,-10)
+         (-4,-10)
+         (0,-10)
+         (4,-10)
+         (6,-10)
+         (8,-10)
+         (9,-10)
+         (10,-10)
+         (10,-9)
+         (10,-8)
+         (10,-6)
+         (10,-4)
+         (10,0)
+         (10,4)
+         (10,6)
+         (10,8)
+         (10,9)
+         (10,10)
+         (9,10)
+         (8,10)
+         (6,10)
+         (4,10)
+         (0,10)
+         (-4,10)
+         (-6,10)
+         (-8,10)
+         (-9,10)
+         (-10,10)
+         (-10,9)
+         (-10,8)
+         (-10,6)
+         (-10,4)
+         (-10,0)
+         (-10,-4)
+         (-10,-6)
+         (-10,-8)
+         (-10,-9)
+     end
+   end
+ end
+ rpt
+# Solve it (one iteration)
+ sol 4
+# Make a grid of heads and streamfunctions for SURFER
+ gri
+   opt surfer
+   win (-20.0,-20.0) (20.0,20.0)
+   dim 50
+   hea modaem
+   pot modaem
+   psi modaem
+ end
+ tr0
+   fil modaem
+   win (-100,-100) (100,100)
+   poi (-80,-50) 0 0 0 1
+   poi (-80,-40) 0 0 0 1
+   poi (-80,-30) 0 0 0 1
+   poi (-80,-20) 0 0 0 1
+   poi (-80,-10) 0 0 0 1
+   poi (-80,  0) 0 0 0 1
+   poi (-80, 10) 0 0 0 1
+   poi (-80, 20) 0 0 0 1
+   poi (-80, 30) 0 0 0 1
+   poi (-80, 40) 0 0 0 1
+   poi (-80, 50) 0 0 0 1
+ end
+# Dump my data structures to the .out file
+ rpt
+# Inquiry test
+ inq
+   fil modaem.inq
+   aqu
+   hb0
+ end
+# That's all, folks!
+ eod
