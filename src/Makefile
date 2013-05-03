@@ -112,7 +112,7 @@ OFF = $(SRCROOT)/m_ext.F90 $(SRCROOT)/i_linesink.F90 $(SRCROOT)/modaem.F90 $(SRC
       $(POLYPACK)/u_polygon.F90
 
 clean: neat
-	-rm -f .cppdefs $(OBJ) modaem-1.8
+	-rm -f .cppdefs $(OBJ) *.mod modaem-1.8
 
 neat:
 	-rm -f $(TMPFILES)
