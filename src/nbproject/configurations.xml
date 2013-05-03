@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="88">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <logicalFolder name="polypack"
+                   displayName="polypack"
+                   projectFiles="true"
+                   root="../dependencies/polypack">
+      <itemPath>../dependencies/polypack/polypack.f</itemPath>
+    </logicalFolder>
+    <df root="." name="src">
+      <in>a_grid.F90</in>
+      <in>a_obs.F90</in>
+      <in>a_stdio.F90</in>
+      <in>a_tr0.F90</in>
+      <in>f_bwl.F90</in>
+      <in>f_dipole.F90</in>
+      <in>f_pond.F90</in>
+      <in>f_well.F90</in>
+      <in>i_areasink.F90</in>
+      <in>i_dipole.F90</in>
+      <in>i_linesink.F90</in>
+      <in>i_pond.F90</in>
+      <in>i_well.F90</in>
+      <in>m_aem.F90</in>
+      <in>m_aqu.F90</in>
+      <in>m_as0.F90</in>
+      <in>m_cw0.F90</in>
+      <in>m_ext.F90</in>
+      <in>m_hb0.F90</in>
+      <in>m_in0.F90</in>
+      <in>m_inq.F90</in>
+      <in>m_ls0.F90</in>
+      <in>m_ls1.F90</in>
+      <in>m_ls2.F90</in>
+      <in>m_ls3.F90</in>
+      <in>m_pd0.F90</in>
+      <in>m_wl0.F90</in>
+      <in>m_wl1.F90</in>
+      <in>modaem.F90</in>
+      <in>u_constants.F90</in>
+      <in>u_grid.F90</in>
+      <in>u_io.F90</in>
+      <in>u_math.F90</in>
+      <in>u_matrix.F90</in>
+      <in>u_polygon.F90</in>
+    </df>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>Makefile</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <sourceFolderFilter>^(nbproject)$</sourceFolderFilter>
+  <sourceRootList>
+    <Elem>.</Elem>
+  </sourceRootList>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
+        <compilerSet>Ports_GCC_4.8-mp|GNU</compilerSet>
+      </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
+      <makefileType>
+        <makeTool>
+          <buildCommandWorkingDir>.</buildCommandWorkingDir>
+          <buildCommand>${MAKE} -f Makefile</buildCommand>
+          <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
+          <executablePath></executablePath>
+        </makeTool>
+      </makefileType>
+      <item path="../dependencies/polypack/polypack.f"
+            ex="false"
+            tool="2"
+            flavor2="0">
+      </item>
+      <item path="a_grid.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="a_obs.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="a_stdio.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="a_tr0.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="f_bwl.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="f_dipole.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="f_pond.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="f_well.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="i_areasink.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="i_dipole.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="i_linesink.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="i_pond.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="i_well.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="m_aem.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="m_aqu.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="m_as0.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="m_cw0.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="m_ext.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="m_hb0.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="m_in0.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="m_inq.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="m_ls0.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="m_ls1.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="m_ls2.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="m_ls3.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="m_pd0.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="m_wl0.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="m_wl1.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="modaem.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="u_constants.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="u_grid.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="u_io.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="u_math.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="u_matrix.F90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="u_polygon.F90" ex="false" tool="2" flavor2="0">
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>

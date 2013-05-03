@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="88">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="." name="src">
+      <in>a_grid.F90</in>
+      <in>a_grid.mod</in>
+      <in>a_obs.F90</in>
+      <in>a_obs.mod</in>
+      <in>a_stdio.F90</in>
+      <in>a_stdio.mod</in>
+      <in>a_tr0.F90</in>
+      <in>a_tr0.mod</in>
+      <in>f_bwl.F90</in>
+      <in>f_bwl.mod</in>
+      <in>f_dipole.F90</in>
+      <in>f_dipole.mod</in>
+      <in>f_pond.F90</in>
+      <in>f_pond.mod</in>
+      <in>f_well.F90</in>
+      <in>f_well.mod</in>
+      <in>i_areasink.F90</in>
+      <in>i_areasink.mod</in>
+      <in>i_dipole.F90</in>
+      <in>i_dipole.mod</in>
+      <in>i_linesink.F90</in>
+      <in>i_linesink.mod</in>
+      <in>i_pond.F90</in>
+      <in>i_pond.mod</in>
+      <in>i_well.F90</in>
+      <in>i_well.mod</in>
+      <in>m_aem.F90</in>
+      <in>m_aem.mod</in>
+      <in>m_aqu.F90</in>
+      <in>m_aqu.mod</in>
+      <in>m_as0.F90</in>
+      <in>m_as0.mod</in>
+      <in>m_cw0.F90</in>
+      <in>m_cw0.mod</in>
+      <in>m_ext.F90</in>
+      <in>m_ext.mod</in>
+      <in>m_hb0.F90</in>
+      <in>m_hb0.mod</in>
+      <in>m_in0.F90</in>
+      <in>m_in0.mod</in>
+      <in>m_inq.F90</in>
+      <in>m_inq.mod</in>
+      <in>m_ls0.F90</in>
+      <in>m_ls0.mod</in>
+      <in>m_ls1.F90</in>
+      <in>m_ls1.mod</in>
+      <in>m_ls2.F90</in>
+      <in>m_ls2.mod</in>
+      <in>m_ls3.F90</in>
+      <in>m_ls3.mod</in>
+      <in>m_pd0.F90</in>
+      <in>m_pd0.mod</in>
+      <in>m_wl0.F90</in>
+      <in>m_wl0.mod</in>
+      <in>m_wl1.F90</in>
+      <in>m_wl1.mod</in>
+      <in>modaem.F90</in>
+      <in>u_constants.F90</in>
+      <in>u_constants.mod</in>
+      <in>u_grid.F90</in>
+      <in>u_grid.mod</in>
+      <in>u_io.F90</in>
+      <in>u_io.mod</in>
+      <in>u_math.F90</in>
+      <in>u_math.mod</in>
+      <in>u_matrix.F90</in>
+      <in>u_matrix.mod</in>
+      <in>u_polygon.F90</in>
+      <in>u_polygon.mod</in>
+    </df>
+  </logicalFolder>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>4</platform>
+      </toolsSet>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_options>
+          <DebugOptions>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>"${OUTPUT_PATH}"</runcommand>
+        <rundir>.</rundir>
+        <buildfirst>true</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+        </environment>
+      </runprofile>
+    </conf>
+  </confs>
+</configurationDescriptor>
