@@ -12,7 +12,7 @@ vpath %F90 ../../src
 
 .DEFAULT:
 
-all: modaem-1.9 test-1.9
+all: modaem-1.8
 
 %o: %f
 	$(FC) -c $(FFLAGS) -o $@ $<
@@ -47,13 +47,11 @@ i_pond.o: i_pond.F90 u_constants.o
 i_well.o: i_well.F90 u_constants.o
 
 m_aem.o: m_aem.F90 u_constants.o u_io.o u_matrix.o f_well.o f_dipole.o f_pond.o m_aqu.o m_wl0.o m_wl1.o \
-                              m_pd0.o m_ls0.o m_ls1.o m_ls2.o m_ls3.o m_hb0.o m_as0.o m_cw0.o
+                              m_pd0.o m_ls0.o m_ls1.o m_ls2.o m_ls3.o m_hb0.o m_as0.o
 
 m_aqu.o: m_aqu.F90 u_constants.o u_io.o u_matrix.o f_dipole.o i_linesink.o m_in0.o
 
 m_as0.o: m_as0.F90 u_constants.o u_io.o u_polygon.o u_matrix.o f_well.o f_dipole.o i_areasink.o m_aqu.o
-
-m_cw0.o: m_cw0.F90 u_constants.o u_io.o f_well.o f_dipole.o u_matrix.o m_aqu.o
 
 m_ext.o: m_ext.F90 u_constants.o u_io.o m_wl0.o m_wl1.o m_ls0.o m_ls1.o m_hb0.o m_aem.o
 
@@ -77,7 +75,7 @@ m_wl0.o: m_wl0.F90 u_constants.o u_io.o f_well.o f_bwl.o m_aqu.o
 
 m_wl1.o: m_wl1.F90 u_constants.o u_io.o f_well.o u_matrix.o m_aqu.o
 
-main.o: main.F90 u_constants.o u_io.o m_aqu.o m_wl0.o m_wl1.o m_ls0.o m_ls1.o m_hb0.o m_aem.o m_inq.o m_ext.o a_grid.o a_tr0.o a_stdio.o a_obs.o
+modaem.o: modaem.F90 u_constants.o u_io.o m_aqu.o m_wl0.o m_wl1.o m_ls0.o m_ls1.o m_hb0.o m_aem.o m_inq.o m_ext.o a_grid.o a_tr0.o a_stdio.o a_obs.o
 
 u_constants.o: u_constants.F90
 
@@ -97,22 +95,19 @@ test.o: test.F90 $(INF)
 
 INF = i_well.o i_linesink.o i_dipole.o i_pond.o i_areasink.o
 
-OBJ = a_tr0.o m_as0.o m_wl1.o m_ls0.o u_matrix.o u_polygon.o u_math.o main.o m_wl0.o a_stdio.o \
-      f_pond.o a_obs.o m_cw0.o m_ls1.o a_grid.o m_in0.o m_aqu.o m_pd0.o \
+OBJ = a_tr0.o m_as0.o m_wl1.o m_ls0.o u_matrix.o u_polygon.o u_math.o modaem.o m_wl0.o a_stdio.o \
+      f_pond.o a_obs.o m_ls1.o a_grid.o m_in0.o m_aqu.o m_pd0.o \
       f_dipole.o m_ext.o m_aem.o u_io.o m_hb0.o u_constants.o  \
       f_well.o m_inq.o m_ls2.o u_grid.o m_ls3.o f_bwl.o polypack.o $(INF)
 
 clean: neat
-	-rm -f .cppdefs *.o *.mod modaem-1.9 test-1.9
+	-rm -f .cppdefs *.o *.mod
 
 neat:
 	-rm -f $(TMPFILES)
 	
-test-1.9: $(INF)
-	$(LD) $(INF) test.o -o test-1.9 $(LDFLAGS)
-
-modaem-1.9: $(OBJ) 
-	$(LD) $(OBJ) -o modaem-1.9	  $(LDFLAGS)
+modaem-1.8: $(OBJ) 
+	$(LD) $(OBJ) -o modaem-1.8	  $(LDFLAGS)
 
 install: modaem-1.8
 	cp -f modaem-1.8 ~/bin/modaem-1.8
