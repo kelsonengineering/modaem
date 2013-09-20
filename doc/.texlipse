@@ -1,0 +1,14 @@
+#TeXlipse project settings
+#Fri Sep 06 15:55:13 EDT 2013
+markTmpDer=true
+builderNum=2
+outputDir=
+makeIndSty=
+bibrefDir=
+outputFormat=pdf
+tempDir=tmp
+mainTexFile=modaem-user.tex
+outputFile=modaem-user.pdf
+langSpell=en
+markDer=true
+srcDir=

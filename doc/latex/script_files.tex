@@ -1,0 +1,219 @@
+\chapter{ModAEM script files\label{cha:script-files} }
+
+ModAEM execution is controlled by the use of a ModAEM
+script file (with the extension \textsf{.aem}), and
+a ModAEM name file (called \textsf{modaem.nam}).
+These files are the only input files that are required by the model.
+
+
+\section{The ModAEM name file \textsf{modaem.nam\label{sub:name-file} }}
+
+The standard library for the Fortran-95 language does not provide
+a mechanism for gathering command-line arguments (e.g. the '\texttt{int
+main(int argc, char {*}{*}argv)}' in a C or C++ program or \texttt{sys.argv{[}{]}}
+in Python). Although nearly all current Fortran-95 compilers provide
+a library routine for this task, they are not syntactically consistent.
+One of the design objectives of the ModAEM project is that the code
+should be as portable as possible, so language extensions have been
+carefully avoided. Therefore, the official
+ModAEM release code uses a file called \textsf{modaem.nam} in the
+current working directory when the program begins execution to find
+the ModAEM script file. The name file provides the base file name
+for the ModAEM script file (and may provide other features in the
+future). Developers are encouraged to add platform-specific support
+for command-line arguments if they desire \footnote{It is expected that developers (particularly those who need a platform-specific
+version of ModAEM) will add the ability to fetch command-line arguments
+in the version of ModAEM that ships with their code. As of Fortran 95, the addition of this feature is compiler-dependent; however the Fortran 2003
+library offers this capability, so future versions of ModAEM will likely take advantage of it. 
+
+It is understood that some vendors may wish to add a platform-specific
+GUI-style display to ModAEM (e.g. in a style similar to the MODFLOW/Win32
+code that ships with the popular \emph{Groundwater Vistas} MODFLOW
+GUI). It will be much appreciated if someone will make such a version
+available under GPL. Although it is much preferred that such an extension
+is released under GPL, the copyright holders understand the developer's
+concerns and will consider requests (we make no guarantees \emph{a
+priori}) for special licensing arrangements for such extensions.However,
+we do not anticipate a willingness to engage in special licensing
+exceptions for computational features that may be added to the code.%
+}.
+
+\subsection{Contents of the name file }
+
+The ModAEM name file \textsf{modaem.nam} can be created with any text
+editor. \textsf{modaem.nam} contains up to three lines of text, as
+follows:
+
+\paragraph{Line 1 -- Base file name for the model run}
+
+The first line of the name file contains the ``base'' name of the
+files for the model run. For example, if the model input data are
+contained in a file called \textsf{modaem.aem}, then the contents
+of \textsf{modaem.nam} would be:
+\begin{verbatim}
+modaem
+\end{verbatim}
+The extension \textsf{.aem} is appended to the file name by ModAEM.
+In addition, two output files will be created using the same base
+name, '\textsf{modaem}':
+\begin{description}
+\item [{\textsf{\textmd{modaem.err}}}] Will be written as the message
+file. This file echoes program input and messages issued during execution.
+It may be used as a run log file (and to see the results of some processing
+directives). Although some model results can be sent to the message
+file, it is not appropriate for extracting model results (e.g. heads)
+for use in GUI programs; the inquiry
+files written by module INQ (Section 5.9) are designed for this feature.
+\item [{\textsf{\textmd{modaem.out}}}] Will be written as the output
+file. This file recieves an HTML document listing of the solution
+results, which may be useful in debugging. The output file is not
+appropriate for loading results to be displayed in GUI programs; the
+inquiry files written by module INQ
+(Section 5.9) are designed for this feature.
+\end{description}
+
+\paragraph{Line 2 -- Name of the previous solution file}
+
+The second file named in the name file is an optional file that contains
+the saved results from a previous solution that are to be reloaded,
+for example, to trace particles from a prior solution without the
+need for re-solving. If it is provided, the results are read from
+the previous solution file after the problem is defined (see the \textsf{\textbf{aem}}
+directive and related information below), when the \textsf{\textbf{sol}}
+directive is encountered. To ``solve'' the model byCool pictures?
+Why would we do all this work if we weren't going to make cool pictures?
+-- Mark Bakker
+
+simply reloading the solution, issue the directive \texttt{sol~0}
+after the problem definition is complete. If the previous solution
+file is missing or if the file is empty, a warning will be issued
+and execution will continue. However, if the file is not empty, a
+fatal error results if the contents of the previous solution file
+are inconsistent with the problem definition.
+
+The file name may have any extension that the modeler desires, although
+by convention, the extention \textsf{.pre} is recommended. If the
+name of previous solution file is omitted from the name file, no previous
+solution will be loaded.
+
+
+\paragraph{Line 3 -- Name of the file where solution results are to be written}
+
+The third file named in the name file is an optional file where the
+results of the solution are to be written, for example, for use as
+the initial condition in a future ModAEM run. If it is provided, ModAEM
+will write the solution when the solution procedure is complete. The
+file may be reloaded by specifying it in the second line of a future
+name file (see above). 
+
+The file name may have any extension that the modeler desires, although
+by convention, the extention \textsf{.pre} is recommended. If the
+name of the save file is omitted from the name file, no solution will
+be saved.
+
+
+\section{The AEM script file (\textsf{.}\textsf{\textmd{aem}} file) }
+
+The AEM script file provides model elements and processing directives
+to ModAEM. The AEM script file can have any base file name (as specified
+in the modaem.nam file) and must have the extension \textsf{.aem}.
+The AEM script file is a flat text file that can be created with any
+text editor. Program directives are entered one per line.
+
+The script file is divided into two sections, the problem
+definition section (or AEM section)
+and the processing section. Typically,
+ModAEM script files look like this:
+\begin{verbatim}
+aem
+  aqu
+  ...
+  # aquifer description goes here
+  end
+  # other module sections go here...
+  wl0 10
+    ... discharge-specified well data goes in here ...
+    # end of well data 
+  end 
+  # end of aem data 
+end
+# processing directives go here ...
+# End-of-data mark 
+eod
+\end{verbatim}
+
+The attractive indentation style of the input file is optional, but highly recommended. By convention, each sub-section of the input file, e.g. \textsf{wl0} or \textsf{aqu}, 
+is indented two spaces for readability. ModAEM ignores the indentation
+when reading program input. Currently (at this writing, we are at
+version 1.8.7), ModAEM behaves unpredictibly when it encounters
+tab characters (ASCII 0x09) in input. The \textsf{aem} section of the input file (the portion contained between the \texttt{aem} and \texttt{end}
+directives in lines 1 and 14 of the above listing) defines the actual elements that make up the model. Within the AEM
+section, input for the various element definition modules (see Chapter
+\ref{cha:script-files}) is provided.
+
+The processing section follows the problem definition section of the
+script file. The various processing directives that are available
+are discussed in Chapter \ref{cha:Processing-Directives}.
+
+\subsection{Directives which are common to all input modules}
+
+The following directives are available in all ModAEM input modules.
+
+\subsubsection{Comments}
+
+Comment lines in the AEM script file start with a hash mark (\texttt{\#})
+in the first column. Comment lines are ignored by ModaEM. For example:
+\begin{verbatim}
+# This is a comment line
+\end{verbatim}
+
+\subsubsection{Exiting a module (\textsf{\textmd{end}} directive) }
+
+The \texttt{end} directive causes ModAEM to leave the current module.
+For example, when in the \textsf{wl0} module (which is started with
+the \texttt{wl0} directive), the end directive returns processing
+to the AEM input module:
+\begin{verbatim}
+# the aem section is used to define the problem 
+aem
+   # other module sections go here...
+  wl0 10
+    ... discharge-specified well data goes in here ...
+     # end of well data 
+  end
+  # end of aem data
+end 
+# processing directives go here ...
+# End of data mark 
+eod
+\end{verbatim}
+
+\subsection{Enabling debugging code (\textsf{\textsf{dbg}} directive) }
+
+The \textsf{dbg} directive is used to turn code marked as 'debug'
+code on or off during execution (useful for program debugging). Debug
+code is enabled or disabled at the level of a specific module. The
+ModAEM source code contains many assertions that can be used to test
+for internal errors in the code. The \textsf{dbg} command does not
+affect the detection of errors in program input, however. This command
+will typically be used only by developers.
+
+\subsection{Other directives for specific tasks }
+
+\subsubsection{Begin defining a model problem domain (\textsf{aem} directive)}
+
+The \textsf{aem} directive begins the problem definition section of the ModAEM
+input file. See for a description of the various directives that may
+be used in the problem definition section.
+\paragraph{Usage:}
+\begin{verbatim}
+aem 
+  ... put model definition directives here ... 
+end
+\end{verbatim}
+
+\subsubsection{Processing directives}
+
+The various processing directives that are available once a problem
+has been defined in the AEM section are described in Chapter \ref{cha:Processing-Directives}.
+

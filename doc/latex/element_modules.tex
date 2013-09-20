@@ -1,0 +1,494 @@
+Once the aquifer is defined using module \textsf{AQU} (see Chapter \ref{cha:aqu-module}), additional boundary conditions are added to the model by superposition. This chapter describes the elements that are available in ModAEM. Currently, the following element modules are provided:
+
+\begin{description}
+\item [{Discharge--specified wells (\textsf{WL0})}] These are wells for which the pumping rate is known, for example, water supply wells or irrigation wells. This is the most commonly--used type of well; both pumping wells and injection wells are supported. These are analougous to wells created with the MODFLOW WEL package.
+
+\item [{Head--specified wells (\textsf{WL1})}] These are wells for which the pumping rate is not \emph{a priori} known to the modeler. The best example is a dewatering well that turns on and off according to a water level measurement. For WL1 elements, the modeler provides the location and radius of the well, plus a location in the aquifer and a head value; ModAEM computes the pumping rate of the well\footnote{As will be discussed in Section \ref{sec:wl1-module}, \textsf{WL1} wells should not be confused with calibration targets or inverse models.}. These are somewhat analogous to MODFLOW constant--head cells.
+
+\item [{Discharge--specified line sinks (\textsf{LS0})}] These are line segments that add or remove a specific amount of water along their length, where the modeler provides the amount of water to be added. Some examples of discharge--specified line sinks are infiltration galleries or rivers in arid climates that are typically dry, but infiltrate water at certain times of the year. These are analogous to a group of wells created with the MODFLOW WEL package.
+
+\item [{Head--specified line sinks (\textsf{LS1})}] These are line segments that add or remove water along their lengths, but for which the pumping rate is not \emph{a priori} known to the modeler, and where there
+is no ``entry resistance'', e.g a silty stream bed, between the line sink and the aa group ofquifer. \textsf{LS1} line sinks are often used to represent rivers in the far field when the modeler wishes to use an unbounded aquifer with a modeled far field (see Section \ref{sub:reference-flow-field}). These are somewhat analogous to a group of MODFLOW constant--head cells; they differ because in MODFLOW, constant head cells are specified as part of the BAS package, not as a separate component.
+
+\item [{Resistance line sinks (\textsf{LS2})}] These are line segments that add or remove water along their lengths, but for which the pumping rate is not \emph{a priori} known to the modeler, and where an ``entry resistance'', e.g a silty stream bed, between the line sink and the aquifer is present. \textsf{LS2} line sinks are often used to represent surface waters or drains in the near field. \textsf{LS2} line sinks may be created as rivers (analogous to the MODFLOW RIV package), drains (analogous to the MODFLOW DRN package), or general--head boundaries (analogous to the MODFLOW GHB package). Streamflow routing may be performed for \textsf{LS2} elements (in a manner similar to the MODFLOW STR package), using the analysis module \textsf{RT0} (see Section \ref{sec:rt0-module}).
+
+\item [{Horizontal no--flow boundaries (\textsf{HB0)}}] These are elements that create a linear no--flow condition within the active area of a ModAEM model. These may be used to model sheet pilings, slurry walls, faults, and other linear no--flow conditions that require an active aquifer domain on both sides of the line. This should not be used for bounded models or for ``islands'' in an aquifer domain; use the \textsf{BDY} elements included in module \textsf{AQU} (Section \ref{sub:bounded-aquifers}) for details. These are analougous to the MODFLOW HFB package.
+
+\item [{Circular area--sinks (\textsf{PD0})}] These are elements that provide an areal infiltration or exfiltration rate over a circular sub--domain, using a circular ``pond'' function described by Strack (1989). The ``sink density'', or rate of infitration per unit of surface area, is specified by the modeler. These are typically used in example problems and for conceptual models, although they are convenient for representing circular irrigators. For most practical modeling applications, module \textsf{PD0} is superseded by the polygonal area--sink module \textsf{AS0} (Section \ref{sec:as0-module}).
+
+\item [{Polygonal area--sinks (AS0)}] These are elements that provide an areal infiltration or exfiltration rate over a polygonal sub--domain. The ``sink density'', or rate of infitration per unit of surface area, is specified by the modeler. These are typically used as sources of areal recharge, e.g. from rainfall, or for infiltration galleries.
+\end{description}
+\newpage
+
+\section{Discharge-specified wells (module \textsf{WL0})\label{sec:wl0-module}}
+
+Module \textsf{WL0} creates discharge-specified wells. ModAEM processing enters module \textsf{WL0} in response to the \textsf{wl0} directive. 
+
+\paragraph{Usage:}
+\begin{verbatim}
+    wl0 nwells
+      (xw,yw) pumping-rate radius id 
+  	     # Optional features follow if desired
+         ppw ...
+         eff ...
+         dhd ...
+         ddn ...
+      (xw, yw) ...
+      ...
+    end
+\end{verbatim}
+
+\paragraph{Parameters for the \textsf{wl0} directive}
+
+\begin{description}
+  \item [\parameter{nwells}{int}] The maximum number of wells in the problem \units{-}
+\end{description}
+
+\paragraph{Specifying well elements}
+
+The \textsf{wl0} directive is followed by one record for every well
+in the model. If more than nwells well elements is provided, an ModAEM
+will terminate and report the error. Each well record has the following
+form:
+\begin{verbatim}
+    (xw,yw) pumping-rate radius id
+\end{verbatim}
+
+\paragraph{Parameters}
+
+\begin{description}
+\item [\parameter{(xw,yw)}{complex}] The coordinates of the center of the well. \units{L}
+\item [\parameter{pumping-rate}{real}] The pumping rate of the well. The value is 
+   positive if the element removes water from the aquifer, negative if it adds water 
+   to the aquifer \footnote{Users who make use of ModAEM using the GMS preprocessor 
+   will note that GMS makes use of the MODFLOW convention that abstraction of water 
+   from the aquifer is negative, while injection is positive. Conversion to ModAEM's 
+   convention is handled transparently by GMS.}. \units{L^3/T}
+\item [\parameter{radius}{real}] The radius of the well. \units{L}
+\item [\parameter{id}{int}] A unique identification number for the well. \units{-}
+\end{description}
+
+\paragraph{Optional \textsf{wl0} features} ModAEM offers several optional features for modeling discharge-specified wells. Two 
+
+
+\newpage
+
+\section{Head-specified wells (module WL1)\label{sec:wl1-module}}
+
+Module WL1 creates head-specified wells. Head-specified wells should be used in cases where a well is to be used to maintain a particular water level at some location in the aquifer. The model computes the pumping rate for each head--specified well element that allows the model to match the specified head; these elements \emph{must not} be used for the purpose of calibrating the model to known heads. ModAEM processing enters module WL1 in response to the wl1 directive. 
+
+\paragraph{Usage:}
+\begin{verbatim}
+    wl1 nwells
+      (xw,yw) head (xc,yc) radius id
+      ... 
+    end
+\end{verbatim}
+
+\paragraph{Parameters}
+
+\parameter{nwells}{int} The maximum number of wells in the problem \units{-}
+
+\subsection{Specifying head--specified well elements}
+
+The \textsf{wl1} directive is followed by one record for every well in the model. If more than nwells well elements is provided, an ModAEM will terminate and report the error. Each well record has the following form:
+\begin{verbatim}
+    (xw,yw) head (xc,yc) radius id
+\end{verbatim}
+
+\paragraph{Parameters}
+
+\begin{description}
+\item [\parameter{(xw,yw)}{complex}] The coordinates of the center of the well. \units{L}
+\item [\parameter{head}{real}] The specified head at the control point. \units{L}
+\item [\parameter{(xc,yc)}{complex}] The coordinates of the point where the head
+condition is to be met. \units{L}
+\item [\parameter{radius}{real}] The radius of the well. \units{L}
+\item [\parameter{id}{integer}] A unique (integer) identification number for the
+well. \units{-}
+\end{description}
+\newpage
+
+
+\section{Discharge-specified line-sinks (module LS0) \label{sec:ls0-module}}
+
+Module LS0 creates discharge-specified line-sinks. These are line
+segments that add or remove a specific amount of water along their
+length, where the modeler provides the amount of water to be added.
+Some examples of discharge--specified line sinks are infiltration
+galleries or rivers in arid climates that are typically dry, but infiltrate
+water at certain times of the year. These are analogous to a group
+of wells created with the MODFLOW WEL package.
+
+\paragraph{Usage:}
+\begin{verbatim}
+    ls0 nstrings
+      str npts id
+        (x,y) strength 
+        ...
+      str ...
+        ...
+    end
+\end{verbatim}
+
+\paragraph{Parameters for the \textsf{ls0} directive}
+\begin{description}
+  \item [\parameter{nstrings}{integer}] The maximum number of discharge-specified
+        line-sink strings in the problem. \units{-}
+\end{description}
+Following the \textsf{ls0} directive, the user provides strings of line sinks using the \textsf{str} directive. A string of line sinks is composed of a list of vertices. One 
+line sink element is created for each pair of consecutive vertices.
+
+\paragraph{Creating a string of elements}
+\begin{verbatim}
+    str npts id
+      (x,y) strength
+      ...
+\end{verbatim}
+
+\paragraph{Parameters}
+\begin{description}
+\item [\parameter{npts}{integer}] The maximum number of vertices in the line-sink
+      string. \units{-}
+\item [\parameter{id}{integer}] A unique identification number for the string. \units{-}
+\end{description}
+
+\paragraph{Specifying vertices for line--sink strings}
+Following the \textsf{str} directive, two or more data records define
+the vertices of the line--sink string. The parameters provided for
+each vertex are as follows.
+\begin{verbatim}
+    (x,y) strength
+\end{verbatim}
+\begin{description}
+\paragraph{Parameters}
+\item [\parameter{(x,y)}{complex}] Coordinates of the vertex. \units{L}
+\item [\parameter{strength}{real}] The sink density $\sigma$ of the line--sink
+string at the vertex. The total volumetric infiltration or abstraction
+along the line will be the value $(\sigma_{1}+\sigma_{2})\frac{L}{2}$
+$[L^{3}/T]$ where $\sigma_{1}$ and $\sigma_{2}$ are the strengths
+at consecutive vertices and $L$ is the distance between the vertices.
+The sink density is defined as the total extraction rate of the line-sink
+per unit length. The value is positive if the element removes water
+from the aquifer, negative if it adds water to the aquifer
+\footnote{Users who make use of ModAEM using the GMS preprocessor will note
+that GMS makes use of the MODFLOW convention that abstraction of water
+from the aquifer is negative, while injection is positive. Conversion
+to ModAEM's convention is handled transparently by GMS.
+}. \units{L^{2}/T}
+\end{description}
+\newpage
+
+
+\section{Head-specified line-sinks (module \textsf{LS1})\label{sec:ls1-module}}
+
+Module LS1 creates head--specified line--sink elements. These are line segments
+that add or remove water along their lengths, but for which the pumping
+rate is not \emph{a priori} known to the modeler, and where there
+is no ``entry resistance'', e.g a silty stream bed, between the
+line sink and the aquifer. LS1 line sinks are often used
+to represent rivers in the far field when the modeler wishes to use
+an unbounded aquifer with a modeled far field (see Section \ref{sub:reference-flow-field}).
+These elements are somewhat analogous to a group of MODFLOW constant--head
+cells; they differ because in MODFLOW, constant head cells are specified
+as part of the aquifer, not as a separate element.
+
+\paragraph{Usage:}
+\begin{verbatim}
+    ls1 nstrings
+      str npts id
+        (x,y) head 
+          ...
+      str ...
+          ...
+    end
+\end{verbatim}
+
+\paragraph{Parameters for the \textsf{ls1} directive}
+\begin{description}
+\item [\parameter{nstrings}{integer}] The maximum number of discharge-specified 
+    line--sink strings in the problem. \units{-}
+\end{description}
+Following the \textsf{ls1} directive, the user provides strings
+of line sinks using the \textsf{str} directive. A string of line sinks
+is composed of a list of vertices. One line sink element is created
+for each pair of consecutive vertices.
+
+\paragraph{Creating a string of elements}
+\begin{verbatim}
+    str npts id
+      (x,y) head
+      ...
+\end{verbatim}
+
+\paragraph{Parameters for the \textsf{str} directive }
+\begin{description}
+\item [\parameter{npts}{integer}] The maximum number of vertices in the line-sink
+string. \units{-}
+\item [\parameter{id}{integer}] A unique identification number for the string. \units{-}
+\end{description}
+
+\paragraph{Specifying vertices for line--sink strings}
+Following the \textsf{str} directive, two or more data records define
+the vertices of the line--sink string. The parameters provided for
+each vertex are as follows.
+\begin{description}
+\item [\parameter{(x,y)}{complex}] Coordinates of the vertex. \units{L}
+\item [\parameter{head}{real}] The specified head at the center of the line-sink
+   string. \units{L}
+\end{description}
+\newpage
+
+\section{Line-sinks with entry resistance (module LS2)\label{sec:ls2-module}}
+
+Module LS2 creates head-specified line-sinks. These are line segments
+that add or remove water along their lengths, but for which the pumping
+rate is not \emph{a priori} known to the modeler, and where an ``entry
+resistance'', e.g a silty stream bed, between the line sink and the
+aquifer is present. LS2 line sinks are often used to represent surface
+waters or drains in the near field. LS2 line sinks may be created
+as rivers (analogous to the MODFLOW RIV package), drains (analogous
+to the MODFLOW DRN package), or general--head boundaries (analogous
+to the MODFLOW GHB package). Streamflow routing may be performed for
+LS2 elements (in a manner similar to the MODFLOW STR package), using
+the analysis module RT0 (see Section \ref{sec:rt0-module}).
+
+\paragraph{Usage:}
+\begin{verbatim}
+    ls2 nstrings
+      str npts mode conductance id
+        (x,y) head bottom
+        ...
+      str ...
+        ...
+    end
+\end{verbatim}
+
+\paragraph{Parameters for the \textsf{ls2} directive}
+\begin{description}
+\item [\parameter{nstrings}{integer}] The maximum number of discharge-specified 
+   line--sink strings in the problem. \units{-}
+\end{description}
+Following the \textsf{ls2} directive, the user provides strings
+of line sinks using the \textsf{str} directive. A string of line sinks
+is composed of a list of vertices. One line sink element is created
+for each pair of consecutive vertices.
+
+\paragraph{Creating a string of elements}
+\begin{verbatim}
+    str npts mode conductance id
+      (x,y) head bottom
+      ...
+\end{verbatim}
+
+\paragraph{Parameters for the \textsf{str} directive }
+\begin{description}
+  \item [\parameter{npts}{integer}] The maximum number of vertices in the line-sink
+    string. \units{-}
+  \item [\parameter{id}{integer}] A unique identification number for the string. \units{-}
+  \item [\parameter{mode}{integer}] Defines the behavior of the line sink. The value
+    provided is an integer from the list below:
+    \begin{description}
+      \item [{\texttt{general-head boundary (0)}}] The boundary is always active,
+        in a manner analogous with the MODFLOW GHB package.
+      \item [{\texttt{river (1)}}] The line sink becomes a discharge--specified
+        feature if the head in the aquifer falls below the bottom of the resistance
+        layer (a ``percolating'' condition). In this case, the infiltration
+        density is computed as $\sigma=c\times(h_{r}-h_{b})$ where $c$ is
+        the conductance of the line sink (see below), $h_{r}$ is the specified
+        stage in the river, and $h_{b}$is the elevation of the bottom of
+        the resistance layer for this line sink. This is analogous to the
+        MODFLOW RIV package.
+      \item [{\texttt{drain (2)}}] The line sink will be removed from the solution
+        with a sink density of zero when the head in the aquifer falls below
+        the bottom of the drain. This is analogous to the MODFLOW DRN package.
+    \end{description}
+  \item [\parameter{conductance}{real}] The conductance for the line sink. The conductance
+    is defined in a manner consistent with MODFLOW; for a river, the conductance
+    is defined to be $c=w\times\frac{k_{c}}{t_{c}}\,[L/T]$, where $c$
+    is the conductance, $w$ is the width of the stream, $k_{c}$ is the
+    vertical hydraulic conductivity of the resistance layer, and $t_{c}$
+    is the thickness of the resistance layer. \units{L/T}
+  \item [\parameter{id}{integer}] A unique identification number for this string.
+    \units{-} 
+\end{description}
+
+\paragraph{Specifying vertices for line--sink strings}
+Following the \textsf{str} directive, two or more data records define
+the vertices of the line--sink string. The parameters provided for
+each vertex are as follows.
+\begin{description}
+  \item [\parameter{(x,y)}{complex}] Coordinates of the vertex. \units{L}
+  \item [\parameter{head}{real}] The specified head at this vertex. The model 
+    interpolates the head along the line segment. Since the head is specified at the
+    center of the line segment, the average of the bottom elevation between
+    adjacent vertices is used. \units{L}
+  \item [\parameter{bottom}]{real} The elevation of the bottom of the resistance layer at
+    this vertex. The model interpolates the bottom elevation along the
+    line segment. Since the head is specified at the center of the line
+    segment, the average of the bottom elevation between adjacent vertices
+    is used. \units{L}
+\end{description}
+\newpage
+
+\section{No--flow boundary walls (module HB0)\label{sec:hb0-module}}
+Module HB0 creates no--flow boundary walls (e.g. sheet pilings or
+slurry walls). These are elements that create a linear no--flow condition
+within the active area of a ModAEM model. These may be used to model
+sheet pilings, slurry walls, faults, and other linear no--flow conditions
+that require an active aquifer domain on both sides of the line. This
+should not be used for bounded models or for ``islands'' in an aquifer
+domain; use the BDY elements included in module AQU (Section \ref{sub:bounded-aquifers})
+for details. These are analogous to the MODFLOW HFB package.
+
+\paragraph{Usage:}
+\begin{verbatim}
+    hb0 nstrings
+      str npts id
+        (x,y)
+        ...
+      str ...
+        ...
+    end
+\end{verbatim}
+
+\paragraph{Parameters for the \textsf{hb0} directive}
+\begin{description}
+\item [\parameter{nstrings}{integer}] The maximum number of no--flow strings in the
+problem. \units{-}
+\end{description}
+Following the \textsf{hb0} directive, the user provides strings
+of line sinks using the \textsf{str} directive. A no--flow string
+is composed of a list of vertices. One line doublet element is created
+for each pair of consecutive vertices.
+
+\paragraph{Creating a string of elements}
+\begin{verbatim}
+    str npts id
+      (x,y) strength
+      ...
+\end{verbatim}
+
+\paragraph{Parameters for the str directive }
+\begin{description}
+  \item [\parameter{npts}{integer}] The maximum number of vertices in the line-sink
+    string. \units{-}
+  \item [\parameter{id}{integer}] A unique identification number for the string. 
+    \units{-}
+\end{description}
+
+\paragraph{Specifying vertices for line--sink strings}
+Following the \textsf{str} directive, two or more data records define
+the vertices of the no--flow string. The parameters provided for each
+vertex are as follows.
+\begin{description}
+  \item [\parameter{(x,y)}{complex}] Coordinates of the vertex. \units{L}
+\end{description}
+
+\section{Discharge-specified circular area-sinks (module PD0)\label{sec:pd0-module}}
+Module PD0 creates discharge-specified circular area-sinks (colloquially
+known as ponds). 
+
+\paragraph{Usage:}
+\begin{verbatim}
+    pd0 nponds
+      (xc,yc) strength radius id 
+      ... 
+    end
+\end{verbatim}
+
+\paragraph{Parameters for the \textsf{pd0} directive}
+\begin{description}
+\item [{\texttt{nwells}}] The maximum number of wells in the problem 
+\end{description}
+
+\paragraph{Specifying pond elements}
+The \textsf{wl0} directive is followed by one record for every pond
+in the model. If more than \texttt{nponds} elements are provided, ModAEM
+will terminate and report the error. Each pond record has the following
+parameters:
+\begin{verbatim}
+    (xc,yc) sink-density radius id\end{verbatim}
+\begin{description}
+  \item [\parameter{(xc,yc)}{complex}] The coordinates of the center of the pond. 
+    \units{L}
+  \item [\parameter{sink-density}{real}] The sink density of the pond. This is the
+    value $\gamma=Q_{p}/A_{p}$, where $\gamma\,[L/T]$ is the sink density,
+    $Q_{p}\,[L^{3}/T]$ is the total amount of water infiltrated or abstracted
+    by the pond, and $A_{p}\,[L^{2}]$ is the area of the pond. The value
+    is positive if the element removes water from the aquifer, negative
+    if it adds water to the aquifer 
+      \footnote{Users who make use of ModAEM using the GMS preprocessor will note
+        that GMS makes use of the MODFLOW convention that abstraction of water
+        from the aquifer is negative, while injection is positive. Conversion
+        to ModAEM's convention is handled transparently by GMS.}
+    \units{L/T}
+  \item [\parameter{radius}{real}] The radius of the pond. \units{L}
+  \item [\parameter{id}{real}] A unique identification number for the pond. \units{-}
+\end{description}
+\newpage
+
+\section{Polygonal area-sinks (module AS0)\label{sec:as0-module}}
+Module AS0 creates discharge-specified polygonal area--sink elements. These
+are elements that provide an areal infiltration or exfiltration rate
+over a polygonal sub--domain. The ``sink density'', or rate of infiltration
+per unit of surface area, is specified by the modeler. These are typically
+used as sources of areal recharge, e.g. from rainfall, or for infiltration
+galleries. 
+\paragraph{Usage:}
+\begin{verbatim}
+    as0 top/bottom nareas
+      str npts strength id
+        (x,y) 
+        ...
+      str ...
+        ...
+    end
+\end{verbatim}
+Please note: In versions of ModAEM prior to version 1.8, the ``bottom''
+and ``nareas'' parameters were reversed in the AS0 input.
+
+\paragraph{Parameters for the \textsf{as0} directive}
+\begin{description}
+  \item [\parameter{top/bottom}{integer}] An integer that specifies whether the area
+    sinks are to be placed at the aquifer top (\texttt{\textbf{0}}) or
+    bottom (\texttt{\textbf{1}}). \units{-}
+  \item [\parameter{nareas}{integer}] The maximum number of discharge--specified 
+    area--sink polygons in the problem. \units{-}
+\end{description}
+Following the \textsf{as0} directive, the user provides polygons using
+the \textsf{str} directive. A polygon is composed of a list of vertices.
+It is not necessary to duplicate the first vertex to close the polygon;
+ModAEM automatically closes the polygon.
+
+\paragraph{Creating an element}
+\begin{verbatim}
+    str npts sink-density id
+      (x,y) 
+      ...
+\end{verbatim}
+
+\paragraph{Parameters for the str directive }
+\begin{description}
+  \item [\parameter{npts}{integer}] The maximum number of vertices in the line-sink
+    string. \units{-}
+  \item [{\texttt{sink-density}}] The sink density of the area sink. This
+    is the value $\gamma=Q_{p}/A_{p}$, where $\gamma\,[L/T]$ is the
+    sink density, $Q_{p}\,[L^{3}/T]$ is the total amount of water infiltrated
+    or abstracted by the element, and $A_{p}\,[L^{2}]$ is the area of
+    the polygon. The value is positive if the element removes water from
+    the aquifer, negative if it adds water to the aquifer.
+      \footnote{Users who make use of ModAEM using the GMS preprocessor will note
+        that GMS makes use of the MODFLOW convention that abstraction of water
+        from the aquifer is negative, while injection is positive. Conversion
+        to ModAEM's convention is handled transparently by GMS.}
+    \units{L/T}
+  \item [\parameter{id}{integer}] A unique identification number for the string. \units{-} \end{description}
+
+\paragraph{Specifying vertices for polygons}
+Following the \textsf{str} directive, three or more data records define
+the vertices of the area--sink perimeter. The parameters provided
+for each vertex are as follows.
+\begin{description}
+  \item[\parameter{(x,y)}{complex}] Coordinates of the vertex. \units{L}
+\end{description}

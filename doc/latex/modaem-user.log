@@ -1,0 +1,514 @@
+This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013) (format=pdflatex 2013.5.30)  19 SEP 2013 22:23
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**modaem-user.tex
+(./modaem-user.tex
+LaTeX2e <2011/06/27>
+Babel <3.9f> and hyphenation patterns for 78 languages loaded.
+(/usr/local/texlive/2013/texmf-dist/tex/latex/base/book.cls
+Document Class: book 2007/10/19 v1.4h Standard LaTeX document class
+(/usr/local/texlive/2013/texmf-dist/tex/latex/base/bk12.clo
+File: bk12.clo 2007/10/19 v1.4h Standard LaTeX file (size option)
+)
+\c@part=\count79
+\c@chapter=\count80
+\c@section=\count81
+\c@subsection=\count82
+\c@subsubsection=\count83
+\c@paragraph=\count84
+\c@subparagraph=\count85
+\c@figure=\count86
+\c@table=\count87
+\abovecaptionskip=\skip41
+\belowcaptionskip=\skip42
+\bibindent=\dimen102
+)
+(/usr/local/texlive/2013/texmf-dist/tex/latex/graphics/graphicx.sty
+Package: graphicx 1999/02/16 v1.0f Enhanced LaTeX Graphics (DPC,SPQR)
+
+(/usr/local/texlive/2013/texmf-dist/tex/latex/graphics/keyval.sty
+Package: keyval 1999/03/16 v1.13 key=value parser (DPC)
+\KV@toks@=\toks14
+)
+(/usr/local/texlive/2013/texmf-dist/tex/latex/graphics/graphics.sty
+Package: graphics 2009/02/05 v1.0o Standard LaTeX Graphics (DPC,SPQR)
+
+(/usr/local/texlive/2013/texmf-dist/tex/latex/graphics/trig.sty
+Package: trig 1999/03/16 v1.09 sin cos tan (DPC)
+)
+(/usr/local/texlive/2013/texmf-dist/tex/latex/latexconfig/graphics.cfg
+File: graphics.cfg 2010/04/23 v1.9 graphics configuration of TeX Live
+)
+Package graphics Info: Driver file: pdftex.def on input line 91.
+
+(/usr/local/texlive/2013/texmf-dist/tex/latex/pdftex-def/pdftex.def
+File: pdftex.def 2011/05/27 v0.06d Graphics/color for pdfTeX
+
+(/usr/local/texlive/2013/texmf-dist/tex/generic/oberdiek/infwarerr.sty
+Package: infwarerr 2010/04/08 v1.3 Providing info/warning/error messages (HO)
+)
+(/usr/local/texlive/2013/texmf-dist/tex/generic/oberdiek/ltxcmds.sty
+Package: ltxcmds 2011/11/09 v1.22 LaTeX kernel commands for general use (HO)
+)
+\Gread@gobject=\count88
+))
+\Gin@req@height=\dimen103
+\Gin@req@width=\dimen104
+)
+
+LaTeX Warning: Unused global option(s):
+    [english,palatino].
+
+No file modaem-user.aux.
+\openout1 = `modaem-user.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 6.
+LaTeX Font Info:    ... okay on input line 6.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 6.
+LaTeX Font Info:    ... okay on input line 6.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 6.
+LaTeX Font Info:    ... okay on input line 6.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 6.
+LaTeX Font Info:    ... okay on input line 6.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 6.
+LaTeX Font Info:    ... okay on input line 6.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 6.
+LaTeX Font Info:    ... okay on input line 6.
+(/usr/local/texlive/2013/texmf-dist/tex/context/base/supp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+\scratchcounter=\count89
+\scratchdimen=\dimen105
+\scratchbox=\box26
+\nofMPsegments=\count90
+\nofMParguments=\count91
+\everyMPshowfont=\toks15
+\MPscratchCnt=\count92
+\MPscratchDim=\dimen106
+\MPnumerator=\count93
+\makeMPintoPDFobject=\count94
+\everyMPtoPDFconversion=\toks16
+) (/usr/local/texlive/2013/texmf-dist/tex/generic/oberdiek/pdftexcmds.sty
+Package: pdftexcmds 2011/11/29 v0.20 Utility functions of pdfTeX for LuaTeX (HO
+)
+
+(/usr/local/texlive/2013/texmf-dist/tex/generic/oberdiek/ifluatex.sty
+Package: ifluatex 2010/03/01 v1.3 Provides the ifluatex switch (HO)
+Package ifluatex Info: LuaTeX not detected.
+)
+(/usr/local/texlive/2013/texmf-dist/tex/generic/oberdiek/ifpdf.sty
+Package: ifpdf 2011/01/30 v2.3 Provides the ifpdf switch (HO)
+Package ifpdf Info: pdfTeX in PDF mode is detected.
+)
+Package pdftexcmds Info: LuaTeX not detected.
+Package pdftexcmds Info: \pdf@primitive is available.
+Package pdftexcmds Info: \pdf@ifprimitive is available.
+Package pdftexcmds Info: \pdfdraftmode found.
+)
+(/usr/local/texlive/2013/texmf-dist/tex/latex/oberdiek/epstopdf-base.sty
+Package: epstopdf-base 2010/02/09 v2.5 Base part for package epstopdf
+
+(/usr/local/texlive/2013/texmf-dist/tex/latex/oberdiek/grfext.sty
+Package: grfext 2010/08/19 v1.1 Manage graphics extensions (HO)
+
+(/usr/local/texlive/2013/texmf-dist/tex/generic/oberdiek/kvdefinekeys.sty
+Package: kvdefinekeys 2011/04/07 v1.3 Define keys (HO)
+))
+(/usr/local/texlive/2013/texmf-dist/tex/latex/oberdiek/kvoptions.sty
+Package: kvoptions 2011/06/30 v3.11 Key value format for package options (HO)
+
+(/usr/local/texlive/2013/texmf-dist/tex/generic/oberdiek/kvsetkeys.sty
+Package: kvsetkeys 2012/04/25 v1.16 Key value parser (HO)
+
+(/usr/local/texlive/2013/texmf-dist/tex/generic/oberdiek/etexcmds.sty
+Package: etexcmds 2011/02/16 v1.5 Avoid name clashes with e-TeX commands (HO)
+Package etexcmds Info: Could not find \expanded.
+(etexcmds)             That can mean that you are not using pdfTeX 1.50 or
+(etexcmds)             that some package has redefined \expanded.
+(etexcmds)             In the latter case, load this package earlier.
+)))
+Package grfext Info: Graphics extension search list:
+(grfext)             [.png,.pdf,.jpg,.mps,.jpeg,.jbig2,.jb2,.PNG,.PDF,.JPG,.JPE
+G,.JBIG2,.JB2,.eps]
+(grfext)             \AppendGraphicsExtensions on input line 452.
+
+(/usr/local/texlive/2013/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
+File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
+e
+))
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <14.4> on input line 16.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <7> on input line 16.
+
+[1
+
+
+{/usr/local/texlive/2013/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
+No file modaem-user.toc.
+\tf@toc=\write3
+\openout3 = `modaem-user.toc'.
+
+[1
+
+]
+No file modaem-user.lof.
+\tf@lof=\write4
+\openout4 = `modaem-user.lof'.
+
+[2
+
+]
+\openout2 = `introduction.aux'.
+
+ (./introduction.tex
+Chapter 1.
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 21.
+(/usr/local/texlive/2013/texmf-dist/tex/latex/base/omscmr.fd
+File: omscmr.fd 1999/05/25 v2.5h Standard LaTeX font definitions
+)
+LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <12> not available
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 21.
+ [3
+
+
+] [4] [5]
+[6]
+LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <12> not available
+(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 189.
+ [7]
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <12> on input line 194.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <8> on input line 194.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <6> on input line 194.
+
+Overfull \hbox (16.07149pt too wide) in paragraph at lines 209--220
+[]\OT1/cmr/m/n/12 Positive or neg-a-tive in-te-ger val-ues are al-lowed. ModAEM
+
+ []
+
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <5> on input line 247.
+[8]) [9] [10]
+\openout2 = `groundwater_modeling.aux'.
+
+ (./groundwater_modeling.tex
+Chapter 2.
+
+Overfull \hbox (6.58072pt too wide) in paragraph at lines 3--5
+\OT1/cmr/m/n/12 How do I build an an-a-lytic el-e-ment model with ModAEM? How d
+oes ModAEM
+ []
+
+[11
+
+
+
+]) [12]
+\openout2 = `script_files.aux'.
+
+ (./script_files.tex
+Chapter 3.
+[13
+
+
+
+] [14] [15]
+
+LaTeX Warning: Reference `cha:script-files' on page 16 undefined on input line 
+152.
+
+
+LaTeX Warning: Reference `cha:Processing-Directives' on page 16 undefined on in
+put line 156.
+
+[16] [17]
+
+LaTeX Warning: Reference `cha:Processing-Directives' on page 18 undefined on in
+put line 218.
+
+) [18]
+\openout2 = `aquifer_specification.aux'.
+
+ (./aquifer_specification.tex
+Chapter 4.
+
+Overfull \hbox (3.92935pt too wide) in paragraph at lines 7--8
+\OT1/cmr/m/n/12 Like most an-a-lytic el-e-ment mod-els, ModAEM sup-ports het-er
+o-ge-neous aquifers
+ []
+
+[19
+
+
+
+]
+Overfull \hbox (17.5502pt too wide) in paragraph at lines 23--23
+[]  \OT1/cmtt/m/n/12 ref <arguments> (optional) define a reference point and di
+scharg[] 
+ []
+
+[20] [21]
+
+LaTeX Warning: Reference `sub:bounded-aquifers' on page 22 undefined on input l
+ine 70.
+
+[22] [23] [24]
+
+LaTeX Warning: Reference `sec:The-right--hand-rule' on page 25 undefined on inp
+ut line 122.
+
+[25]
+
+LaTeX Warning: Reference `sec:in0' on page 26 undefined on input line 134.
+
+
+LaTeX Warning: Reference `cap:in0-polys' on page 26 undefined on input line 139
+.
+
+
+Overfull \hbox (1.20633pt too wide) in paragraph at lines 139--140
+[]\OT1/cmr/m/n/12 This is sim-i-lar to the com-mer-cial code
+ []
+
+
+LaTeX Warning: Reference `cap:in0-strings' on page 26 undefined on input line 1
+40.
+
+[26] [27]
+Underfull \hbox (badness 1092) in paragraph at lines 191--191
+[][]\OT1/cmr/m/n/10 For prob-lems with-out com-mon bound-aries, no string def-i
+-ni-tions are re-quired;
+ []
+
+[28]
+
+LaTeX Warning: Reference `cap:in0-polys' on page 29 undefined on input line 212
+.
+
+
+LaTeX Warning: Reference `cap:in0-strings' on page 29 undefined on input line 2
+12.
+
+
+Overfull \hbox (5.53552pt too wide) in paragraph at lines 212--213
+ \OT1/cmr/bx/n/12 Pa-ram-e-ters for string spec-i-fi-ca-tion (di-rec-tive \OT1/
+cmss/m/n/12 str\OT1/cmr/bx/n/12 )[] \OT1/cmr/m/n/12 As men-tioned above,
+ []
+
+[29]
+
+LaTeX Warning: Reference `sec:The-right--hand-rule' on page 30 undefined on inp
+ut line 215.
+
+
+LaTeX Warning: Reference `sec:The-right--hand-rule' on page 30 undefined on inp
+ut line 216.
+
+) [30]
+\openout2 = `element_modules.aux'.
+
+ (./element_modules.tex
+
+LaTeX Warning: Reference `cha:aqu-module' on page 31 undefined on input line 1.
+
+
+
+LaTeX Warning: Reference `sec:wl1-module' on page 31 undefined on input line 6.
+
+
+
+LaTeX Warning: Reference `sub:reference-flow-field' on page 31 undefined on inp
+ut line 11.
+
+
+LaTeX Warning: Reference `sec:rt0-module' on page 31 undefined on input line 13
+.
+
+[31
+
+
+]
+
+LaTeX Warning: Reference `sub:bounded-aquifers' on page 32 undefined on input l
+ine 15.
+
+
+LaTeX Warning: Reference `sec:as0-module' on page 32 undefined on input line 17
+.
+
+[32] [33] [34] [35]
+Overfull \hbox (17.35178pt too wide) in paragraph at lines 113--113
+[]\OT1/cmr/bx/n/17.28 Discharge-specified line-sinks (mod-ule LS0)
+ []
+
+[36] [37]
+
+LaTeX Warning: Reference `sub:reference-flow-field' on page 38 undefined on inp
+ut line 191.
+
+[38] [39]
+
+LaTeX Warning: Reference `sec:rt0-module' on page 40 undefined on input line 25
+4.
+
+[40]
+Overfull \hbox (4.00731pt too wide) in paragraph at lines 292--294
+[]\OT1/cmr/m/n/12 The bound-ary is al-ways ac-tive, in a man-
+ []
+
+[41] [42]
+
+LaTeX Warning: Reference `sub:bounded-aquifers' on page 43 undefined on input l
+ine 341.
+
+[43]
+Overfull \hbox (38.17181pt too wide) in paragraph at lines 388--388
+[]\OT1/cmr/bx/n/17.28 Discharge-specified cir-cu-lar area-sinks (mod-
+ []
+
+
+Overfull \hbox (5.24452pt too wide) in paragraph at lines 389--391
+\OT1/cmr/m/n/12 Module PD0 cre-ates discharge-specified cir-cu-lar area-sinks (
+col-lo-qui-ally known
+ []
+
+[44] [45] [46]) [47]
+\openout2 = `processing_directives.aux'.
+
+ (./processing_directives.tex
+Chapter 5.
+
+LaTeX Warning: Reference `cha:Analysis-modules' on page 48 undefined on input l
+ine 11.
+
+
+Overfull \hbox (7.346pt too wide) in paragraph at lines 14--17
+[]\OT1/cmr/m/n/12 Each of these di-rec-tives is given out-side the ``AEM sec-ti
+on'' of the ModAEM
+ []
+
+[48
+
+
+
+] [49] [50] [51] [52] [53] [54]
+
+LaTeX Warning: Reference `sec:as0-module' on page 55 undefined on input line 30
+4.
+
+
+LaTeX Warning: Reference `sec:pd0-module' on page 55 undefined on input line 30
+4.
+
+[55]
+Overfull \hbox (12.35779pt too wide) in paragraph at lines 329--329
+[]\OT1/cmr/bx/n/17.28 Directives that com-pute nu-mer-i-cal ap-prox-
+ []
+
+
+LaTeX Warning: Reference `DIS_directive' on page 56 undefined on input line 343
+.
+
+[56]
+
+LaTeX Warning: Reference `sec:The-right--hand-rule' on page 57 undefined on inp
+ut line 412.
+
+[57]
+Overfull \hbox (32.96577pt too wide) in paragraph at lines 423--423
+[]\OT1/cmr/bx/n/17.28 Extracting model re-sults in machine-readable
+ []
+
+) [58]
+\openout2 = `analysis_modules.aux'.
+
+ (./analysis_modules.tex
+Chapter 6.
+
+LaTeX Warning: Reference `sec:gri-module' on page 59 undefined on input line 3.
+
+
+[59
+
+
+
+] [60]) [61]
+\openout2 = `validation.aux'.
+
+ (./validation.tex
+Chapter 7.
+) [62
+
+
+
+]
+\openout2 = `tools.aux'.
+
+ (./tools.tex
+Chapter 8.
+) [63
+
+
+
+]
+\openout2 = `mathematical_formulation.aux'.
+
+ (./mathematical_formulation.tex
+Appendix A.
+) [64
+
+
+
+] (./modaem-user.aux (./introduction.aux) (./groundwater_modeling.aux)
+(./script_files.aux) (./aquifer_specification.aux) (./element_modules.aux)
+(./processing_directives.aux) (./analysis_modules.aux) (./validation.aux)
+(./tools.aux) (./mathematical_formulation.aux))
+
+LaTeX Warning: There were undefined references.
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+ ) 
+Here is how much of TeX's memory you used:
+ 1652 strings out of 493315
+ 24032 string characters out of 6137904
+ 82661 words of memory out of 5000000
+ 5051 multiletter control sequences out of 15000+600000
+ 13935 words of font info for 50 fonts, out of 8000000 for 9000
+ 957 hyphenation exceptions out of 8191
+ 37i,8n,23p,1517b,270s stack positions out of 5000i,500n,10000p,200000b,80000s
+</usr/local/texlive/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
+></usr/local/texlive/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb>
+</usr/local/texlive/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmbxti10.pfb
+></usr/local/texlive/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb>
+</usr/local/texlive/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb><
+/usr/local/texlive/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></
+usr/local/texlive/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></us
+r/local/texlive/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/
+local/texlive/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/lo
+cal/texlive/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/loca
+l/texlive/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/local/
+texlive/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/tex
+live/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texliv
+e/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2
+013/texmf-dist/fonts/type1/public/amsfonts/cm/cmsl12.pfb></usr/local/texlive/20
+13/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/local/texlive/201
+3/texmf-dist/fonts/type1/public/amsfonts/cm/cmss12.pfb></usr/local/texlive/2013
+/texmf-dist/fonts/type1/public/amsfonts/cm/cmss17.pfb></usr/local/texlive/2013/
+texmf-dist/fonts/type1/public/amsfonts/cm/cmssbx10.pfb></usr/local/texlive/2013
+/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2013/
+texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2013/t
+exmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/local/texlive/2013/te
+xmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/local/texlive/2013/tex
+mf-dist/fonts/type1/public/amsfonts/cm/cmtt8.pfb>
+Output written on modaem-user.pdf (65 pages, 369646 bytes).
+PDF statistics:
+ 311 PDF objects out of 1000 (max. 8388607)
+ 217 compressed objects within 3 object streams
+ 0 named destinations out of 1000 (max. 500000)
+ 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+

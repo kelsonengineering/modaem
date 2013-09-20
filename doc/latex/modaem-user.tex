@@ -1,0 +1,44 @@
+\documentclass[12pt,oneside,english,palatino]{book}
+\usepackage{graphicx}
+
+\newcommand{\units}[1]{\ensuremath{[\mathrm{#1}]}}
+\newcommand{\parameter}[2]{{\texttt{#1}} (#2)}
+\begin{document}
+
+\title{The ModAEM Book\\
+Version 1.9.0}
+
+\author{Vic Kelson, Ph.D. PE \\
+WHPA Inc.\\
+320 West 8th St.\\
+Bloomington, IN 47404}
+
+\maketitle
+\tableofcontents{}
+
+\listoffigures
+
+\include{introduction}
+
+\include{groundwater_modeling}
+
+\include{script_files}
+
+\include{aquifer_specification}
+
+\include{element_modules}
+
+\include{processing_directives}
+
+\include{analysis_modules}
+
+\include{validation}
+
+\include{tools}
+
+\bibliographystyle{plain}
+
+
+\appendix
+\include{mathematical_formulation}
+\end{document}

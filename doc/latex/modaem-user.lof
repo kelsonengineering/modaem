@@ -1,0 +1,11 @@
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Potentiometric countours for two polygonal hydraulic conductivity inhomogeneities in a field of uniform flow. Flow is from left to right (red contours represent higher potentiometric heads). The domains are specified as follows: domain 0 (the outside) has $K=10\, m/d$; domain 1 has $K=100\, m/d$ and is shaded in blue; domain \#2 has $K=2\, m/d$ and is shaded in beige. No string specifications (\textsf {str} directive) were required.}}{27}
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Potentiometric countours for two polygonal hydraulic conductivity inhomogeneities with a common boundary in a field of uniform flow. Flow from left to right (red contours represent higher heads). The domains are specified as follows: domain 0 (the outside) has $K=10\, m/d$; domain 1 has $K=100\, m/d$ and is shaded in blue; domain \#2 has $K=2\, m/d$ and is shaded in beige. Three strings are required; all share the same starting and ending points. The three strings are specified as follows: string 1 (red) has $left=0$, $right=1$; string 2 (yellow) has $left=1$; $right=2$; string 3 (purple) has $left=2$, $right=0$.}}{27}
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }

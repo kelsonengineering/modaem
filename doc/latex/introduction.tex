@@ -1,0 +1,292 @@
+\chapter{Introduction\label{cha:Introduction} }
+
+This manual describes the results of nearly 20 years of effort (much
+of it the ``on again, off again'' variety). ModAEM has been through
+four major revisions, several research branches, and has been used
+for countless wellhead protection models, even though most ModAEM
+users never knew they were using it! This chapter is to introduces
+to the history and philosophy of ModAEM. 
+
+
+\subsection*{Early ModAEM}
+
+The essential design of ModAEM was conceived during a series of long
+discussions between Mark Bakker, Steve Kraemer, and myself during
+a High Performance Computing Consortium workshop at EPA's Research
+Triangle Park facility in 1995 (I was first introduced to the ``new''
+GMS preprocessor at the same meeting). I'm not sure that Steve and
+Mark remember the meeting or the design ideas, but they basically
+remain intact:
+\begin{itemize}
+\item Logical separation of the analytic element \emph{functions} (dipoles/doublets,
+wells, etc.) from analytic element \emph{applications} (wells, rivers,
+inhomogeneities)
+\item Implementation of efficient functions for a few very flexible analytic
+element functions (at that time, only wells, dipoles of complex strength,
+and ponds were anticipated)
+\item Make it all parallelizable with very little effort
+\item Abandon FORTRAN 77 in favor of a more modern programming language
+\end{itemize}
+I have been asked many times why ModAEM was written in Fortran-90
+(and now in Fortran-95), rather than in a ``better'' language like
+C++. I struggled with the choice, but in the end I was advised by
+the folks at CICA (Center for Innovative Computer Applications) that
+Fortran 90 and High-Performance Fortran was a more flexible and workable
+alternative for parallel hardware. On many occasions, I've wished
+I had a fully object--oriented language like C++, but I've never wished
+I'd had all the migration issues as C++ has evolved for the past decade.
+Fortran 90/95 was a fine choice. Now, I can compile ModAEM with OpenMP
+for multi-core processors using a totally free toolchain!
+
+
+\subsection*{WhAEM for Windows}
+
+Later in 1995, Henk Haitjema and I were hired by US EPA to develop
+a new version of the WhAEM for DOS code that had been released in
+1994. The new WhAEM was to run under Windows 95 and its successors.
+We needed a free solver engine that had available source code (GFLOW
+was fully proprietary back then), so we decided that I should complete
+a simple ModAEM for use in WhAEM. This code eventually became ModAEM-1.0,
+and it was the computational heart of WhAEM until it was replaced
+with a stripped--down GFLOW in 2002.
+
+ModAEM-1.0, or ``EPA ModAEM'' is a public--domain code that supports
+discharge--specified wells, discharge--specified and head--specified
+line sinks, no--flow boundaries, uniform flow, and recharge ponds.
+It also does streamline tracing and generates grids for contour lines.
+To the best of my knowledge, EPA still has the source code on the
+CoSMOS web site.
+
+In addition to its use in WhAEM, I used ModAEM-1.0 as a research code
+for local 3-D models in my disseratation work. Very little of that
+code exists now.
+
+\subsection*{The SFWMD years}
+
+In 1998, I finished my Ph.D. at Indiana and began working for the
+South Florida Water Management District in West Palm Beach, FL. I
+did some work with ModAEM, typically in the guise of WhAEM, and implemented
+a few additional features, including resistance line sinks. I also
+did experimental work on a regional transient flow model based on
+ModAEM. ModAEM was a useful research project, but there were few new
+applications. 
+
+In 2000, my wife, infant son, and I returned to Bloomington, where
+I joined WHPA Inc., a small consulting firm led by my best friend,
+Jack Wittman.
+
+\subsection*{ModAEM reborn -- the Idaho delineation project}
+
+In late 2000, WHPA teamed with Barr Engineering on a challenging project:
+the delineation of wellhead protection areas for over 450 wells in
+the Treasure Valley, near Boise. Two previous MODFLOW models, based
+on grid cells of a half--mile or more in size, were available. We
+needed a way to quickly delineate accurate capture zones for the wells
+based on the MODFLOW flow fields. I proposed that we rebuild ModAEM
+for the purpose, using the integrated--flux boundary conditions to
+chop sub--domains out of the MODFLOW models; we could then trace particles
+in the equivalent analytic element domains. 
+
+This effort required some substantial enhancements to ModAEM: inhomogeneities
+in transmissivity, rectangular area sinks, and bounded model domains.
+In addition, I restructured the internals of ModAEM to make it more
+object--based, including an ``iterator'' strategy that improved
+the independence of the code components.
+
+The resulting code became ModAEM-1.2. I planned to make a full release
+of ModAEM-1.2 when the manual was ready, but time was limited, and
+it was not widely distributed. For some internal applications, I added
+head--specified wells, general polygonal area sinks and 3--D pathline
+tracing. I began looking for other developers who would be interested
+in developing ModAEM, and decided to release a version under the GNU
+General Public License, as soon as I could. 
+
+And by the way, we finished the job on time and within the budget!
+
+
+\subsection*{ModAEM in GMS?}
+
+After the completion of the Idaho project, Jack and I presented the
+design and philosphy behind ModAEM in a seminar at EPA's Athens Lab.
+The positive feedback I received from the software engineers there
+was encouraging. Shortly thereafter, Norm Jones, the inventor of GMS,
+contacted me to inquire about the potential for using ModAEM as an
+analytic element solver for GMS. Norm and I had numerous discussions,
+and a plan was developed for the work. I set out to add some functions
+that would make the model sufficiently generic to be useful in GMS:
+base and thickness inhomogeneities, including common boundaries; improved
+streamline tracing; improved bounded domains with general--head boundaries;
+drains; and a number of GUI-related improvements were needed.
+
+Plus, a manual. An early version of this manual was provided to Alan
+Lemon at BYU, and he built the GMS front--end for ModAEM. That work
+led to the release of ModAEM-1.4 in February, 2004.
+
+\subsection*{What's Next?}
+
+After many years of work and several false starts, ModAEM is now a
+versatile modeling tool with a growing community of users. I am hopeful
+that a developer community will develop, and ModAEM will continue
+to grow in flexibility, performance, and modeling power. If you're
+interested in any aspect of ModAEM development, testing, validation,
+documentation, or if you want to fund the effort somehow, please visit
+the ModAEM Home Page at \texttt{http://www.wittmanhydro.com/modaem.}
+
+Like me, ModAEM now has two children. Mark Bakker and I worked together
+on the design of the fully object--oriented Python AE code Tim (now
+TimSL). Nearly all of the solver logic and the internal organization
+is derived from ModAEM's solver; however since Tim is a research code,
+the parallelism--improving separation of functions from applications
+is omitted. TimSL now has a sibling, TimML, Mark Bakker's Bessel--function
+based model. 
+
+The Tim project provides a set of tools for analytic element education
+and research. ModAEM remains a stable, high--performance production
+code. Both projects continue to cross--pollinate each other. I expect
+that I will continue to develop and model with both codes for a long
+time to come. 
+
+
+\section{The Philosophy of ModAEM}
+
+ModAEM has a set of governing principles. These have been constant
+throughout the development of the code and I don't anticipate changing
+them:
+\begin{description}
+\item [{Keep~it~free}] This is embodied in the choice of the GNU General
+Public License for ModAEM-1.4 and beyond. Everyone is welcome to the
+source code, but if you enhance it and distribute it, you must distribute
+the source code for the enhancements. 
+\item [{Keep~it~simple}] That is, use as few mathematical functions as
+is necessary to achieve the desired objectives. To this day, ModAEM
+uses only relatively simple first--order and second--order elements.
+These are reliable, efficient, predictable, and sufficient for a wide
+variety of practical applications.
+\item [{Keep~it~parallel}] Make sure that the original design goal of
+a parallel analytic element code remains. The current code should
+be easily compiled with the --parallel switch with compilers that
+support SMP hardware. I wish I had one.
+\item [{Keep~it~portable}] ModAEM does not use extensions to the Fortran
+95 language. It is clean and standard throughout. It has been successfully
+compiled on numerous hardware and software platforms.
+\item [{Assume~there's~a~preprocessor}] Nowadays, nobody wants to use
+a model that doesn't have a nice preprocessor. As a result, ModAEM
+simplifies the I/O model as much as possible. Many difficult tasks
+are expected to be performed by the preprocessor, for example, developing
+the topology of aquifer sub--domains. This makes the code more robust,
+but harder to use ``by hand''. I for one prefer using a good preprocessor.
+\item [{Document~the~code}] ModAEM has always had detailed documentation
+built into the source code.
+\item [{Have~fun!}] For me, ModAEM has always been a pleasure and a great
+intellectual challenge. If it isn't fun, it isn't worth working on
+it!
+\end{description}
+
+\section{How to read this manual}
+
+The following conventions are used for formatting in this manual:
+\begin{description}
+\item [{\texttt{\textmd{typewriter}}}] text is used for sample input files
+\item [{\textsf{\textmd{sans-serif}}}] text is used for file names and
+other related items
+\item [{\textsf{bold~sans-seri}f}] text is used for ModAEM script file
+directives
+\item [{bracketed~expressions}] such as $[L]$ contain the dimensions
+for input data. Some examples are $[-]$ for dimensionless quantities,
+$[L]$ for length, $[L/T]$ for length per time (e.g. a hydraulic
+conductivity of $100\, ft/d$).
+\end{description}
+
+\section{Conventions for numeric input\label{sec:numeric-values}}
+
+ModAEM makes use of ``free--format'' input for all numeric entries.
+Since the computational heart of ModAEM is based on complex numbers,
+most coordinate information is entered as complex quantities. In this
+manual, the type of the input value is provided in curly braces, e.g.
+$\{int\}$ for an integer value. When directed to provide a numeric
+value, use the following rules:
+\begin{description}
+\item [{integer~values~$\{int\}$}] Positive or negative integer values
+are allowed. ModAEM uses the Fortran 90 \texttt{SELECTED\_INT\_KIND}
+function to specify Chapter 1 About the Book the size of integer values
+(the default is 4 bytes per value). On 64-bit hardware (or on 32-bit
+hardware with compilers that support ``quad--precision'' values,
+you may overload the parameter \texttt{ModAEM\_Integer} in \textsf{u\_constants.f95}
+and rebuild ModAEM. Note that this has not been tested; please report
+success or failure to Vic Kelson.\\
+For integers, do not provide a decimal point. For negative numbers,
+the $-$sign \emph{must} be immediately before the first digit of
+the value.
+
+\begin{description}
+\item [{right:}] \texttt{3~~~~-13241}
+\item [{wrong:}] \texttt{-1.234~~~~7E+07}
+\end{description}
+\item [{logical~values~$\{logical\}$}] Values that may be either true
+or false. ModAEM uses the Fortran 90 \texttt{SELECTED\_LOGICAL\_KIND}
+function to specify the size of logical values (the default is 4 bytes
+per value). If desired, you may overload the parameter \texttt{ModAEM\_Logical}
+in \textsf{u\_constants.f95} and rebuild ModAEM.\\
+For logicals, the only legal values are \texttt{T} (true) or \texttt{F}
+(false). The value may be entered in either uppercase or lowercase.
+
+\begin{description}
+\item [{right:}] \texttt{T~~~~F}
+\item [{wrong:}] \texttt{yes~~~~0}
+\end{description}
+\item [{real~values~$\{real\}$}] Positive or negative floating--point
+values are allowed. ModAEM uses the Fortran 90 \texttt{SELECTED\_REAL\_KIND}
+technique to specify the size of floating--point values (the default
+is 8-bytes per value). On 64-bit hardware (or on 32-bit hardware with
+compilers that support ``quad--precision'' values, you may overload
+the parameter \texttt{ModAEM\_Real} in \textsf{u\_constants.f95} and
+rebuild ModAEM%
+\footnote{Although in principle it would be possible to specify single precision,
+it is discouraged. On current 32-bit hardware, there is no speed benefit
+from the use of single precision floating--point arithmetic.%
+}. Note that this has not been tested; please report success or failure
+to Vic Kelson.\\
+Floating--point numbers may or may not contain a decimal point. If
+exponential notation is desired, use the characters \texttt{$E\pm XX$}
+as a suffix, where \texttt{XX} is the exponent. No space can lie between
+the $-$ sign and the first digit of precision or between the mantissa
+and exponent.
+
+\begin{description}
+\item [{right:}] \texttt{1.2~~~~-3.1415926~~~~6.02e+23}
+\item [{wrong:}] \texttt{-~1.2~~~~7.01~e+99}
+\end{description}
+\item [{complex~values~$\{complex\}$}] Pairs of  floating--point values,
+surrounded by parentheses and separated by a comma are allowed, where
+the first value is the real part and the sceond value is the imaginary
+part. ModAEM uses the Fortran 90 \texttt{SELECTED\_REAL\_KIND} technique
+to specify the size of floating--point values, including complex values
+(the default is 8-bytes per value). On 64-bit hardware (or on 32-bit
+hardware with compilers that support ``quad--precision'' values,
+you may overload the parameter \texttt{ModAEM\_Real} in \textsf{u\_constants.f95}
+and rebuild ModAEM. Note that this has not been tested; please report
+success or failure to Vic Kelson.\\
+Complex numbers may or may not contain a decimal point. If exponential
+notation is desired, use the characters \texttt{$E\pm XX$} as a suffix,
+where XX
+ is the exponent. No space can lie between the $-$ sign and the first
+digit of precision or between the mantissa and exponent.
+
+\begin{description}
+\item [{right:}] \texttt{(1.2,3.45)~~~~(-3.1415926,0)}
+\item [{wrong:}] \texttt{3+4i~~~~(3.54)}
+\end{description}
+\end{description}
+
+\section{The right--hand rule\label{sec:The-right--hand-rule}}
+
+For some elements, e.g the boundary segments defined by the \textsf{bdy}
+directive in module AQU, the orientation of the points making up the
+element is significant. In all cases, ModAEM makes use of the ``right--hand
+rule''. The element is oriented such that if the modeler were to
+stand at the first vertex facing the second vertex, the boundary condition
+is specified on the ``left'' side of the element (the index finger
+of the right hand, extended along the segment, points ``in''). For
+example, for a flux--specified bdy element, the flux is numerically
+positive if water moves from the right to the left. Similarly, a head--specified
+boundary condition is to be met just to the left of the element.
