@@ -1,7 +1,7 @@
-module m_aqu
+module m_layer
 
   ! ModAEM 2.0
-  ! Copyright(c) 1995-2013 Vic Kelson and Layne Christensen Company
+  ! Copyright(c) 1995-2018 Vic Kelson and Kelson Engineering LLC Company
   !
   ! This program is free software; you can redistribute it and/or
   ! modify it under the terms of the GNU General Public License
@@ -22,9 +22,9 @@ module m_aqu
   !
   ! Or by regular mail at:
   ! 	Vic Kelson
-  ! 	Chief Modeler
-  ! 	Layne Christensen
-  ! 	320 W 8th St
+  ! 	Chief Scientist
+  ! 	Kelson Engineering LLC
+  ! 	107 S Meadowbrook Dr
   ! 	Bloomington, IN 47401
 
   !! module m_layer
@@ -84,127 +84,58 @@ module m_aqu
 
   public
 
-  type, public :: AQU_BDYELEMENT
-    !! type AQU_BDYELEMENT
+    type :: AEM_DOMAIN
+    !! type IN0_DOMAIN
     !!
-    !! Type that holds a vertex for the aquifer perimeter
+    !! Type that holds information for one inhomogeneity
     !!
     !! Members:
-    !!   complex :: cZ1
-    !!     The complex coordinate of the first vertex(x, y)
-    !!   complex :: cZ2
-    !!     The complex coordinate of the second vertex(x, y)
-    !!   real :: rSpecHead
-    !!     The specified head for the segment
-    !!   real :: rSpecFlux
-    !!     The specified flux for the segment
-    !!   logical :: iBdyFlag
-    !!     Flag : if .false., base computations on the specified flux
-    !!            if .true., base computations on the specified head
-    !!   integer :: iFDPIndex
-    !!     Pointer in FDP to the dipole
-    !!   real :: rLength
-    !!     Length of the line segment
-    !!   real :: rStrength
-    !!     Sink density of the line segment
-    !!   real :: rDPStrength
-    !!     Dipole strength of the line segment
-    !!   integer :: iFWLIndex
-    !!     Index into FWL for the segment
+    !!   type(IN0_VERTEX), dimension(:), pointer :: Vertices
+    !!     A vector of IN0_VERTEX objects
+    !!   integer :: iInsideDomain
+    !!     Number of the IN0_DOMAIN that this domain is inside
+    !!   integer :: iNPts
+    !!     The number of vertices actually in use
+    !!   integer :: iID
+    !!     The ID number for the string
+    !!   real :: rBase
+    !!     Base elevation
+    !!   real :: rThickness
+    !!     Thickness of the in0ifer(set to a large value for unconfined flow)
+    !!   real :: rHydCond
+    !!     Hydraulic conductivity
+    !!   real :: rPorosity
+    !!     Porosity
+    !!   real :: rConfPot
+    !!     Potential at the top of the in0ifer
     !!
-    complex(kind=AE_REAL) :: cZ1
-    complex(kind=AE_REAL) :: cZ2
-    complex(kind=AE_REAL) :: cCPZ1
-    complex(kind=AE_REAL) :: cCPZ2
-    complex(kind=AE_REAL) :: cZC
-    complex(kind=AE_REAL) :: cZL
-    real(kind=AE_REAL) :: rSpecHead
-    real(kind=AE_REAL) :: rSpecFlux
-    real(kind=AE_REAL) :: rGhbDistance
-    real(kind=AE_REAL) :: rLength
-    real(kind=AE_REAL) :: rStrength
-    integer(kind=AE_INT) :: iBdyFlag
-    real(kind=AE_REAL) :: rCheckPot
-    real(kind=AE_REAL) :: rCheckFlux
-    logical :: lMoveCPZ1                  ! Flag -- should CPZ1 be moved?
-    logical :: lMoveCPZ2                  ! Flag -- should CPZ2 be moved?
-    logical :: lFSHeadSpec                ! Flag -- is the free surface segment head-specified?
-    complex(kind=AE_REAL) :: cFSZ1        ! Location of a "control point" at the first end
-    complex(kind=AE_REAL) :: cFSZ2        ! Location of a "control point" at the second end
-    integer(kind=AE_INT) :: iEqIndex
-    real(kind=AE_REAL) :: rSaveSpecHead   ! Saves the user-specified head
-  end type AQU_BDYELEMENT
+    complex(kind=AE_REAL), dimension(:), pointer :: cZ
+    integer(kind=AE_INT) :: iInsideDomain
+    integer(kind=AE_INT) :: iOutsideDomain
+    integer(kind=AE_INT) :: iNPts
+    integer(kind=AE_INT) :: iID
+    real(kind=AE_REAL) :: rBase
+    real(kind=AE_REAL) :: rThickness
+    real(kind=AE_REAL) :: rHydCond
+    real(kind=AE_REAL) :: rPorosity
+    real(kind=AE_REAL) :: rTopPot
+    real(kind=AE_REAL) :: rAvgHead
+  end type AEM_DOMAIN
 
-
-  type, public :: AQU_COLLECTION
-    !! type AQU_COLLECTION
+  type, public :: AEM_LAYER
+    !! type AEM_LAYER
     !!
     !! Type that holds information for a layer
     !!
-    !! Members:
-    !!   complex :: cRefPoint
-    !!     Location of the reference point(if specified)
-    !!   real :: rRefHead
-    !!     Specified head at the reference point(if specified)
-    !!   complex :: cRefUniformFlow
-    !!     Infinite aquifer uniform flow discharge vector
-    !!   logical :: lReference
-    !!     .true. if a reference point has been specified
-    !!   real :: rSolConst
-    !!     The constant of integration
-    !!   type(AQU_BDYELEMENT) :: Boundary(:)
-    !!     Vector of vertices which make up the perimeter of the aquifer
-    !!   integer :: iNBdy
-    !!     Number of perimeter points currently in use
-    !!
-    complex(kind=AE_REAL) :: cRefPoint
-    real(kind=AE_REAL) :: rRefHead
-    complex(kind=AE_REAL) :: cRefUniformFlow
-    logical :: lReference
-    real(kind=AE_REAL) :: rSolConst
-    real(kind=AE_REAL) :: rCheck
-    type(AQU_BDYELEMENT), dimension(:), pointer :: BdyElements
-    integer(kind=AE_INT) :: iNBdy
-    logical :: lPrecondition
-    type(IN0_COLLECTION), pointer :: in0
-    ! Iterator information(aquifers with reference conditions)
-    ! Position = -1          - > reset
-    ! Position = 0           - > reference potential
-    ! 0 < Position < iNBdy   - > boundary element
-    ! Position > iNBdy       - > inhomogeneity element
-    ! Iterator information(aquifers without reference conditions)
-    ! Position = 0           - > reset
-    ! 0 < Position < iNBdy   - > boundary element
-    ! Position > iNBdy       - > inhomogeneity element
-    integer(kind=AE_INT) :: iIterPosition
-    integer(kind=AE_INT) :: iIterFlag
-    ! Perimeter of the aquifer
+    type(AEM_DOMAIN), pointer :: domains
+    ! Perimeter of the aquifer (if any)
     complex(kind=AE_REAL), dimension(:), pointer :: cPerimeter
     integer(kind=AE_INT) :: iNPerimeter
-    ! Regen on free surface
-    logical :: lFSRegen
-    ! Boundary condition locations have been previously set (and possibly moved)
-    logical :: lBoundaryInPlace
-    ! Turns on the new boundary control-point option
-    logical :: lNewBdy
     ! Debug flag
     logical :: lDebug
-  end type AQU_COLLECTION
-
-  ! Locally-required constants
-  ! Matrix generator flag for reference point equation
-  integer(kind=AE_INT), private, parameter :: kAQUReference = 1
-  integer(kind=AE_INT), private, parameter :: kAQUBoundary = 2
-  ! Fake a small well radius to ensure that the proper fluxes are computed
-  ! in FWL_Flow
-  real(kind=AE_REAL), private, parameter :: PERIMETER_TOLERANCE = 1.0e-2_AE_REAL
-  real(kind=AE_REAL), private, parameter :: BDY_MOVE_FACTOR = 1.0e-4_AE_REAL
-
+  end type AEM_LAYER
 
 contains
-
-  !! ELEMENT MODULE ROUTINES
-  !! These routines allow AQU to behave as a ModAEM Element Module
 
 
   function AQU_Create(io) result(aqu)
@@ -221,16 +152,10 @@ contains
     !!
     ! [ ARGUMENTS ]
     integer(kind=AE_INT) :: iNInho
-    integer(kind=AE_INT) :: iNStr
-    real(kind=AE_REAL) :: rBase
-    real(kind=AE_REAL) :: rThick
-    real(kind=AE_REAL) :: rHydCond
-    real(kind=AE_REAL) :: rPorosity
-    real(kind=AE_REAL) :: rAvgHead
     type(IO_STATUS), pointer :: io
 
     ! [ RETURN VALUE ]
-    type(AQU_COLLECTION), pointer :: aqu
+    type(AEM_LAYER), pointer :: lay
     ! [ LOCALS ]
     integer(kind=AE_INT) :: iStat
 
@@ -267,159 +192,6 @@ contains
 
     return
   end function AQU_Create
-
-
-  subroutine AQU_SetPrecondition(io, aqu, lPre)
-    ! Sets the precondition flag. If it is set, it is presumed that this is the first iteration, and the
-    ! saturated thickness / transmissivity are based on the "avg-head" setting.
-    type(AQU_COLLECTION), pointer :: aqu
-    logical, intent(in) :: lPre
-    type(IO_STATUS), pointer :: io
-
-    call IN0_SetPrecondition(io, aqu%in0, lPre)
-
-    return
-  end subroutine AQU_SetPrecondition
-
-
-  subroutine AQU_SetReference(io, aqu, cRefPoint, rRefHead, cRefUniformFlow)
-    !! subroutine AQU_SetReference
-    !!
-    !! Sets up the reference point and uniform flow
-    !!
-    !! Calling Sequence:
-    !!    call AQU_SetReference(io, aqu, cRefPoint, rRefHead, cRefUniformFlow)
-    !!
-    !! Arguments:
-    !!    (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!              The AQU_COLLECTION object to be populated
-    !!    (in)    complex :: cRefPoint
-    !!              Location of the reference point
-    !!    (in)    real :: rRefHead
-    !!              The head at the reference point
-    !!    (in)    complex :: cRefUniformFlow
-    !!              Far-field uniform flow
-    !!
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    complex(kind=AE_REAL), intent(in) :: cRefPoint
-    real(kind=AE_REAL), intent(in) :: rRefHead
-    complex(kind=AE_REAL), intent(in) :: cRefUniformFlow
-    type(IO_STATUS), pointer :: io
-
-    if (aqu%lDebug) then
-      call IO_Assert(io, associated(aqu), "AQU_SetReference: No AQU_COLLECTION object")
-    end if
-
-    aqu%cRefPoint = cRefPoint
-    aqu%rRefHead = rRefHead
-    aqu%cRefUniformFlow = cRefUniformFlow
-    aqu%lReference = .true.
-
-    return
-  end subroutine AQU_SetReference
-
-
-  subroutine AQU_PreSolve(io, aqu)
-    !! subroutine AQU_PreSolve
-    !!
-    !! Steps to be executed prior to beginning the solution process
-    !! This routine adjusts elements as necessary, and allocates internal buffers
-    !!
-    !! Calling Sequence:
-    !!    call AQU_PreSolve(io, aqu)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION to be used
-    !!   (in)    type(IO_status), pointer :: io
-    !!              pointer toIO_STATUS structure
-    !!
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    type(IO_STATUS), pointer :: io
-    ! [ LOCALS ]
-    integer(kind=AE_INT) :: i, istat
-
-    ! Fix up the perimeter stuff as necessary
-    if (aqu%iNBdy > 0) then
-      allocate(aqu%cPerimeter(aqu%iNBdy), stat = istat)
-      call IO_Assert(io, (istat == 0), "Could not allocate aquifer perimeter")
-      call PGN_Build(aqu%BdyElements(1:aqu%iNBdy)%cZ1, &
-           aqu%BdyElements(1:aqu%iNBdy)%cZ2, &
-           aqu%BdyElements(1:aqu%iNBdy)%iBdyFlag==BDY_HEAD, &
-           PERIMETER_TOLERANCE, &
-           aqu%cPerimeter, &
-           aqu%iNPerimeter)
-      call IO_Assert(io, (aqu%iNPerimeter > 0), "Could not build the aquifer perimeter")
-    else
-      allocate(aqu%cPerimeter(0), stat = istat)
-      aqu%iNPerimeter = 0
-    end if
-
-    ! Set up the IN0 module stuff
-    call IN0_PreSolve(io, aqu%in0)
-
-    return
-  end subroutine AQU_PreSolve
-
-
-  function iAQU_GetInfo(io, aqu, iOption, iIteration) result(iValue)
-    !! function AQU_GetInfo
-    !!
-    !! Returns the following sizing requirements for the WL0module
-    !!
-    !! Calling Sequence:
-    !!    iValue = iAQU_GetInfo(io, aqu, iOption)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION to be used
-    !!   (out)   integer :: iOption
-    !!             The(see u_constants.f90) to be retrieved
-    !!
-    !! Return Value:
-    !!   integer :: iOption
-    !!     The requested information for the object. Note: Unrecognized options
-    !!     should always return zero; (via 'case default' in 'select' structure)
-    !!
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    integer(kind=AE_INT), intent(in) :: iOption
-    integer(kind=AE_INT), intent(in) :: iIteration
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    integer(kind=AE_INT) :: iValue
-    integer(kind=AE_INT) :: iStr
-
-    if (aqu%lDebug) then
-      call IO_Assert(io, (associated(aqu)), &
-           "AQU_GetInfo: AQU_Create has not been called")
-    end if
-
-    iValue = iIN0_GetInfo(io, aqu%in0, iOption, iIteration)
-    !  print *, 'IN0', iValue
-    select case (iOption)
-      case (SIZE_FWL)
-        continue
-      case (SIZE_FDP)
-        continue
-      case (SIZE_EQUATIONS)
-        iValue = iValue + aqu%iNBdy
-        if (aqu%lReference .or. aqu%iNBdy == 0) iValue = iValue + 1
-      case (SIZE_UNKNOWNS)
-        iValue = iValue + aqu%iNBdy
-        if (aqu%lReference .or. aqu%iNBdy == 0) iValue = iValue + 1
-      case (INFO_REGENERATE)
-        if (iIteration < 2 .or. aqu%lFSRegen) then
-          iValue = 1
-        end if
-      case default
-        iValue = 0
-    end select
-
-    return
-  end function iAQU_GetInfo
 
 
   subroutine AQU_SetupFunctions(io, aqu, fdp)
@@ -2434,4 +2206,4 @@ contains
     return
   end subroutine AQU_Load
 
-end module m_aqu
+end module m_layer
