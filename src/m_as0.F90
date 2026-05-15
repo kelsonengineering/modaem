@@ -407,6 +407,7 @@ contains
     complex(kind=AE_REAL) :: cZ0, cZC, cRho1, cRho2, cRho3
     complex(kind=AE_REAL), dimension(2) :: seg
     type(AS0_STRING), pointer :: str
+    type(FDP_DIPOLE), pointer :: pTempDP
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(as0)), &
@@ -439,7 +440,8 @@ contains
         rPsiJump = str%rN * rInfl(1, 1)
         cRho3 = cmplx(real(cRho1)-rPsiJump, -rPotJump, AE_REAL)
         ! Now, make the dipole!
-        call FDP_New(io, fdp, seg(1), seg(2), (/cRho1, cRho2, cRho3/), ELEM_AS0, iStr, iSeg, -1, str%iFDPIndex(iSeg))
+        call FDP_New(io, fdp, seg(1), seg(2), (/cRho1, cRho2, cRho3/), ELEM_AS0, iStr, iSeg, -1, pTempDP)
+        str%iFDPIndex(iSeg) = pTempDP%iIndex
         cRho1 = cRho3                               ! Move on to the next one with this Rho value
       end do
 

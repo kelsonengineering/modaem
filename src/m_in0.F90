@@ -859,7 +859,7 @@ contains
     real(kind=AE_REAL), dimension(:), intent(out) :: rARow
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iStat, iSkipCol, iVtx, iDP1, iNDP, iWhich, irv, iThisDP, i, iBaseCol, iStr
+    integer(kind=AE_INT) :: iStat, iSkipCol, iVtx, iNDP, iWhich, irv, i, iBaseCol, iStr
     complex(kind=AE_REAL), dimension(:, :, :), allocatable :: cDPF, cDPW
     complex(kind=AE_REAL), dimension(1, 3, 1) :: cDPJ
     type(IN0_STRING), pointer :: str
@@ -876,7 +876,6 @@ contains
     do iStr = 1, in0%iNStr
       str => in0%Strings(iStr)
       ! Assume: the IN0_Setup routine creates consecutive dipole entries
-      iDP1 = str%Vertices(1)%pFDP%iIndex
       if (str%lClosed) then
         iNDP = str%iNPts
       else
@@ -891,25 +890,25 @@ contains
       ! Get the appropriate influence functions for the boundary condition type
       select case (iEqType)
         case (EQN_HEAD)
-          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_P, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_P, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_BDYGHB)
-          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_P, iDP1, iNDP, (/rHALF*sum(cPathZ)/), cOrientation, cDPF(1:iNDP, :, :))
-          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_F, iDP1, iNDP, cPathZ, cOrientation, cDPW(1:iNDP, :, :))
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_P, str%Vertices(1)%pFDP, iNDP, (/rHALF*sum(cPathZ)/), cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_F, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPW(1:iNDP, :, :))
           cDPF = cDPF + rGhbFactor*cDPW
         case (EQN_FLOW)
-          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_F, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_F, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_INHO)
-          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_P, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_P, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_DISCHARGE)
-          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_W, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_W, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_RECHARGE)
-          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_G, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_G, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_CONTINUITY)
-          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_Q, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_Q, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_POTENTIALDIFF)
-          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_D, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_D, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_TOTALFLOW)
-          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_Z, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_Z, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
       end select
 
       do iVtx = 1, iNDP
@@ -945,8 +944,7 @@ contains
             (iElementType == ELEM_IN0) .and. &
             (iElementString == iStr) .and. &
             (iElementVertex == iVtx)) then
-          iThisDP = str%Vertices(iVtx)%pFDP%iIndex
-          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_J, iThisDP, 1, cPathZ(1:1), cOrientation, cDPJ)
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_J, str%Vertices(iVtx)%pFDP, 1, cPathZ(1:1), cOrientation, cDPJ)
           ! Vertex 1 contribution
           rARow(iBaseCol) = rARow(iBaseCol)   - this_vtx%rRightT(1)*aimag(cDPJ(1, 1, 1))
           ! Center contribution

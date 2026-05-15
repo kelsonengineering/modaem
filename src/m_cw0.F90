@@ -726,7 +726,7 @@ contains
     real(kind=AE_REAL), dimension(:), intent(out) :: rARow
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iStat, iCol, iWel, iVtx, iDP1, iNDP, iWhich, iVtxCol, &
+    integer(kind=AE_INT) :: iStat, iCol, iWel, iVtx, iNDP, iWhich, iVtxCol, &
                            iLastCol, iNextCol, iBaseCol
     complex(kind=AE_REAL), dimension(:, :, :), allocatable :: cDPF, cDP, cDPW
     type(CW0_WELL), pointer :: wel
@@ -750,7 +750,6 @@ contains
       rad => wel%Radials(wel%iNRad)
       last_vtx => rad%Vertices(wel%iResolution)
       first_vtx => wel%Radials(1)%Vertices(1)
-      iDP1 = first_vtx%pFDP%iIndex
       iNDP = wel%iNRad * wel%iResolution
       iBaseCol = iCol
 
@@ -760,29 +759,29 @@ contains
       ! Get the appropriate incluence functions for the boundary condition type
       select case (iEqType)
         case (EQN_HEAD)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_BDYGHB)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, iDP1, iNDP, (/rHALF*sum(cPathZ)/), cOrientation, cDPF(1:iNDP, :, :))
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_F, iDP1, iNDP, cPathZ, cOrientation, cDPW(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, first_vtx%pFDP, iNDP, (/rHALF*sum(cPathZ)/), cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_F, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPW(1:iNDP, :, :))
           cDPF = cDPF + rGhbResistance*cDPW
         case (EQN_FLOW)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_F, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_F, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_INHO)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_DISCHARGE)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_W, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_W, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_RECHARGE)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_G, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_G, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_CONTINUITY)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_Q, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_Q, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_TOTALFLOW)
           if (iElementType == ELEM_CW0 .and. iElementString == iWel) then
-            call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_Q, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+            call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_Q, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
           else
-            call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_Z, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+            call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_Z, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
           end if
         case (EQN_POTENTIALDIFF)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_D, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_D, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
       end select
 
       do iVtx = 1, iNDP
@@ -794,7 +793,7 @@ contains
       if (iElementType == ELEM_CW0 .and. iEqType == EQN_POTENTIALDIFF .and. iElementString == iWel) then
         rad => wel%Radials(iElementVertex)
         this => rad%Vertices(iElementFlag)
-        iVtxCol = iBaseCol + this%pFDP%iIndex - iDP1 + 1
+        iVtxCol = iBaseCol + this%pFDP%iIndex - first_vtx%pFDP%iIndex + 1
         if (iElementFlag /= wel%iResolution) then
           next => rad%Vertices(iElementFlag+1)
           iNextCol = iVtxCol+1
@@ -820,7 +819,7 @@ contains
         this => rad%Vertices(iElementFlag)
         rT1 = rAQU_Transmissivity(io, aqu, this%cCPZ, this%rCheck)
         this%rResistanceTerm = (rT1 * rad%rResistance) / rad%rWidth
-        iVtxCol = iBaseCol + this%pFDP%iIndex - iDP1 + 1
+        iVtxCol = iBaseCol + this%pFDP%iIndex - first_vtx%pFDP%iIndex + 1
         rARow(iVtxCol) = rARow(iVtxCol) - this%rResistanceTerm
       end if
 

@@ -197,13 +197,13 @@ contains
   end subroutine FDP_New
 
 
-  subroutine FDP_GetInfluence_IDP(io, fdp, iWhich, iDP1, iNDP, cPathZ, cOrientation, cF)
+  subroutine FDP_GetInfluence_IDP(io, fdp, iWhich, pDP1, iNDP, cPathZ, cOrientation, cF)
     !! subroutine FDP_GetInfluence
     !!
     !! Retrieves arrays of influence functions for use in matrix generation
     !!
     !! Calling Sequence:
-    !!    call FDP_GetInfluence(io, fdp, iWhich, iDP1, iNDP, cPathZ, cOrientation, cF)
+    !!    call FDP_GetInfluence(io, fdp, iWhich, pDP1, iNDP, cPathZ, cOrientation, cF)
     !!
     !! Arguments:
     !!   (in)    type(FDP_COLLECTION) :: fdp
@@ -219,8 +219,8 @@ contains
     !!                INFLUENCE_J   - Jump magnitude
     !!                INFLUENCE_D   - Difference in potential
     !!                INFLUENCE_Z   - All zeroes
-    !!   (in)    integer :: iDP1
-    !!             The index for the first dipole to be used
+    !!   (in)    type(FDP_DIPOLE), pointer :: pDP1
+    !!             Pointer to the first dipole to be used
     !!   (in)    integer :: iNDP
     !!             The number of consecutive dipoles to be computed
     !!   (in)    complex :: cPathZ(:)
@@ -238,13 +238,14 @@ contains
     !!
     ! [ ARGUMENTS ]
     type(FDP_COLLECTION), pointer :: fdp
-    integer(kind=AE_INT), intent(in) :: iWhich, iDP1, iNDP
+    integer(kind=AE_INT), intent(in) :: iWhich, iNDP
+    type(FDP_DIPOLE), pointer :: pDP1
     complex(kind=AE_REAL), dimension(:), intent(in) :: cPathZ
     complex(kind=AE_REAL), intent(in) :: cOrientation
     complex(kind=AE_REAL), dimension(:, :, :), intent(out) :: cF
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iDP2, i, j, iStat
+    integer(kind=AE_INT) :: iDP1, iDP2, i, j, iStat
     complex(kind=AE_REAL), dimension(:), allocatable :: cMapZ1
     complex(kind=AE_REAL), dimension(:), allocatable :: cMapZ2
     real(kind=AE_REAL), dimension(:), allocatable :: rX
@@ -255,9 +256,10 @@ contains
     if (io%lDebug) then
       call IO_Assert(io, (associated(fdp)), "FDP_GetInfluence_IDP: FDP_Create has not been called")
       call IO_Assert(io, (associated(fdp%Dipoles)), "FDP_GetInfluence_IDP: FDP_Alloc has not been called")
-      call IO_Assert(io, (iDP1 >= lbound(fdp%Dipoles, 1) .and. iDP1 <= ubound(fdp%Dipoles, 1)), &
+      call IO_Assert(io, (associated(pDP1)), "FDP_GetInfluence_IDP: null pointer pDP1")
+      call IO_Assert(io, (pDP1%iIndex >= lbound(fdp%Dipoles, 1) .and. pDP1%iIndex <= ubound(fdp%Dipoles, 1)), &
            "FDP_GetInfluence_IDP: Bad index range")
-      call IO_Assert(io, ((iDP1+iNDP-1) >= lbound(fdp%Dipoles, 1) .and. (iDP1+iNDP-1) <= ubound(fdp%Dipoles, 1)), &
+      call IO_Assert(io, ((pDP1%iIndex+iNDP-1) >= lbound(fdp%Dipoles, 1) .and. (pDP1%iIndex+iNDP-1) <= ubound(fdp%Dipoles, 1)), &
            "FDP_GetInfluence_IDP: Bad index range")
       call IO_Assert(io, (size(cF, 1) >= iNDP .and. size(cF, 2) >= 3 .and. size(cF, 3) >= 1), &
            "FDP_GetInfluence_IDP: Invalid result vector")
@@ -265,6 +267,7 @@ contains
 
     ! It is assumed that the caller has eliminated the potential for a singularity
     ! by selecting appropriate control points
+    iDP1 = pDP1%iIndex
     iDP2 = iDP1+iNDP-1
     allocate(cMapZ1(iDP1:iDP2), cMapZ2(iDP1:iDP2), rX(iDP1:iDP2), stat = iStat)
     call IO_Assert(io, (iStat == 0), "FDP_GetInfluence_IDP: Allocation failed")
@@ -328,14 +331,14 @@ contains
   end subroutine FDP_GetInfluence_IDP
 
 
-  subroutine FDP_GetInfluence_ILS(io, fdp, iWhich, iDP1, iNDP, cPathZ, cOrientation, cF)
+  subroutine FDP_GetInfluence_ILS(io, fdp, iWhich, pDP1, iNDP, cPathZ, cOrientation, cF)
     !! subroutine FDP_GetInfluence_ILS
     !!
     !! Retrieves arrays of influence functions for use in matrix generation,
     !! using the first-order linesink function, instead of the dipole functions.
     !!
     !! Calling Sequence:
-    !!    call FDP_GetInfluence(io, fdp, iWhich, iDP1, iNDP, cPathZ, cOrientation, cF)
+    !!    call FDP_GetInfluence(io, fdp, iWhich, pDP1, iNDP, cPathZ, cOrientation, cF)
     !!
     !! Arguments:
     !!   (in)    type(FDP_COLLECTION), pointer :: fdp
@@ -349,8 +352,8 @@ contains
     !!                INFLUENCE_Q   - Extraction rate
     !!                INFLUENCE_D   - Difference in potential
     !!                INFLUENCE_Z   - All zeroes
-    !!   (in)    integer :: iDP1
-    !!             The index for the first dipole to be used
+    !!   (in)    type(FDP_DIPOLE), pointer :: pDP1
+    !!             Pointer to the first dipole to be used
     !!   (in)    integer :: iNDP
     !!             The number of consecutive dipoles to be computed
     !!   (in)    complex :: cPathZ(:)
@@ -368,13 +371,14 @@ contains
     !!
     ! [ ARGUMENTS ]
     type(FDP_COLLECTION), pointer :: fdp
-    integer(kind=AE_INT), intent(in) :: iWhich, iDP1, iNDP
+    integer(kind=AE_INT), intent(in) :: iWhich, iNDP
+    type(FDP_DIPOLE), pointer :: pDP1
     complex(kind=AE_REAL), dimension(:), intent(in) :: cPathZ
     complex(kind=AE_REAL), intent(in) :: cOrientation
     complex(kind=AE_REAL), dimension(:, :, :), intent(out) :: cF
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iDP2, i, j, iStat
+    integer(kind=AE_INT) :: iDP1, iDP2, i, j, iStat
     complex(kind=AE_REAL), dimension(:), allocatable :: cMapZ1
     complex(kind=AE_REAL), dimension(:), allocatable :: cMapZ2
     complex(kind=AE_REAL) :: cUnit
@@ -384,15 +388,17 @@ contains
     if (io%lDebug) then
       call IO_Assert(io, (associated(fdp)), "FDP_GetInfluence_ILS: FDP_Create has not been called")
       call IO_Assert(io, (associated(fdp%Dipoles)), "FDP_GetInfluence_ILS: FDP_Alloc has not been called")
-      call IO_Assert(io, (iDP1 >= lbound(fdp%Dipoles, 1) .and. iDP1 <= ubound(fdp%Dipoles, 1)), &
+      call IO_Assert(io, (associated(pDP1)), "FDP_GetInfluence_ILS: null pointer pDP1")
+      call IO_Assert(io, (pDP1%iIndex >= lbound(fdp%Dipoles, 1) .and. pDP1%iIndex <= ubound(fdp%Dipoles, 1)), &
            "FDP_GetInfluence_ILS: Bad index range")
-      call IO_Assert(io, ((iDP1+iNDP-1) >= lbound(fdp%Dipoles, 1) .and.(iDP1+iNDP-1) <= ubound(fdp%Dipoles, 1)), &
+      call IO_Assert(io, ((pDP1%iIndex+iNDP-1) >= lbound(fdp%Dipoles, 1) .and.(pDP1%iIndex+iNDP-1) <= ubound(fdp%Dipoles, 1)), &
            "FDP_GetInfluence_ILS: Bad index range")
       call IO_Assert(io, (size(cF, 1) >= iNDP .and. size(cF, 2) >= 1 .and. size(cF, 3) >= 1), &
            "FDP_GetInfluence_ILS: Invalid result vector")
     end if
 
     ! Allocate the Map-Z arrays
+    iDP1 = pDP1%iIndex
     iDP2 = iDP1+iNDP-1
     allocate(cMapZ1(iDP1:iDP2), cMapZ2(iDP1:iDP2), stat = iStat)
     call IO_Assert(io, (iStat == 0), "FDP_GetInfluence_ILS: Allocation failed")

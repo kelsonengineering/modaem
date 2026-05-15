@@ -812,7 +812,7 @@ contains
     real(kind=AE_REAL), dimension(:), intent(out) :: rARow
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iStat, iCol, iStr, iVtx, iDP1, iNDP, iWhich
+    integer(kind=AE_INT) :: iStat, iCol, iStr, iVtx, iNDP, iWhich
     real(kind=AE_REAL) :: rCorr, rH, rPot
     complex(kind=AE_REAL), dimension(:, :, :), allocatable :: cDPF, cDPW
     type(LS2_STRING), pointer :: str
@@ -833,7 +833,6 @@ contains
       str => ls2%Strings(iStr)
       first_vtx => str%Vertices(1)
       ! ASSUMES that LS2_Setup routine created consecutive dipole entries
-      iDP1 = first_vtx%pFDP%iIndex
       iNDP = str%iNPts-1
       allocate(cDPF(0:iNDP, 1, 1), cDPW(0:iNDP, 1, 1), stat = iStat)
       call IO_Assert(io, (iStat == 0), "LS2_ComputeCoefficients: Allocation failed")
@@ -841,25 +840,25 @@ contains
       ! Get the appropriate influence functions for the boundary condition type
       select case (iEqType)
         case (EQN_HEAD)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_BDYGHB)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, iDP1, iNDP, (/rHALF*sum(cPathZ)/), cOrientation, cDPF(1:iNDP, :, :))
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_F, iDP1, iNDP, cPathZ, cOrientation, cDPW(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, first_vtx%pFDP, iNDP, (/rHALF*sum(cPathZ)/), cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_F, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPW(1:iNDP, :, :))
           cDPF = cDPF + rGhbResistance*cDPW
         case (EQN_FLOW)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_F, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_F, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_INHO)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_DISCHARGE)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_W, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_W, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_RECHARGE)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_G, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_G, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_CONTINUITY)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_Q, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_Q, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_POTENTIALDIFF)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_D, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_D, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
         case (EQN_TOTALFLOW)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_Z, iDP1, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_Z, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
       end select
 
       do iVtx = 1, iNDP

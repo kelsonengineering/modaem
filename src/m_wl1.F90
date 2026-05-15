@@ -563,7 +563,7 @@ contains
     real(kind=AE_REAL), dimension(:), intent(out) :: rARow
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iStat, iCol, iVtx, iWL1, iNWL, iWhich
+    integer(kind=AE_INT) :: iStat, iCol, iVtx, iNWL, iWhich
     complex(kind=AE_REAL), dimension(:, :, :), allocatable :: cWLF, cWLW
     type(WL1_WELL), pointer :: wel
 
@@ -580,7 +580,6 @@ contains
       rARow = rZERO
       ! ASSUMES that WL1_Setup routine created consecutive well entries
       wel => wl1%Wells(1)
-      iWL1 = wel%pFWL%iIndex
       iNWL = wl1%iCount
       allocate(cWLF(1:iNWL, 1, 1), cWLW(1:iNWL, 1, 1), stat = iStat)
       call IO_Assert(io, (iStat == 0), "WL1_ComputeCoefficients: Allocation failed")
@@ -588,25 +587,25 @@ contains
       ! Get the appropriate incluence functions for the boundary condition type
       select case (iEqType)
         case (EQN_HEAD)
-          call FWL_GetInfluence(io, fwl, INFLUENCE_P, iWL1, iNWL, cPathZ, cOrientation, cWLF(1:iNWL, :, :))
+          call FWL_GetInfluence(io, fwl, INFLUENCE_P, wel%pFWL, iNWL, cPathZ, cOrientation, cWLF(1:iNWL, :, :))
         case (EQN_BDYGHB)
-          call FWL_GetInfluence(io, fwl, INFLUENCE_P, iWL1, iNWL, (/rHALF*sum(cPathZ)/), cOrientation, cWLF(1:iNWL, :, :))
-          call FWL_GetInfluence(io, fwl, INFLUENCE_F, iWL1, iNWL, cPathZ, cOrientation, cWLW(1:iNWL, :, :))
+          call FWL_GetInfluence(io, fwl, INFLUENCE_P, wel%pFWL, iNWL, (/rHALF*sum(cPathZ)/), cOrientation, cWLF(1:iNWL, :, :))
+          call FWL_GetInfluence(io, fwl, INFLUENCE_F, wel%pFWL, iNWL, cPathZ, cOrientation, cWLW(1:iNWL, :, :))
           cWLF = cWLF - rGhbResistance * cWLW
         case (EQN_FLOW)
-          call FWL_GetInfluence(io, fwl, INFLUENCE_F, iWL1, iNWL, cPathZ, cOrientation, cWLF(1:iNWL, :, :))
+          call FWL_GetInfluence(io, fwl, INFLUENCE_F, wel%pFWL, iNWL, cPathZ, cOrientation, cWLF(1:iNWL, :, :))
         case (EQN_INHO)
-          call FWL_GetInfluence(io, fwl, INFLUENCE_P, iWL1, iNWL, cPathZ, cOrientation, cWLF(1:iNWL, :, :))
+          call FWL_GetInfluence(io, fwl, INFLUENCE_P, wel%pFWL, iNWL, cPathZ, cOrientation, cWLF(1:iNWL, :, :))
         case (EQN_DISCHARGE)
-          call FWL_GetInfluence(io, fwl, INFLUENCE_W, iWL1, iNWL, cPathZ, cOrientation, cWLF(1:iNWL, :, :))
+          call FWL_GetInfluence(io, fwl, INFLUENCE_W, wel%pFWL, iNWL, cPathZ, cOrientation, cWLF(1:iNWL, :, :))
         case (EQN_RECHARGE)
-          call FWL_GetInfluence(io, fwl, INFLUENCE_G, iWL1, iNWL, cPathZ, cOrientation, cWLF(1:iNWL, :, :))
+          call FWL_GetInfluence(io, fwl, INFLUENCE_G, wel%pFWL, iNWL, cPathZ, cOrientation, cWLF(1:iNWL, :, :))
         case (EQN_CONTINUITY)
-          call FWL_GetInfluence(io, fwl, INFLUENCE_Q, iWL1, iNWL, cPathZ, cOrientation, cWLF(1:iNWL, :, :))
+          call FWL_GetInfluence(io, fwl, INFLUENCE_Q, wel%pFWL, iNWL, cPathZ, cOrientation, cWLF(1:iNWL, :, :))
         case (EQN_POTENTIALDIFF)
-          call FWL_GetInfluence(io, fwl, INFLUENCE_D, iWL1, iNWL, cPathZ, cOrientation, cWLF(1:iNWL, :, :))
+          call FWL_GetInfluence(io, fwl, INFLUENCE_D, wel%pFWL, iNWL, cPathZ, cOrientation, cWLF(1:iNWL, :, :))
         case (EQN_TOTALFLOW)
-          call FWL_GetInfluence(io, fwl, INFLUENCE_Z, iWL1, iNWL, cPathZ, cOrientation, cWLF(1:iNWL, :, :))
+          call FWL_GetInfluence(io, fwl, INFLUENCE_Z, wel%pFWL, iNWL, cPathZ, cOrientation, cWLF(1:iNWL, :, :))
       end select
 
       ! Compute the matrix coefficients

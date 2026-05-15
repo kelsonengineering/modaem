@@ -225,13 +225,13 @@ contains
   end subroutine FWL_New
 
 
-  subroutine FWL_GetInfluence(io, fwl, iWhich, iWL1, iNWL, cPathZ, cOrientation, cF)
+  subroutine FWL_GetInfluence(io, fwl, iWhich, pWL1, iNWL, cPathZ, cOrientation, cF)
     !! subroutine FWL_GetInfluence
     !!
     !! Retrieves arrays of influence functions for use in matrix generation
     !!
     !! Calling Sequence:
-    !!    call FWL_GetInfluence(io, fwl, iWhich, iWL1, iNWL, cPathZ, cOrientation, cF)
+    !!    call FWL_GetInfluence(io, fwl, iWhich, pWL1, iNWL, cPathZ, cOrientation, cF)
     !!
     !! Arguments:
     !!   (in)    type(FWL_COLLECTION), pointer :: fwl
@@ -245,8 +245,8 @@ contains
     !!                kInfluenceQ   - Extraction rate
     !!                kInfluenceD   - Difference in potential
     !!                kInfluenceZ   - All zeroes
-    !!   (in)    integer :: iWL1
-    !!             The index for the first well to be used
+    !!   (in)    type(FWL_WELL), pointer :: pWL1
+    !!             Pointer to the first well to be used
     !!   (in)    integer :: iNWL
     !!             The number of consecutive wells to be computed
     !!   (in)    complex :: cPathZ(:)
@@ -262,13 +262,14 @@ contains
     !!
     ! [ ARGUMENTS ]
     type(FWL_COLLECTION), pointer :: fwl
-    integer(kind=AE_INT), intent(in) :: iWhich, iWL1, iNWL
+    integer(kind=AE_INT), intent(in) :: iWhich, iNWL
+    type(FWL_WELL), pointer :: pWL1
     complex(kind=AE_REAL), dimension(:), intent(in) :: cPathZ
     complex(kind=AE_REAL), intent(in) :: cOrientation
     complex(kind=AE_REAL), dimension(:, :, :), intent(out) :: cF
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iWL2, i, j
+    integer(kind=AE_INT) :: iWL1, iWL2, i, j
     real(kind=AE_REAL), dimension(1, 1) :: rF
     complex(kind=AE_REAL), dimension(1, 1) :: cW, cUnit
     type(FWL_WELL), pointer :: wel
@@ -276,12 +277,14 @@ contains
     if (io%lDebug) then
       call IO_Assert(io, (associated(fwl)), "FWL_GetInfluence: FWL_Create has not been called")
       call IO_Assert(io, (associated(fwl%Wells)), "FWL_GetInfluence: FWL_Alloc has not been called")
-      call IO_Assert(io, (iWL1 >= lbound(fwl%Wells, 1) .and. iWL1 <= ubound(fwl%Wells, 1)), &
+      call IO_Assert(io, (associated(pWL1)), "FWL_GetInfluence: null pointer pWL1")
+      call IO_Assert(io, (pWL1%iIndex >= lbound(fwl%Wells, 1) .and. pWL1%iIndex <= ubound(fwl%Wells, 1)), &
            "FWL_GetInfluence: Bad index range")
-      call IO_Assert(io, ((iWL1+iNWL-1) >= lbound(fwl%Wells, 1) .and. (iWL1+iNWL-1) <= ubound(fwl%Wells, 1)), &
+      call IO_Assert(io, ((pWL1%iIndex+iNWL-1) >= lbound(fwl%Wells, 1) .and. (pWL1%iIndex+iNWL-1) <= ubound(fwl%Wells, 1)), &
            "FWL_GetInfluence: Bad index range")
       call IO_Assert(io, (size(cF, 1) >= iNWL .and. size(cF, 2) >= 1), "FWL_GetInfluence: Invalid result vector")
     end if
+    iWL1 = pWL1%iIndex
 
     select case (iWhich)
       case (INFLUENCE_P)

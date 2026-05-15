@@ -192,13 +192,13 @@ contains
   end subroutine FPD_New
 
 
-  subroutine FPD_GetInfluence(io, fpd, iWhich, iPD1, iNPD, cPathZ, cOrientation, cF)
+  subroutine FPD_GetInfluence(io, fpd, iWhich, pPD1, iNPD, cPathZ, cOrientation, cF)
     !! subroutine FPD_GetInfluence
     !!
     !! Retrieves arrays of influence functions for use in matrix generation
     !!
     !! Calling Sequence:
-    !!    call FPD_GetInfluence(io, fpd, iWhich, iPD1, iNPD, cPathZ, cOrientation, cF)
+    !!    call FPD_GetInfluence(io, fpd, iWhich, pPD1, iNPD, cPathZ, cOrientation, cF)
     !!
     !! Arguments:
     !!   (in)    type(FPD_COLLECTION), pointer :: fpd
@@ -212,8 +212,8 @@ contains
     !!                INFLUENCE_Q   - Extraction rate
     !!                INFLUENCE_D   - Difference in potential
     !!                INFLUENCE_Z   - All zeroes
-    !!   (in)    integer :: iPD1
-    !!             The index for the first pond to be used
+    !!   (in)    type(FPD_POND), pointer :: pPD1
+    !!             Pointer to the first pond to be used
     !!   (in)    integer :: iNPD
     !!             The number of consecutive ponds to be computed
     !!   (in)    complex :: cPathZ(:)
@@ -229,14 +229,15 @@ contains
     !!
     ! [ ARGUMENTS ]
     type(FPD_COLLECTION), pointer :: fpd
-    integer(kind=AE_INT), intent(in) :: iWhich, iPD1, iNPD
+    integer(kind=AE_INT), intent(in) :: iWhich, iNPD
+    type(FPD_POND), pointer :: pPD1
     complex(kind=AE_REAL), dimension(:), intent(in) :: cPathZ
     complex(kind=AE_REAL), intent(in) :: cOrientation
     complex(kind=AE_REAL), dimension(:, :, :), intent(out) :: cF
     type(IO_STATUS), pointer :: io
 
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iPD2, i, j
+    integer(kind=AE_INT) :: iPD1, iPD2, i, j
     real(kind=AE_REAL) :: rF(1, 1), rG(1, 1), rQ(1, 1)
     complex(kind=AE_REAL) :: cW(1, 1), cUnit
     type(FPD_POND), pointer :: pnd
@@ -244,11 +245,13 @@ contains
     if (io%lDebug) then
       call IO_Assert(io, (associated(fpd)), "FPD_GetInfluence: FPD_Create has not been called")
       call IO_Assert(io, (associated(fpd%Ponds)), "FPD_GetInfluence: FPD_Alloc has not been called")
-      call IO_Assert(io, (iPD1 >= lbound(fpd%Ponds, 1) .and. iPD1 <= ubound(fpd%Ponds, 1)), &
+      call IO_Assert(io, (associated(pPD1)), "FPD_GetInfluence: null pointer pPD1")
+      call IO_Assert(io, (pPD1%iIndex >= lbound(fpd%Ponds, 1) .and. pPD1%iIndex <= ubound(fpd%Ponds, 1)), &
            "FPD_GetInfluence: Bad index range")
-      call IO_Assert(io, ((iPD1+iNPD-1) >= lbound(fpd%Ponds, 1) .and. (iPD1+iNPD-1) <= ubound(fpd%Ponds, 1)), &
+      call IO_Assert(io, ((pPD1%iIndex+iNPD-1) >= lbound(fpd%Ponds, 1) .and. (pPD1%iIndex+iNPD-1) <= ubound(fpd%Ponds, 1)), &
            "FPD_GetInfluence: Bad index range")
     end if
+    iPD1 = pPD1%iIndex
 
     select case (iWhich)
       case (INFLUENCE_P)
