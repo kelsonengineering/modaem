@@ -90,7 +90,7 @@ module u_constants
   integer(kind=AE_INT), public, parameter :: kOpSWI = 2009
 
   ! Analytic element modules
-  ! Aquifer data module
+  ! Inhomogeneities data module
   integer(kind=AE_INT), public, parameter :: kOpAQU = 3000
   ! Strength-specified wells
   integer(kind=AE_INT), public, parameter :: kOpWL0 = 3001
@@ -289,7 +289,7 @@ module u_constants
   type(ERRORMSG), public, parameter, dimension(12) :: msgErrorMessages = &
                     (/ERRORMSG(errInvalidDirective, "Invalid program directive"), &
                     ERRORMSG(errIllegalValue, "Illegal data value"), &
-                    ERRORMSG(errAquiferNotSet, "Aquifer parameters are not set"), &
+                    ERRORMSG(errAquiferNotSet, "Inhomogeneities parameters are not set"), &
                     ERRORMSG(errNoSolution, "No model solution is present"), &
                     ERRORMSG(errNotAllocated, "Array has not been allocated"), &
                     ERRORMSG(errPreviouslyAllocated, "Array has already been allocated"), &

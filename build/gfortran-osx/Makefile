@@ -12,7 +12,7 @@ vpath %F90 ../../src
 
 .DEFAULT:
 
-all: modaem-1.8
+all: modaem-2.0-dev
 
 %o: %f
 	$(FC) -c $(FFLAGS) -o $@ $<
@@ -106,9 +106,9 @@ clean: neat
 neat:
 	-rm -f $(TMPFILES)
 	
-modaem-1.8: $(OBJ) 
-	$(LD) $(OBJ) -o modaem-1.8	  $(LDFLAGS)
+modaem-2.0-dev: $(OBJ) 
+	$(LD) $(OBJ) -o modaem-2.0-dev	  $(LDFLAGS)
 
-install: modaem-1.8
-	cp -f modaem-1.8 ~/bin/modaem-1.8
+install: modaem-2.0-dev
+	cp -f modaem-2.0-dev ~/bin/modaem-2.0-dev
 

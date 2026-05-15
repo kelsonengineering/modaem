@@ -65,7 +65,7 @@ figs-within-sections
 \begin_body
 
 \begin_layout Standard
-Aquifer specification
+Inhomogeneities specification
 \begin_inset CommandInset label
 LatexCommand label
 name "cha:aqu-module"
@@ -335,7 +335,7 @@ initial-avg-head
 \end_layout
 
 \begin_layout Paragraph
-Simple Aquifer Example 
+Simple Inhomogeneities Example
 \end_layout
 
 \begin_layout Standard
@@ -1304,7 +1304,7 @@ Hydraulic conductivity,
 \end_layout
 
 \begin_layout Itemize
-Aquifer base elevation, 
+Inhomogeneities base elevation,
 \begin_inset Formula $b$
 \end_inset
 
@@ -1312,7 +1312,7 @@ Aquifer base elevation,
 \end_layout
 
 \begin_layout Itemize
-Aquifer thickness, 
+Inhomogeneities thickness,
 \begin_inset Formula $H$
 \end_inset
 
@@ -1320,7 +1320,7 @@ Aquifer thickness,
 \end_layout
 
 \begin_layout Itemize
-Aquifer effective porosity, 
+Inhomogeneities effective porosity,
 \begin_inset Formula $n$
 \end_inset
 

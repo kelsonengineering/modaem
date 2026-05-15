@@ -1107,7 +1107,7 @@ DERIVED ()) 0 (((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '-102') ()) ((
 CONSTANT (CHARACTER 1 0 0 0 CHARACTER (())) 0 18 'Illegal data value') ()))
 ()) ()) ((STRUCTURE (DERIVED 3 0 0 0 DERIVED ()) 0 (((CONSTANT (INTEGER
 4 0 0 0 INTEGER ()) 0 '-103') ()) ((CONSTANT (CHARACTER 1 0 0 0
-CHARACTER (())) 0 30 'Aquifer parameters are not set') ())) ()) ()) ((
+CHARACTER (())) 0 30 'Inhomogeneities parameters are not set') ())) ()) ()) ((
 STRUCTURE (DERIVED 3 0 0 0 DERIVED ()) 0 (((CONSTANT (INTEGER 4 0 0 0
 INTEGER ()) 0 '-104') ()) ((CONSTANT (CHARACTER 1 0 0 0 CHARACTER (()))
 0 28 'No model solution is present') ())) ()) ()) ((STRUCTURE (DERIVED 3

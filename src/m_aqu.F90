@@ -1322,7 +1322,7 @@ contains
     type(AQU_BDYELEMENT), pointer :: bdy
     real(kind=AE_REAL) :: rCheckHead
 
-    ! Aquifer data from this module
+    ! Inhomogeneities data from this module
     call HTML_Header('Module AQU', 1)
     call HTML_Header('Basic aquifer information', 2)
 

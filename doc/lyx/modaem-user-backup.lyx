@@ -1566,7 +1566,7 @@ The various processing directives that are available once a problem has
 .
 \layout Chapter
 
-Aquifer specification
+Inhomogeneities specification
 \begin_inset LatexCommand \label{cha:aqu-module}
 
 \end_inset 
@@ -1802,7 +1802,7 @@ initial-avg-head
 
 \layout Paragraph
 
-Simple Aquifer Example 
+Simple Inhomogeneities Example
 \layout Standard
 
 To build a simple infinite aquifer with no inhomogeneities, with base elevation
@@ -2872,21 +2872,21 @@ Hydraulic conductivity,
 
 \layout Itemize
 
-Aquifer base elevation, 
+Inhomogeneities base elevation,
 \begin_inset Formula $b$
 \end_inset 
 
  
 \layout Itemize
 
-Aquifer thickness, 
+Inhomogeneities thickness,
 \begin_inset Formula $H$
 \end_inset 
 
 
 \layout Itemize
 
-Aquifer effective porosity, 
+Inhomogeneities effective porosity,
 \begin_inset Formula $n$
 \end_inset 
 
