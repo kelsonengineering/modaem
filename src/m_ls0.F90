@@ -221,19 +221,19 @@ contains
 
 
   subroutine LS0_New(io, ls0, Vertices, iNPts)
-    !! function LS0_New
+    !! subroutine LS0_New
     !!
     !! Adds a new LS0_STRING object to the LS0_COLLECTION 'ls0'
     !!
     !! Calling Sequence:
-    !!    call LS0_New(io, ls0, Vertices, iNPt)
+    !!    call LS0_New(io, ls0, Vertices, iNPts)
     !!
     !! Arguments:
-    !!    (in)    type(LS0_COLLECTION) :: ls0
+    !!    (in)    type(LS0_COLLECTION), pointer :: ls0
     !!              The LS0_COLLECTION object to be used
     !!    (in)    type(LS0_VERTEX) :: Vertices(:)
-    !!              Vector that defines the points along the barrier
-    !!    (in)    integer :: iNPt
+    !!              Vector that defines the points along the string
+    !!    (in)    integer :: iNPts
     !!              The number of vertices in the string
     !!
     ! [ ARGUMENTS ]
@@ -560,24 +560,22 @@ contains
 
 
   subroutine LS0_SetIterator(io, ls0, aqu, itr, cValue)
-    !! function LS0_SetIterator
+    !! subroutine LS0_SetIterator
     !!
-    !! Advances the module's iterator one step
+    !! Stores the solved element strength at the iterator's current position
     !!
     !! Calling Sequence:
-    !!    call LS0_SetIterator(ls0)
+    !!    call LS0_SetIterator(io, ls0, aqu, itr, cValue)
     !!
     !! Arguments:
     !!   (in)    type(LS0_COLLECTION), pointer :: ls0
     !!             LS0_COLLECTION to be used
+    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
+    !!             AQU_COLLECTION providing aquifer properties
     !!   (in)    type(ITERATOR_RESULT), pointer :: itr
+    !!             Identifies the element position to be updated
     !!   (in)    complex :: cValue
-    !!             The value retrieved from the color
-    !!   (in)    type(IO_STATUS), pointer :: ls0
-    !!             Tracks error conditions
-    !!     Pointer to the information for data retrieval
-    !!
-    !! Return Value:
+    !!             The solved strength value to store
     !!
     ! [ ARGUMENTS ]
     type(LS0_COLLECTION), pointer :: ls0

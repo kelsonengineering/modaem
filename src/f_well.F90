@@ -136,7 +136,7 @@ contains
   subroutine FWL_Alloc(io, fwl, iMax)
     !! subroutine FWL_Alloc
     !!
-    !! Dimensions the internal buffers for iaMax wells in layer iL
+    !! Dimensions the internal buffers for iMax wells
     !!
     !! Calling Sequence:
     !!    call FWL_Alloc(io, fwl, iMax)
@@ -188,6 +188,10 @@ contains
     !!             Complex coordinates of the center of the well
     !!   (in)    real :: rDischarge
     !!             The discharge of the well
+    !!   (in)    real :: rRadius
+    !!             The radius of the well
+    !!   (in)    integer :: iElementType, iElementString, iElementVertex, iElementFlag
+    !!             Element bookkeeping tags stored verbatim in the FWL_WELL record
     !!
     !! Return value:
     !!   Pointer to the new FWL_WELL entry, or null if space is exhausted
@@ -238,12 +242,12 @@ contains
     !!   (in)    integer :: iWhich
     !!             The influence function to be computed;  iWhich values are
     !!                INFLUENCE_P   - Complex potential
-    !!                kInfluenceQ   - Complex discharge
-    !!                kInfluenceF   - Integrated flux
-    !!                kInfluenceG   - Areal infiltration
-    !!                kInfluenceQ   - Extraction rate
-    !!                kInfluenceD   - Difference in potential
-    !!                kInfluenceZ   - All zeroes
+    !!                INFLUENCE_W   - Complex discharge
+    !!                INFLUENCE_F   - Integrated flux
+    !!                INFLUENCE_G   - Areal infiltration
+    !!                INFLUENCE_Q   - Extraction rate
+    !!                INFLUENCE_D   - Difference in potential
+    !!                INFLUENCE_Z   - All zeroes
     !!   (in)    type(FWL_WELL), pointer :: pWL1
     !!             Pointer to the first well to be used
     !!   (in)    integer :: iNWL
@@ -257,7 +261,7 @@ contains
     !!             Orientation normal vector for iWhich = INFLUENCE_W
     !!   (out)   complex :: cF(1:iNWL, 3)
     !!             The returned influence functions.  Indexes 1:iNWL relate
-    !!             to well indices iWL1:iWL1+iNWL-1, respectively.
+    !!             to the iNWL consecutive wells starting at pWL1%iIndex.
     !!
     ! [ ARGUMENTS ]
     type(FWL_COLLECTION), pointer :: fwl

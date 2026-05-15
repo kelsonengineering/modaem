@@ -238,7 +238,7 @@ contains
 
   subroutine GRI_MakeGrid(io, aem, iFunc, cLL, cUR, iRes, sFile, iOption, lProfile, lCheckActive, &
                rMissingValue, rScale, cBcOrigin, cBcCheck, iBcQuadrant)
-    !! subroutine MakeGrid
+    !! subroutine GRI_MakeGrid
     !!
     !! Makes a grid of function 'func' for the AEM_DOMAIN 'aem', writing the
     !! results to sFile
@@ -251,15 +251,15 @@ contains
     !!                GRID_HEAD            Head(makes '.head.grd' file)
     !!                GRID_POTENTIAL       Potential(makes '.pot.grd' file)
     !!                GRID_STREAMFUNCTION  Streamfunction (io, makes '.psi.grd' file)
-    !!                GRID_GRID_QX              X-discharge(makes '.GRID_QX.grd' file)
-    !!                GRID_GRID_QY              Y-discharge(makes '.GRID_QY.grd' file)
-    !!                GRID_GRID_VX              X-Velocity(makes 'GRID_VX.grd' file)
-    !!                GRID_GRID_VY              Y-Velocity(makes 'GRID_VY.grd' file)
-    !!                GRID_GRID_FLOW            Integrated flow(makes 'GRID_FLOW.grd' file)
+    !!                GRID_QX              X-discharge(makes '.qx.grd' file)
+    !!                GRID_QY              Y-discharge(makes '.qy.grd' file)
+    !!                GRID_VX              X-Velocity(makes '.vx.grd' file)
+    !!                GRID_VY              Y-Velocity(makes '.vy.grd' file)
+    !!                GRID_FLOW            Integrated flow(makes '.flow.grd' file)
     !!    (in)    complex :: cLL
     !!              Lower-left corner of the grid
     !!    (in)    complex :: cUR
-    !!              Upper-rigth corner of the grid
+    !!              Upper-right corner of the grid
     !!    (in)    integer :: iRes
     !!              Number of points along the longer axis
     !!    (in)    character :: sFile

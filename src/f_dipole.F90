@@ -161,6 +161,12 @@ contains
     !!   (in)    complex :: cRho(3)
     !!             The complex strengths at cZ1, at the center, and
     !!             at cZ2, respectively.
+    !!   (in)    integer :: iElementType, iElementString, iElementVertex, iElementFlag
+    !!             Element bookkeeping tags stored verbatim in the FDP_DIPOLE record
+    !!
+    !! Return value:
+    !!   Pointer to the new FDP_DIPOLE entry, or null if space is exhausted
+    !!   or the dipole length is less than rTINY
     !!
     ! [ ARGUMENTS ]
     type(FDP_COLLECTION), pointer :: fdp
@@ -194,20 +200,21 @@ contains
 
 
   subroutine FDP_GetInfluence_IDP(io, fdp, iWhich, pDP1, iNDP, cPathZ, cOrientation, cF)
-    !! subroutine FDP_GetInfluence
+    !! subroutine FDP_GetInfluence_IDP
     !!
-    !! Retrieves arrays of influence functions for use in matrix generation
+    !! Retrieves arrays of influence functions for use in matrix generation,
+    !! using the second-order dipole kernel.
     !!
     !! Calling Sequence:
-    !!    call FDP_GetInfluence(io, fdp, iWhich, pDP1, iNDP, cPathZ, cOrientation, cF)
+    !!    call FDP_GetInfluence_IDP(io, fdp, iWhich, pDP1, iNDP, cPathZ, cOrientation, cF)
     !!
     !! Arguments:
-    !!   (in)    type(FDP_COLLECTION) :: fdp
+    !!   (in)    type(FDP_COLLECTION), pointer :: fdp
     !!             The FDP_COLLECTION to be used
     !!   (in)    integer :: iWhich
     !!             The influence function to be computed;  iWhich values are
     !!                INFLUENCE_P   - Complex potential
-    !!                INFLUENCE_Q   - Complex discharge
+    !!                INFLUENCE_W   - Complex discharge
     !!                INFLUENCE_F   - Integrated flux
     !!                INFLUENCE_F_NOBC   - Integrated flux(do not compute branch cut)
     !!                INFLUENCE_G   - Areal infiltration
@@ -228,7 +235,7 @@ contains
     !!             Orientation normal vector for iWhich = INFLUENCE_W
     !!   (out)   complex :: cF(1:iNDP, 3)
     !!             The returned influence functions.  Indexes 1:iNDP relate
-    !!             to dipole indices iDP1:iDP1+iNDP-1, respectively.  Elements
+    !!             to the iNDP consecutive dipoles starting at pDP1%iIndex.  Elements
     !!             cF(:, 1), cF(:, 2), cF(:, 3) are the coefficients for the first
     !!             end, center and second end of the dipole, respectively.
     !!
@@ -334,7 +341,7 @@ contains
     !! using the first-order linesink function, instead of the dipole functions.
     !!
     !! Calling Sequence:
-    !!    call FDP_GetInfluence(io, fdp, iWhich, pDP1, iNDP, cPathZ, cOrientation, cF)
+    !!    call FDP_GetInfluence_ILS(io, fdp, iWhich, pDP1, iNDP, cPathZ, cOrientation, cF)
     !!
     !! Arguments:
     !!   (in)    type(FDP_COLLECTION), pointer :: fdp
@@ -342,7 +349,7 @@ contains
     !!   (in)    integer :: iWhich
     !!             The influence function to be computed;  iWhich values are
     !!                INFLUENCE_P   - Complex potential
-    !!                INFLUENCE_Q   - Complex discharge
+    !!                INFLUENCE_W   - Complex discharge
     !!                INFLUENCE_F   - Integrated flux
     !!                INFLUENCE_G   - Areal infiltration
     !!                INFLUENCE_Q   - Extraction rate
@@ -361,7 +368,7 @@ contains
     !!             Orientation normal vector for iWhich = INFLUENCE_W
     !!   (out)   complex :: cF(1:iNDP, 1)
     !!             The returned influence functions.  Indexes 1:iNDP relate
-    !!             to dipole indices iDP1:iDP1+iNDP-1, respectively.  The
+    !!             to the iNDP consecutive dipoles starting at pDP1%iIndex.  The
     !!             influence function is in terms of the sink density of the
     !!             linesink.
     !!

@@ -286,19 +286,19 @@ contains
 
 
   subroutine LS3_New(io, ls3, Vertices, iCount)
-    !! function LS3_New
+    !! subroutine LS3_New
     !!
     !! Adds a new LS3_STRING object to the LS3_COLLECTION 'ls3'
     !!
     !! Calling Sequence:
-    !!    call LS3_New(io, ls3, Vertices, iNPt)
+    !!    call LS3_New(io, ls3, Vertices, iCount)
     !!
     !! Arguments:
     !!    (in)    type(LS3_COLLECTION), pointer :: ls3
     !!              The LS3_COLLECTION object to be used
     !!    (in)    type(LS3_VERTEX) :: Vertices(:)
-    !!              Vector that defines the points along the barrier
-    !!    (in)    integer :: iNPt
+    !!              Vector that defines the points along the string
+    !!    (in)    integer :: iCount
     !!              The number of vertices in the string
     !!
     ! [ ARGUMENTS ]
@@ -1226,24 +1226,24 @@ contains
 
 
   subroutine LS3_SetIterator(io, ls3, aqu, itr, cValue, lLinearize)
-    !! function LS3_SetIterator
+    !! subroutine LS3_SetIterator
     !!
-    !! Advances the module's iterator one step
+    !! Stores the solved element strength at the iterator's current position
     !!
     !! Calling Sequence:
-    !!    call LS3_SetIterator(ls3)
+    !!    call LS3_SetIterator(io, ls3, aqu, itr, cValue, lLinearize)
     !!
     !! Arguments:
     !!   (in)    type(LS3_COLLECTION), pointer :: ls3
     !!             LS3_COLLECTION to be used
+    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
+    !!             AQU_COLLECTION providing aquifer properties
+    !!   (in)    type(ITERATOR_RESULT), pointer :: itr
+    !!             Identifies the element position to be updated
     !!   (in)    complex :: cValue
-    !!             The value retrieved from the color
-    !!   (in)    type(IO_STATUS), pointer :: ls3
-    !!             Tracks error conditions
-    !!
-    !! Return Value:
-    !!   type(ITERATOR_RESULT), pointer :: itr
-    !!     Pointer to the information for data retrieval
+    !!             The solved strength value to store
+    !!   (in)    logical :: lLinearize
+    !!             If .true., apply linearization when updating the strength
     !!
     ! [ ARGUMENTS ]
     type(LS3_COLLECTION), pointer :: ls3

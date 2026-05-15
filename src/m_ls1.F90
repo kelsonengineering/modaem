@@ -236,19 +236,19 @@ contains
 
 
   subroutine LS1_New(io, ls1, Vertices, iNPts)
-    !! function LS1_New
+    !! subroutine LS1_New
     !!
     !! Adds a new LS1_STRING object to the LS1_COLLECTION 'ls1'
     !!
     !! Calling Sequence:
-    !!    call LS1_New(io, ls1, Vertices, iNPt)
+    !!    call LS1_New(io, ls1, Vertices, iNPts)
     !!
     !! Arguments:
     !!    (in)    type(LS1_COLLECTION), pointer :: ls1
     !!              The LS1_COLLECTION object to be used
     !!    (in)    type(LS1_VERTEX) :: Vertices(:)
-    !!              Vector that defines the points along the barrier
-    !!    (in)    integer :: iNPt
+    !!              Vector that defines the points along the string
+    !!    (in)    integer :: iNPts
     !!              The number of vertices in the string
     !!
     ! [ ARGUMENTS ]
@@ -995,24 +995,22 @@ contains
 
 
   subroutine LS1_SetIterator(io, ls1, aqu, itr, cValue)
-    !! function LS1_SetIterator
+    !! subroutine LS1_SetIterator
     !!
-    !! Advances the module's iterator one step
+    !! Stores the solved element strength at the iterator's current position
     !!
     !! Calling Sequence:
-    !!    call LS1_SetIterator(ls1)
+    !!    call LS1_SetIterator(io, ls1, aqu, itr, cValue)
     !!
     !! Arguments:
     !!   (in)    type(LS1_COLLECTION), pointer :: ls1
     !!             LS1_COLLECTION to be used
+    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
+    !!             AQU_COLLECTION providing aquifer properties
     !!   (in)    type(ITERATOR_RESULT), pointer :: itr
+    !!             Identifies the element position to be updated
     !!   (in)    complex :: cValue
-    !!             The value retrieved from the color
-    !!   (in)    type(IO_STATUS), pointer :: ls1
-    !!             Tracks error conditions
-    !!     Pointer to the information for data retrieval
-    !!
-    !! Return Value:
+    !!             The solved strength value to store
     !!
     ! [ ARGUMENTS ]
     type(LS1_COLLECTION), pointer :: ls1

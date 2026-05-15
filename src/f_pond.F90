@@ -103,7 +103,7 @@ contains
 
 
   function FPD_Create(io, iMax) result(fpd)
-    !! subroutine FPD_Create
+    !! function FPD_Create
     !!
     !! Creates a new FPD_COLLECTION object
     !!
@@ -160,6 +160,11 @@ contains
     !!             The areal exfiltration rate of the pond
     !!   (in)    real :: rRadius
     !!             The radius of the pond
+    !!   (in)    integer :: iElementType, iElementString, iElementVertex, iElementFlag
+    !!             Element bookkeeping tags stored verbatim in the FPD_POND record
+    !!
+    !! Return value:
+    !!   Pointer to the new FPD_POND entry, or null if space is exhausted
     !!
     ! [ ARGUMENTS ]
     type(FPD_COLLECTION), pointer :: fpd
@@ -205,7 +210,7 @@ contains
     !!   (in)    integer :: iWhich
     !!             The influence function to be computed;  iWhich values are
     !!                INFLUENCE_P   - Complex potential
-    !!                INFLUENCE_Q   - Complex discharge
+    !!                INFLUENCE_W   - Complex discharge
     !!                INFLUENCE_F   - Integrated flux
     !!                INFLUENCE_G   - Areal infiltration
     !!                INFLUENCE_Q   - Extraction rate
@@ -224,7 +229,7 @@ contains
     !!             Orientation normal vector for iWhich = INFLUENCE_W
     !!   (out)   complex :: cF(1:iNPD, 3)
     !!             The returned influence functions.  Indexes 1:iNPD relate
-    !!             to pond indices iPD1:iPD1+iNPD-1, respectively.
+    !!             to the iNPD consecutive ponds starting at pPD1%iIndex.
     !!
     ! [ ARGUMENTS ]
     type(FPD_COLLECTION), pointer :: fpd

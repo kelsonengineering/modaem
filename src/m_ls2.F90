@@ -286,19 +286,19 @@ contains
 
 
   subroutine LS2_New(io, ls2, Vertices, iNPts)
-    !! function LS2_New
+    !! subroutine LS2_New
     !!
     !! Adds a new LS2_STRING object to the LS2_COLLECTION 'ls2'
     !!
     !! Calling Sequence:
-    !!    call LS2_New(io, ls2, Vertices, iNPt)
+    !!    call LS2_New(io, ls2, Vertices, iNPts)
     !!
     !! Arguments:
     !!    (in)    type(LS2_COLLECTION), pointer :: ls2
     !!              The LS2_COLLECTION object to be used
     !!    (in)    type(LS2_VERTEX) :: Vertices(:)
-    !!              Vector that defines the points along the barrier
-    !!    (in)    integer :: iNPt
+    !!              Vector that defines the points along the string
+    !!    (in)    integer :: iNPts
     !!              The number of vertices in the string
     !!
     ! [ ARGUMENTS ]
@@ -1226,24 +1226,24 @@ contains
 
 
   subroutine LS2_SetIterator(io, ls2, aqu, itr, cValue, lLinearize)
-    !! function LS2_SetIterator
+    !! subroutine LS2_SetIterator
     !!
-    !! Advances the module's iterator one step
+    !! Stores the solved element strength at the iterator's current position
     !!
     !! Calling Sequence:
-    !!    call LS2_SetIterator(ls2)
+    !!    call LS2_SetIterator(io, ls2, aqu, itr, cValue, lLinearize)
     !!
     !! Arguments:
     !!   (in)    type(LS2_COLLECTION), pointer :: ls2
     !!             LS2_COLLECTION to be used
+    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
+    !!             AQU_COLLECTION providing aquifer properties
+    !!   (in)    type(ITERATOR_RESULT), pointer :: itr
+    !!             Identifies the element position to be updated
     !!   (in)    complex :: cValue
-    !!             The value retrieved from the color
-    !!   (in)    type(IO_STATUS), pointer :: ls2
-    !!             Tracks error conditions
-    !!
-    !! Return Value:
-    !!   type(ITERATOR_RESULT), pointer :: itr
-    !!     Pointer to the information for data retrieval
+    !!             The solved strength value to store
+    !!   (in)    logical :: lLinearize
+    !!             If .true., apply linearization when updating the strength
     !!
     ! [ ARGUMENTS ]
     type(LS2_COLLECTION), pointer :: ls2
