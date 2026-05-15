@@ -548,24 +548,26 @@ contains
   end function rAEM_Extraction
 
 
-  function rAEM_HeadAtWell(io, aem, cZ, iFWLIndex, lNoCheck) result(rH)
-    !! function cAEM_DischargeAtWell
+  function rAEM_HeadAtWell(io, aem, cZ, pFWL, lNoCheck) result(rH)
+    !! function rAEM_HeadAtWell
     !!
-    !! Returns the discharge vector at cZ, excluding the well with index iFWLIndex
+    !! Returns the head at cZ, excluding the contribution of the well pointed to by pFWL
     !!
     !! Calling Sequence:
-    !!    cOmega = cAEM_Discharge(io, aem, cZ)
+    !!    rH = rAEM_HeadAtWell(io, aem, cZ, pFWL)
     !!
     !! Arguments:
     !!    (in)    type(AEM_DOMAIN), pointer :: aem
     !!              The AEM_DOMAIN object to be used
     !!    (in)    complex :: cZ
     !!              Complex coordinate in question
+    !!    (in)    type(FWL_WELL), pointer :: pFWL
+    !!              Pointer to the well to exclude
     !!
     ! [ ARGUMENTS ]
     type(AEM_DOMAIN), pointer :: aem
     complex(kind=AE_REAL), intent(in) :: cZ
-    integer(kind=AE_INT), intent(in) :: iFWLIndex
+    type(FWL_WELL), pointer :: pFWL
     type(IO_STATUS), pointer :: io
     logical, intent(in), optional :: lNoCheck
     ! [ RETURN VALUE ]
@@ -610,31 +612,33 @@ contains
 
     rH = rAQU_PotentialToHead(io, aem%aqu, &
                               real(cAEM_Potential(io, aem, cZArg) - &
-                                   cFWL_Potential(io, aem%fwl, cZArg, iFWLIndex, 1)), &
+                                   cFWL_Potential(io, aem%fwl, cZArg, pFWL%iIndex, 1)), &
                               cZArg)
 
     return
   end function rAEM_HeadAtWell
 
 
-  function cAEM_DischargeAtWell(io, aem, cZ, iFWLIndex, lNoCheck) result(cQ)
+  function cAEM_DischargeAtWell(io, aem, cZ, pFWL, lNoCheck) result(cQ)
     !! function cAEM_DischargeAtWell
     !!
-    !! Returns the discharge vector at cZ, excluding the well with index iFWLIndex
+    !! Returns the discharge vector at cZ, excluding the contribution of the well pointed to by pFWL
     !!
     !! Calling Sequence:
-    !!    cOmega = cAEM_Discharge(io, aem, cZ)
+    !!    cQ = cAEM_DischargeAtWell(io, aem, cZ, pFWL)
     !!
     !! Arguments:
     !!    (in)    type(AEM_DOMAIN), pointer :: aem
     !!              The AEM_DOMAIN object to be used
     !!    (in)    complex :: cZ
     !!              Complex coordinate in question
+    !!    (in)    type(FWL_WELL), pointer :: pFWL
+    !!              Pointer to the well to exclude
     !!
     ! [ ARGUMENTS ]
     type(AEM_DOMAIN), pointer :: aem
     complex(kind=AE_REAL), intent(in) :: cZ
-    integer(kind=AE_INT), intent(in) :: iFWLIndex
+    type(FWL_WELL), pointer :: pFWL
     type(IO_STATUS), pointer :: io
     logical, intent(in), optional :: lNoCheck
     ! [ RETURN VALUE ]
@@ -678,7 +682,7 @@ contains
     end if
 
     cQ = cAEM_Discharge(io, aem, cZArg) - &
-         cFWL_Discharge(io, aem%fwl, cZArg, iFWLIndex, 1)
+         cFWL_Discharge(io, aem%fwl, cZArg, pFWL%iIndex, 1)
 
     return
   end function cAEM_DischargeAtWell
@@ -1597,7 +1601,7 @@ contains
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
 
-    ! Aquifer module
+    ! Inhomogeneities module
     call AQU_Update(io, aem%aqu, aem%fdp)
     ! LS1 module
     call LS1_Update(io, aem%ls1, aem%fwl, aem%fdp)

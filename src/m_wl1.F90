@@ -61,8 +61,8 @@ module m_wl1
     !!     The correction on the head as computed by another module(for derived packages)
     !!   integer :: iID
     !!     Identification label for the well(for interaction with e.g. GUIs)
-    !!   integer :: iFWLIndex
-    !!     Index for the well entry in the FWL module
+    !!   type(FWL_WELL), pointer :: pFWL
+    !!     Pointer to the well entry in the FWL module
     !!   real :: rStrength
     !!     Computed strength of the element    !!
     complex(kind=AE_REAL) :: cZ
@@ -71,7 +71,7 @@ module m_wl1
     real(kind=AE_REAL) :: rHead
     real(kind=AE_REAL) :: rHeadCorrection
     integer(kind=AE_INT) :: iID
-    integer(kind=AE_INT) :: iFWLIndex
+    type(FWL_WELL), pointer :: pFWL
     real(kind=AE_REAL) :: rStrength
     real(kind=AE_REAL) :: rCheckPot
     real(kind=AE_REAL) :: rDFHead
@@ -360,7 +360,7 @@ contains
     type(AQU_COLLECTION), pointer :: aqu
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: i, iWel, iWL
+    integer(kind=AE_INT) :: i, iWel
     real(kind=AE_REAL) :: rStrength, rDisch, rHead1, rHead2, rHead
     complex(kind=AE_REAL) :: cRho1, cRho2, cRho3
     complex(kind=AE_REAL), dimension(3) :: cCPResult
@@ -376,8 +376,7 @@ contains
     do iWel = 1, wl1%iCount
       wel => wl1%Wells(iWel)
 
-      call FWL_New(io, fwl, wel%cZ, rZERO, wel%rRadius, ELEM_WL1, iWel, -1, -1, iWL)
-      wel%iFWLIndex = iWL
+      call FWL_New(io, fwl, wel%cZ, rZERO, wel%rRadius, ELEM_WL1, iWel, -1, -1, wel%pFWL)
       if (wel%lPpWell) then
         wel%bwl => BWL_New(io, wel%cZ, wel%rRadius, wel%rScrBot, wel%rScrTop, &
                            rAQU_Base(io, aqu, wel%cZ), &
@@ -581,7 +580,7 @@ contains
       rARow = rZERO
       ! ASSUMES that WL1_Setup routine created consecutive well entries
       wel => wl1%Wells(1)
-      iWL1 = wel%iFWLIndex
+      iWL1 = wel%pFWL%iIndex
       iNWL = wl1%iCount
       allocate(cWLF(1:iNWL, 1, 1), cWLW(1:iNWL, 1, 1), stat = iStat)
       call IO_Assert(io, (iStat == 0), "WL1_ComputeCoefficients: Allocation failed")
@@ -772,7 +771,7 @@ contains
 
     do iWell = 1, wl1%iCount
       wel => wl1%Wells(iWell)
-      call FWL_Update(io, fwl, wel%iFWLIndex, wel%rStrength)
+      wel%pFWL%rDischarge = wel%rStrength
     end do
 
     return
@@ -974,7 +973,7 @@ contains
           wel%rHeadCorrection = rZERO
           wel%iID = iID
           ! No FWL is declared here; see WL1_Setup
-          wel%iFWLIndex = -1
+          nullify(wel%pFWL)
           wel%rStrength = rZERO
         case (kOpPPW)
           ! Partially-penetrating well info follows
@@ -1112,7 +1111,7 @@ contains
           pp_head = rHUGE
         end if
         call HTML_StartRow()
-        call HTML_ColumnInteger((/i, wel%iID, wel%iFWLIndex/))
+        call HTML_ColumnInteger((/i, wel%iID, wel%pFWL%iIndex/))
         call HTML_ColumnComplex((/cIO_WorldCoords(io, wel%cZ)/))
         call HTML_ColumnReal((/wel%rHead, wel%rRadius, wel%rStrength, wel%rDFHead, pp_wtbl, pp_head, wel%rError/))
         call HTML_EndRow()

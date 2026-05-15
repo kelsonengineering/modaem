@@ -79,6 +79,7 @@ module f_well
     integer(kind=AE_INT) :: iElementString
     integer(kind=AE_INT) :: iElementVertex
     integer(kind=AE_INT) :: iElementFlag
+    integer(kind=AE_INT) :: iIndex
   end type FWL_WELL
 
 
@@ -163,23 +164,22 @@ contains
     ! Now, allocate space for the specified layer and initialize
     allocate(fwl%Wells(iMax), stat = iStat)
     call IO_Assert(io, (iStat == 0), "FWL_Alloc: Allocation failed")
-    fwl%Wells = FWL_WELL(cZERO, rZERO, rZERO, -1, -1, -1, -1)
+    fwl%Wells = FWL_WELL(cZERO, rZERO, rZERO, -1, -1, -1, -1, -1)
     fwl%iCount = 0
 
     return
   end subroutine FWL_Alloc
 
 
-  subroutine FWL_New(io, fwl, cZc, rDischarge, rRadius, iElementType, iElementString, iElementVertex, iElementFlag, iRV)
+  subroutine FWL_New(io, fwl, cZc, rDischarge, rRadius, iElementType, iElementString, iElementVertex, iElementFlag, pRV)
     !! subroutine FWL_New
     !!
     !! Makes a new well entry. On call, the geometry and discharge of
     !! the well are provided. The internal well structures are then
-    !! set up. Returns iRV = the index into the well table on success or
-    !! iRV < 0 on failure.
+    !! set up. Returns pRV pointing to the new FWL_WELL on success.
     !!
     !! Calling Sequence:
-    !!    call FWL_New(io, fwl, cZC, rDischarge, iRV)
+    !!    call FWL_New(io, fwl, cZC, rDischarge, pRV)
     !!
     !! Arguments:
     !!   (in)    type(FWL_COLLECTION), pointer :: fwl
@@ -188,8 +188,8 @@ contains
     !!             Complex coordinates of the center of the well
     !!   (in)    real :: rDischarge
     !!             The discharge of the well
-    !!   (out)   integer :: iRV
-    !!             On success, the index in fwl%Wells used
+    !!   (out)   type(FWL_WELL), pointer :: pRV
+    !!             On success, points to the new FWL_WELL entry
     !!
     !! Note: On failure, forces a fatal error
     !!
@@ -202,7 +202,7 @@ contains
     integer(kind=AE_INT), intent(in) :: iElementString
     integer(kind=AE_INT), intent(in) :: iElementVertex
     integer(kind=AE_INT), intent(in) :: iElementFlag
-    integer(kind=AE_INT), intent(out) :: iRV
+    type(FWL_WELL), pointer, intent(out) :: pRV
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
     type(FWL_WELL), pointer :: wel
@@ -218,48 +218,11 @@ contains
 
     fwl%iCount = fwl%iCount + 1
     wel => fwl%Wells(fwl%iCount)
-    wel = FWL_WELL(cZc, rRadius, rDischarge, iElementType, iElementString, iElementVertex, iElementFlag)
-    iRV = fwl%iCount
+    wel = FWL_WELL(cZc, rRadius, rDischarge, iElementType, iElementString, iElementVertex, iElementFlag, fwl%iCount)
+    pRV => wel
 
     return
   end subroutine FWL_New
-
-
-  subroutine FWL_Update(io, fwl, iWL, rDischarge)
-    !! subroutine FWL_Update
-    !!
-    !! Updates the discharge for a well entry.
-    !!
-    !! Calling Sequence:
-    !!    call FWL_Update(io, fwl, iWL, rDischarge)
-    !!
-    !! Arguments:
-    !!   (in)    type(FWL_COLLECTION), fwl
-    !!             The FWL_COLLECTION object to be used
-    !!   (in)    integer :: iWL
-    !!             The index for the well in fwl
-    !!   (in)    real :: rDischarge
-    !!             The discharge of the well
-    !!
-    ! [ ARGUMENTS ]
-    type(FWL_COLLECTION), pointer :: fwl
-    integer(kind=AE_INT), intent(in) :: iWL
-    real(kind=AE_REAL), intent(in) :: rDischarge
-    type(IO_STATUS), pointer :: io
-    ! [ LOCALS ]
-    type(FWL_WELL), pointer :: wel
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(fwl)), "FWL_Update: FWL_Create has not been called")
-      call IO_Assert(io, (associated(fwl%Wells)), "FWL_Update: FWL_Alloc has not been called")
-      call IO_Assert(io, (iWL <= size(fwl%Wells)), "FWL_Update: Space exhausted")
-    end if
-
-    wel => fwl%Wells(iWL)
-    wel%rDischarge = rDischarge
-
-    return
-  end subroutine FWL_Update
 
 
   subroutine FWL_GetInfluence(io, fwl, iWhich, iWL1, iNWL, cPathZ, cOrientation, cF)

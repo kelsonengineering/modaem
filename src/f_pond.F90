@@ -79,6 +79,7 @@ module f_pond
     integer(kind=AE_INT) :: iElementString
     integer(kind=AE_INT) :: iElementVertex
     integer(kind=AE_INT) :: iElementFlag
+    integer(kind=AE_INT) :: iIndex
   end type FPD_POND
 
 
@@ -133,22 +134,21 @@ contains
     allocate(fpd%Ponds(iMax), stat = iStat)
     call IO_Assert(io, (iStat == 0), "FPD_Create: allocation failed")
     fpd%iCount = 0
-    fpd%Ponds = FPD_POND(cZERO, rZERO, rZERO, -1, -1, -1, -1)
+    fpd%Ponds = FPD_POND(cZERO, rZERO, rZERO, -1, -1, -1, -1, -1)
 
     return
   end function FPD_Create
 
 
-  subroutine FPD_New(io, fpd, cZc, rGamma, rRadius, iElementType, iElementString, iElementVertex, iElementFlag, iRV)
+  subroutine FPD_New(io, fpd, cZc, rGamma, rRadius, iElementType, iElementString, iElementVertex, iElementFlag, pRV)
     !! subroutine FPD_New
     !!
     !! Makes a new pond entry. On call, the geometry and discharge of
     !! the pond are provided. The internal pond structures are then
-    !! set up. Returns iRV = the index into the pond table on success or
-    !! iRV < 0 on failure.
+    !! set up. Returns pRV pointing to the new FPD_POND on success.
     !!
     !! Calling Sequence:
-    !!    call FPD_New(io, FPD, cZC, rGamma, rRadius, iRV)
+    !!    call FPD_New(io, FPD, cZC, rGamma, rRadius, pRV)
     !!
     !! Arguments:
     !!   (in)    type(FPD_COLLECTION), pointer :: fpd
@@ -159,8 +159,8 @@ contains
     !!             The areal exfiltration rate of the pond
     !!   (in)    real :: rRadius
     !!             The radius of the pond
-    !!   (out)   integer :: iRV
-    !!             The allocated pond index on success
+    !!   (out)   type(FPD_POND), pointer :: pRV
+    !!             On success, points to the new FPD_POND entry
     !!
     ! [ ARGUMENTS ]
     type(FPD_COLLECTION), pointer :: fpd
@@ -171,7 +171,7 @@ contains
     integer(kind=AE_INT), intent(in) :: iElementString
     integer(kind=AE_INT), intent(in) :: iElementVertex
     integer(kind=AE_INT), intent(in) :: iElementFlag
-    integer(kind=AE_INT), intent(out) :: iRV
+    type(FPD_POND), pointer, intent(out) :: pRV
     type(IO_STATUS), pointer :: io
 
     ! [ LOCALS ]
@@ -185,49 +185,11 @@ contains
 
     fpd%iCount = fpd%iCount + 1
     pnd => fpd%Ponds(fpd%iCount)
-    pnd = FPD_POND(cZc, rRadius, rGamma, iElementType, iElementString, iElementVertex, iElementFlag)
-    iRV = fpd%iCount
+    pnd = FPD_POND(cZc, rRadius, rGamma, iElementType, iElementString, iElementVertex, iElementFlag, fpd%iCount)
+    pRV => pnd
 
     return
   end subroutine FPD_New
-
-
-  subroutine FPD_Update(io, fpd, iPD, rGamma)
-    !! subroutine FPD_Update
-    !!
-    !! Updates the discharge for a pond entry.
-    !!
-    !! Calling Sequence:
-    !!    call FPD_Update(io, fpd, iPD, rGamma)
-    !!
-    !! Arguments:
-    !!   (in)    type(FPD_COLLECTION), pointer :: fpd
-    !!             The FPD_COLLECTION object to be used
-    !!   (in)    integer :: iPD
-    !!             The index for the pond in fpd
-    !!   (in)    real :: rGamma
-    !!             The new areal exfiltration rate of the pond
-    !!
-    ! [ ARGUMENTS ]
-    type(FPD_COLLECTION), pointer :: fpd
-    integer(kind=AE_INT), intent(in) :: iPD
-    real(kind=AE_REAL), intent(in) :: rGamma
-    type(IO_STATUS), pointer :: io
-
-    ! [ LOCALS ]
-    type(FPD_POND), pointer :: pnd
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(fpd)), "FPD_Update: FPD_Create has not been called")
-      call IO_Assert(io, (associated(fpd%Ponds)), "FPD_Update: FPD_Alloc has not been called")
-      call IO_Assert(io, (iPD < size(fpd%Ponds)), "FPD_Update: Space exhausted")
-    end if
-
-    pnd => fpd%Ponds(iPD)
-    pnd%rGamma = rGamma
-
-    return
-  end subroutine FPD_Update
 
 
   subroutine FPD_GetInfluence(io, fpd, iWhich, iPD1, iNPD, cPathZ, cOrientation, cF)

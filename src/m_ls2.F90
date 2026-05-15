@@ -72,8 +72,8 @@ module m_ls2
     !!     The dipole strength at the vertex
     !!   real :: rLength
     !!     The segment length
-    !!   integer :: iFDPIndex
-    !!     Index for the vertex entry in the FDP module. Note: set to -1 for the
+    !!   type(FDP_DIPOLE), pointer :: pFDP
+    !!     Pointer to the vertex entry in the FDP module. Note: nullified for the
     !!     last vertex of the string; an element is considered to extend from vertex
     !!     'i' to vertex 'i+1'.
     !!
@@ -86,7 +86,7 @@ module m_ls2
     real(kind=AE_REAL) :: rDPStrength
     real(kind=AE_REAL) :: rStrength
     real(kind=AE_REAL) :: rLength
-    integer(kind=AE_INT) :: iFDPIndex
+    type(FDP_DIPOLE), pointer :: pFDP
     complex(kind=AE_REAL), dimension(1) :: cCPZ
     real(kind=AE_REAL) :: rCPDepth
     logical :: lEnabled
@@ -112,8 +112,8 @@ module m_ls2
     !!     A vector of LS2_VERTEX objects
     !!   integer :: iNPts
     !!     The number of vertices actually in use
-    !!   integer :: iFWLIndex
-    !!     Index for the string entry in the FWL module. The well extracts the
+    !!   type(FWL_WELL), pointer :: pFWL
+    !!     Pointer to the string entry in the FWL module. The well extracts the
     !!     total extraction rate for the string.
     !!   integer :: iID
     !!     The ID number for the string
@@ -133,7 +133,7 @@ module m_ls2
     ! INPUT DATA
     type(LS2_VERTEX), dimension(:), pointer :: Vertices
     integer(kind=AE_INT) :: iNPts
-    integer(kind=AE_INT) :: iFWLIndex
+    type(FWL_WELL), pointer :: pFWL
     integer(kind=AE_INT) :: iID
     real(kind=AE_REAL) :: rConductance
     integer(kind=AE_INT) :: iMode
@@ -500,7 +500,7 @@ contains
     type(FDP_COLLECTION), pointer :: fdp
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iStr, iStr2, iVtx, i, iDP, iWL, iUpstreamCount, iStat
+    integer(kind=AE_INT) :: iStr, iStr2, iVtx, i, iDP, iUpstreamCount, iStat
     real(kind=AE_REAL) :: rStrength, rDisch, rHead1, rHead2, rHead
     complex(kind=AE_REAL) :: cRho1, cRho2, cRho3
     complex(kind=AE_REAL), dimension(3) :: cCPResult
@@ -524,13 +524,12 @@ contains
         this_vtx => str%Vertices(iVtx)
         next_vtx => str%Vertices(iVtx+1)
         this_vtx%rLength = abs(next_vtx%cZ - this_vtx%cZ)
-        call FDP_New(io, fdp, this_vtx%cZ, next_vtx%cZ, (/cZERO, cZERO, cZERO/), ELEM_LS2, iStr, iVtx, -1, this_vtx%iFDPIndex)
+        call FDP_New(io, fdp, this_vtx%cZ, next_vtx%cZ, (/cZERO, cZERO, cZERO/), ELEM_LS2, iStr, iVtx, -1, this_vtx%pFDP)
       end do
 
       ! Put a well at the end of the string
       last_vtx => str%Vertices(str%iNPts)
-      call FWL_New(io, fwl, last_vtx%cZ, rZERO, rZERO, ELEM_LS2, iStr, -1, -1, iWL)
-      str%iFWLIndex = iWL
+      call FWL_New(io, fwl, last_vtx%cZ, rZERO, rZERO, ELEM_LS2, iStr, -1, -1, str%pFWL)
     end do
 
     return
@@ -834,7 +833,7 @@ contains
       str => ls2%Strings(iStr)
       first_vtx => str%Vertices(1)
       ! ASSUMES that LS2_Setup routine created consecutive dipole entries
-      iDP1 = first_vtx%iFDPIndex
+      iDP1 = first_vtx%pFDP%iIndex
       iNDP = str%iNPts-1
       allocate(cDPF(0:iNDP, 1, 1), cDPW(0:iNDP, 1, 1), stat = iStat)
       call IO_Assert(io, (iStat == 0), "LS2_ComputeCoefficients: Allocation failed")
@@ -1085,10 +1084,10 @@ contains
         cRho1 = cmplx(this_vtx%rDPStrength, rZERO, AE_REAL)
         cRho3 = cmplx(next_vtx%rDPStrength, rZERO, AE_REAL)
         cRho2 = rHALF * (cRho1 + cRho3)
-        call FDP_Update(io, fdp, this_vtx%iFDPIndex, (/cRho1, cRho2, cRho3/))
+        this_vtx%pFDP%cRho = (/cRho1, cRho2, cRho3/)
       end do
       ! Put a well at the end of the string
-      call FWL_Update(io, fwl, str%iFWLIndex, real(cRho3))
+      str%pFWL%rDischarge = real(cRho3)
     end do
 
     return
@@ -1590,7 +1589,7 @@ contains
           if (str%iNPts > 1) then
             last_vtx%rLength = abs(this_vtx%cZ - last_vtx%cZ)
           end if
-          this_vtx%iFDPIndex = -1
+          nullify(this_vtx%pFDP)
           this_vtx%rBaseFlow = rZERO
           this_vtx%rOverlandFlow = rZERO
           this_vtx%rStreamFlow = rZERO
@@ -1618,7 +1617,7 @@ contains
           str => ls2%Strings(ls2%iNStr)
           allocate(str%Vertices(iMaxVtx), stat = iStat)
           call IO_Assert(io, (iStat == 0), "LS2_Read: Allocation failed")
-          str%iFWLIndex = -1
+          nullify(str%pFWL)
           str%iID = iID
           str%iNPts = 0
           str%iMode = iMode
@@ -1759,7 +1758,7 @@ contains
         call HTML_StartTable()
         call HTML_AttrInteger('String number', iStr)
         call HTML_AttrInteger('ID', str%iID)
-        call HTML_AttrInteger('FWL index', str%iFWLIndex)
+        call HTML_AttrInteger('FWL index', str%pFWL%iIndex)
         call HTML_AttrReal('Conductance', str%rConductance)
         call HTML_AttrInteger('Mode', str%iMode)
         call HTML_EndTable()
@@ -1773,7 +1772,7 @@ contains
         do iVtx = 1, str%iNPts-1
           vtx => str%Vertices(iVtx)
           call HTML_StartRow()
-          call HTML_ColumnInteger((/iVtx, vtx%iFDPIndex/))
+          call HTML_ColumnInteger((/iVtx, vtx%pFDP%iIndex/))
           call HTML_ColumnComplex((/cIO_WorldCoords(io, vtx%cZ)/))
           call HTML_ColumnReal((/vtx%rLength, vtx%rCPHead, str%rConductance, vtx%rCPDepth, &
           	   vtx%rStrength, rAQU_PotentialToHead(io, aqu, vtx%rCheckPot, vtx%cCPZ(1))/))

@@ -69,8 +69,8 @@ module m_as0
     !!     The exfiltration rate
     !!   integer :: iNPts
     !!     The number of vertices actually in use
-    !!   integer :: iFWLIndex
-    !!     Index for the string entry in the FWL module. The well extracts the
+    !!   type(FWL_WELL), pointer :: pFWL
+    !!     Pointer to the string entry in the FWL module. The well extracts the
     !!     total extraction rate for the string.
     !!   integer :: iID
     !!     The ID number for the string
@@ -80,7 +80,7 @@ module m_as0
     real(kind=AE_REAL) :: rArea
     real(kind=AE_REAL) :: rN
     integer(kind=AE_INT) :: iNPts
-    integer(kind=AE_INT) :: iFWLIndex
+    type(FWL_WELL), pointer :: pFWL
     integer(kind=AE_INT) :: iID
     ! Active area of the area sink
     real(kind=AE_REAL) :: rActiveArea
@@ -444,7 +444,7 @@ contains
       end do
 
       ! Put a well at the end of the string
-      call FWL_New(io, fwl, cZ0, real(cRho3), rZERO, ELEM_AS0, iStr, -1, -1, str%iFWLIndex)
+      call FWL_New(io, fwl, cZ0, real(cRho3), rZERO, ELEM_AS0, iStr, -1, -1, str%pFWL)
 
     end do
 
@@ -581,7 +581,7 @@ contains
           allocate(str%poly(iMaxVtx), stat = iStat)
           call IO_Assert(io, (iStat == 0), "AS0_Read: Allocation failed")
           ! Made it!
-          str%iFWLIndex = -1         ! No FWL function yet!
+          nullify(str%pFWL)          ! No FWL function yet!
           str%rN = rN
           str%iID = iID
           str%iNPts = 0      ! Initialize the vertex counter

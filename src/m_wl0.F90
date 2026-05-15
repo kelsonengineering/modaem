@@ -68,7 +68,7 @@ module m_wl0
     real(kind=AE_REAL) :: rRadius
     real(kind=AE_REAL) :: rCheckHead
     integer(kind=AE_INT) :: iID
-    integer(kind=AE_INT) :: iFWLIndex
+    type(FWL_WELL), pointer :: pFWL
     real(kind=AE_REAL) :: rUnstressedHead
     real(kind=AE_REAL) :: rEfficiency
     logical :: lAdjustDischarge
@@ -363,7 +363,7 @@ contains
     do iWel = 1, wl0%iCount
       ! Create a well function in FWL for each well
       wel => wl0%Wells(iWel)
-      call FWL_New(io, fwl, wel%cZ, wel%rDischarge, wel%rRadius, ELEM_WL0, iWel, -1, -1, wel%iFWLIndex)
+      call FWL_New(io, fwl, wel%cZ, wel%rDischarge, wel%rRadius, ELEM_WL0, iWel, -1, -1, wel%pFWL)
       if (wel%lPpWell) then
         wel%bwl => BWL_New(io, wel%cZ, wel%rRadius, wel%rScrBot, wel%rScrTop, &
                            rAQU_Base(io, aqu, wel%cZ), &
@@ -408,7 +408,7 @@ contains
 
     do iWell = 1, wl0%iCount
       wel => wl0%Wells(iWell)
-      call FWL_Update(io, fwl, wel%iFWLIndex, wel%rDischarge)
+      wel%pFWL%rDischarge = wel%rDischarge
     end do
 
     return
@@ -524,7 +524,7 @@ contains
     return
   end function WL0_AdjustDischarges
 
-  subroutine WL0_FindWell(io, wl0, iWellID, cZWell, rDischarge, rRadius, iFWLIndex, lFound)
+  subroutine WL0_FindWell(io, wl0, iWellID, cZWell, rDischarge, rRadius, pFWL, lFound)
     !! subroutine WL0_FindWell
     !!
     !! Finds the well specified by the Well ID and returns its parameters
@@ -543,8 +543,8 @@ contains
     !!             The discharge of the well
     !!   (out)   real :: rRadius
     !!             The radius of the well
-    !!   (out)   integer :: iFWLIndex
-    !!             Index of the well in f_well
+    !!   (out)   type(FWL_WELL), pointer :: pFWL
+    !!             Pointer to the well entry in f_well
     !!   (out)   logical :: lFound
     !!             .true. if the well was found
     !!             .false. if the well was not found
@@ -554,7 +554,7 @@ contains
     integer(kind=AE_INT), intent(in) :: iWellID
     complex(kind=AE_REAL), intent(out) :: cZWell
     real(kind=AE_REAL), intent(out) :: rRadius, rDischarge
-    integer(kind=AE_INT), intent(out) :: iFWLIndex
+    type(FWL_WELL), pointer :: pFWL
     logical :: lFound
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
@@ -574,7 +574,7 @@ contains
         cZWell = wel%cZ
         rDischarge = wel%rDischarge
         rRadius = wel%rRadius
-        iFWLIndex = wel%iFWLIndex
+        pFWL => wel%pFWL
       end if
     end do
 
@@ -742,7 +742,7 @@ contains
     ! If we're not currently in a drawdown simulation, the "desired head option" needs an estimate
     ! of the drawdown for estimation purposes
     if (.not. (wel%lDdn .and. wl0%lDdnEnabled)) then
-      cPotWithoutWell = cValue - cFWL_Potential(io, fwl, wel%cZ+wel%rRadius, wel%iFWLIndex, 1)
+      cPotWithoutWell = cValue - cFWL_Potential(io, fwl, wel%cZ+wel%rRadius, wel%pFWL%iIndex, 1)
       wel%rUnstressedHead = rAQU_PotentialToHead(io, aqu, real(cPotWithoutWell), wel%cZ)
     end if
 
@@ -853,7 +853,7 @@ contains
           wel%lAdjustDischarge = .false.
           wel%lDdn = .false.
           ! No FWL is declared here; see WL0_Setup
-          wel%iFWLIndex = -1
+          nullify(wel%pFWL)
         case (kOpPPW)
           ! Partially-penetrating well info follows
           call IO_Assert(io, (wl0%iCount>0), "No current well to modify")
@@ -1015,7 +1015,7 @@ contains
         end if
 
         call HTML_StartRow()
-        call HTML_ColumnInteger((/i, wel%iID, wel%iFWLIndex/))
+        call HTML_ColumnInteger((/i, wel%iID, wel%pFWL%iIndex/))
         call HTML_ColumnComplex((/cIO_WorldCoords(io, wel%cZ)/))
         call HTML_ColumnReal((/ wel%rDischarge, wel%rRadius, wel%rCheckHead, wel%rUnstressedHead, &
                                 wt_head, scr_head, rDdn /))

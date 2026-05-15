@@ -61,14 +61,14 @@ module m_ls0
     !!     The complex coordinate of the vertex
     !!   real :: rSigma
     !!     The sink density at the vertex
-    !!   integer :: iFDPIndex
-    !!     Index for the vertex entry in the FDP module. Note: set to -1 for the
+    !!   type(FDP_DIPOLE), pointer :: pFDP
+    !!     Pointer to the vertex entry in the FDP module. Note: nullified for the
     !!     last vertex of the string; an element is considered to extend from vertex
     !!     'i' to vertex 'i+1'.
     !!
     complex(kind=AE_REAL) :: cZ
     real(kind=AE_REAL) :: rSigma
-    integer(kind=AE_INT) :: iFDPIndex
+    type(FDP_DIPOLE), pointer :: pFDP
     real(kind=AE_REAL) :: rCheckHead
   end type LS0_VERTEX
 
@@ -82,15 +82,15 @@ module m_ls0
     !!     A vector of LS0_VERTEX objects
     !!   integer :: iNPts
     !!     The number of vertices actually in use
-    !!   integer :: iFWLIndex
-    !!     Index for the string entry in the FWL module. The well extracts the
+    !!   type(FWL_WELL), pointer :: pFWL
+    !!     Pointer to the string entry in the FWL module. The well extracts the
     !!     total extraction rate for the string.
     !!   integer :: iID
     !!     The ID number for the string
     !!
     type(LS0_VERTEX), dimension(:), pointer :: Vertices
     integer(kind=AE_INT) :: iNPts
-    integer(kind=AE_INT) :: iFWLIndex
+    type(FWL_WELL), pointer :: pFWL
     integer(kind=AE_INT) :: iID
   end type LS0_STRING
 
@@ -412,14 +412,14 @@ contains
         rDisch = rSigma*abs(cZ2-cZ1)
         cRho3 = cRho1 + rDisch
         cRho2 = rHALF*(cRho1+cRho3)
-        call FDP_New(io, fdp, cZ1, cZ2, (/cRho1, cRho2, cRho3/), ELEM_LS0, iStr, iVtx, -1, this_vtx%iFDPIndex)
+        call FDP_New(io, fdp, cZ1, cZ2, (/cRho1, cRho2, cRho3/), ELEM_LS0, iStr, iVtx, -1, this_vtx%pFDP)
         cRho1 = cRho3                               ! Move on to the next one with this Rho value
       end do
 
       ! Put a well at the end of the string
       last_vtx => str%Vertices(str%iNPts)
       cZ1 = last_vtx%cZ
-      call FWL_New(io, fwl, cZ1, real(cRho3), rZERO, ELEM_LS0, iStr, -1, -1, str%iFWLIndex)
+      call FWL_New(io, fwl, cZ1, real(cRho3), rZERO, ELEM_LS0, iStr, -1, -1, str%pFWL)
     end do
 
     return
@@ -673,7 +673,7 @@ contains
             prev => str%Vertices(str%iNPts-1)
             prev%rSigma = rIO_LocalLength(io, rSigma, vtx%cZ-prev%cZ)
           end if
-          vtx%iFDPIndex = -1
+          nullify(vtx%pFDP)
         case (kOpEND)
           ! EOD mark was found. Exit the file parser.
           exit
@@ -693,7 +693,7 @@ contains
           allocate(str%Vertices(iMaxVtx), stat = iStat)
           call IO_Assert(io, (iStat == 0), "LS0_Read: Allocation failed")
           ! Made it!
-          str%iFWLIndex = -1         ! No FWL function yet!
+          nullify(str%pFWL)          ! No FWL function yet!
           str%iID = iID
           write (unit=IO_MessageBuffer, &
                  fmt="("" LS0_Read: "", i6, "" vertices allocated"")" &
@@ -808,7 +808,7 @@ contains
         call HTML_StartTable()
         call HTML_AttrInteger('String number', iStr)
         call HTML_AttrInteger('ID', str%iID)
-        call HTML_AttrInteger('FWL index', str%iFWLIndex)
+        call HTML_AttrInteger('FWL index', str%pFWL%iIndex)
         call HTML_EndTable()
 
         call HTML_Header('Vertices', 4)
@@ -820,7 +820,7 @@ contains
           next => str%Vertices(iVtx+1)
           rSigma = rIO_WorldLength(io, vtx%rSigma, next%cZ-vtx%cZ)
           call HTML_StartRow()
-          call HTML_ColumnInteger((/iVtx, vtx%iFDPIndex/))
+          call HTML_ColumnInteger((/iVtx, vtx%pFDP%iIndex/))
           call HTML_ColumnComplex((/cIO_WorldCoords(io, vtx%cZ)/))
           call HTML_ColumnReal((/rSigma, vtx%rCheckHead/))
           call HTML_EndRow()

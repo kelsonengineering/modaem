@@ -67,13 +67,13 @@ module m_in0
     !!     The doublet strength at the vertex
     !!   real :: rStrength(1)
     !!     The doublet strength at the center of the next segment
-    !!   integer :: iFDPIndex
-    !!     Index for the vertex entry in the FDP module. Note: set to -1 for the
+    !!   type(FDP_DIPOLE), pointer :: pFDP
+    !!     Pointer to the vertex entry in the FDP module. Note: set to NULL for the
     !!     last vertex of the string; an element is considered to extend from vertex
     !!     'i' to vertex 'i+1'.
     !!
     complex(kind=AE_REAL) :: cZ
-    integer(kind=AE_INT) :: iFDPIndex
+    type(FDP_DIPOLE), pointer :: pFDP
     real(kind=AE_REAL), dimension(3) :: rStrength
     real(kind=AE_REAL), dimension(3) :: rCheckPot
     real(kind=AE_REAL), dimension(3) :: rLeftH
@@ -282,7 +282,7 @@ contains
     !!    (in)    real :: rBase
     !!              Base elevation
     !!    (in)    real :: rThickness
-    !!              Aquifer thickness
+    !!              Inhomogeneities thickness
     !!    (in)    real :: rHydCond
     !!              Hydraulic conductivity
     !!    (in)    real :: rPorosity
@@ -432,7 +432,7 @@ contains
           vtx%cZ = dom%cZ(iVtx)
           vtx%rStrength = rZERO
           vtx%rCheckPot = rZERO
-          vtx%iFDPIndex = -1
+          nullify(vtx%pFDP)
         end do
         str%iLeftID = dom%iInsideDomain
         str%iRightID = dom%iOutsideDomain
@@ -622,11 +622,11 @@ contains
         cZ1 = vtx%cZ
         if (iVtx < str%iNPts) then
           cZ2 = str%Vertices(iVtx+1)%cZ
-          call FDP_New(io, fdp, cZ1, cZ2, (/cZERO, cZERO, cZERO/), ELEM_IN0, iStr, iVtx, -1, vtx%iFDPIndex)
+          call FDP_New(io, fdp, cZ1, cZ2, (/cZERO, cZERO, cZERO/), ELEM_IN0, iStr, iVtx, -1, vtx%pFDP)
         else
           if (str%lClosed) then
             cZ2 = str%Vertices(1)%cZ
-            call FDP_New(io, fdp, cZ1, cZ2, (/cZERO, cZERO, cZERO/), ELEM_IN0, iStr, iVtx, -1, vtx%iFDPIndex)
+            call FDP_New(io, fdp, cZ1, cZ2, (/cZERO, cZERO, cZERO/), ELEM_IN0, iStr, iVtx, -1, vtx%pFDP)
           end if
         end if
       end do
@@ -876,7 +876,7 @@ contains
     do iStr = 1, in0%iNStr
       str => in0%Strings(iStr)
       ! Assume: the IN0_Setup routine creates consecutive dipole entries
-      iDP1 = str%Vertices(1)%iFDPIndex
+      iDP1 = str%Vertices(1)%pFDP%iIndex
       if (str%lClosed) then
         iNDP = str%iNPts
       else
@@ -945,7 +945,7 @@ contains
             (iElementType == ELEM_IN0) .and. &
             (iElementString == iStr) .and. &
             (iElementVertex == iVtx)) then
-          iThisDP = str%Vertices(iVtx)%iFDPIndex
+          iThisDP = str%Vertices(iVtx)%pFDP%iIndex
           call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_J, iThisDP, 1, cPathZ(1:1), cOrientation, cDPJ)
           ! Vertex 1 contribution
           rARow(iBaseCol) = rARow(iBaseCol)   - this_vtx%rRightT(1)*aimag(cDPJ(1, 1, 1))
@@ -1051,7 +1051,7 @@ contains
              (str%rLeftB-str%rRightB + rHALF*(vtx%rLeftH(iElementFlag)-vtx%rRightH(iElementFlag)))
     else
       rRHS = - (vtx%rLeftT(iElementFlag) - vtx%rRightT(iElementFlag)) * vtx%rCheckPot(iElementFlag) - &
-             vtx%rRightT(iElementFlag) * rFDP_PotentialJump(io, fdp, vtx%cCPZ(iElementFlag), vtx%iFDPIndex) + &
+             vtx%rRightT(iElementFlag) * rFDP_PotentialJump(io, vtx%pFDP, vtx%cCPZ(iElementFlag)) + &
              vtx%rLeftT(iElementFlag) * vtx%rRightT(iElementFlag) * &
              (str%rLeftB-str%rRightB + rHALF*(vtx%rLeftH(iElementFlag)-vtx%rRightH(iElementFlag)))
     end if
@@ -1178,7 +1178,7 @@ contains
             next_vtx => str%Vertices(1)
           end if
           cRho3 = cmplx(rZERO, next_vtx%rStrength(1), AE_REAL)
-          call FDP_Update(io, fdp, this_vtx%iFDPIndex, (/cRho1, cRho2, cRho3/))
+          this_vtx%pFDP%cRho = (/cRho1, cRho2, cRho3/)
         end do
       else
         do iVtx = 1, str%iNPts-1
@@ -1191,7 +1191,7 @@ contains
           else
             cRho3 = cmplx(rZERO, this_vtx%rStrength(3), AE_REAL)
           end if
-          call FDP_Update(io, fdp, this_vtx%iFDPIndex, (/cRho1, cRho2, cRho3/))
+          this_vtx%pFDP%cRho = (/cRho1, cRho2, cRho3/)
         end do
       end if
     end do
@@ -1384,7 +1384,7 @@ contains
       end if
       vtx%rError(itr%iElementFlag) = - (vtx%rLeftT(itr%iElementFlag) - &
           vtx%rRightT(itr%iElementFlag)) * vtx%rCheckPot(itr%iElementFlag) - &
-          vtx%rRightT(itr%iElementFlag) * rFDP_PotentialJump(io, fdp, vtx%cCPZ(itr%iElementFlag), vtx%iFDPIndex) + &
+          vtx%rRightT(itr%iElementFlag) * rFDP_PotentialJump(io, vtx%pFDP, vtx%cCPZ(itr%iElementFlag)) + &
           vtx%rLeftT(itr%iElementFlag) * vtx%rRightT(itr%iElementFlag) * &
           (str%rLeftB-str%rRightB + rHALF*(vtx%rLeftH(itr%iElementFlag)-vtx%rRightH(itr%iElementFlag)))
     end if
@@ -1613,7 +1613,7 @@ contains
             vtx%cZ = cZERO
             vtx%rStrength = rZERO
             vtx%rCheckPot(:) = rZERO
-            vtx%iFDPIndex = -1
+            nullify(vtx%pFDP)
           end do
           iParseMode = PARSE_STRING
         case default
@@ -1725,7 +1725,7 @@ contains
           call HTML_StartRow()
           call HTML_ColumnInteger((/iVtx/))
           call HTML_ColumnComplex((/cIO_WorldCoords(io, vtx%cZ)/))
-          call HTML_ColumnInteger((/vtx%iFDPIndex/))
+          call HTML_ColumnInteger((/vtx%pFDP%iIndex/))
           call HTML_ColumnReal(vtx%rStrength(1:2), 'e13.6')
           call HTML_ColumnReal(rError, 'e13.6')
           call HTML_EndRow()

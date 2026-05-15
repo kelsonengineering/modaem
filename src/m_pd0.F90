@@ -57,14 +57,14 @@ module m_pd0
     !!     and negative indicates injection.
     !!   integer :: iID
     !!     Identification label for the pond(for interaction with e.g. GUIs)
-    !!   integer :: iFPDIndex
-    !!     Index for the pond entry in the FPD module
+    !!   type(FPD_POND), pointer :: pFPD
+    !!     Pointer to the pond entry in the FPD module
     !!
     complex(kind=AE_REAL) :: cZ
     real(kind=AE_REAL) :: rGamma
     real(kind=AE_REAL) :: rRadius
     integer(kind=AE_INT) :: iID
-    integer(kind=AE_INT) :: iFPDIndex
+    type(FPD_POND), pointer :: pFPD
   end type PD0_POND
 
   type :: PD0_COLLECTION
@@ -326,7 +326,7 @@ contains
     do i = 1, pd0%iCount
       ! Create a pond function in FPD for each pond
       pnd => pd0%Ponds(i)
-      call FPD_New(io, fpd, pnd%cZ, pnd%rGamma, pnd%rRadius, ELEM_PD0, i, -1, -1, pnd%iFPDIndex)
+      call FPD_New(io, fpd, pnd%cZ, pnd%rGamma, pnd%rRadius, ELEM_PD0, i, -1, -1, pnd%pFPD)
     end do
 
     return
@@ -471,7 +471,7 @@ contains
           pnd%rGamma = rGamma
           pnd%iID = iID
           ! No FPD is declared here; see PD0_Setup
-          pnd%iFPDIndex = -1
+          nullify(pnd%pFPD)
         case (kOpEND)
           ! EOD mark was found. Exit the file parser.
           exit
@@ -569,7 +569,7 @@ contains
       do i = 1, pd0%iCount
         pnd => pd0%Ponds(i)
         call HTML_StartRow()
-        call HTML_ColumnInteger((/i, pnd%iID, pnd%iFPDIndex/))
+        call HTML_ColumnInteger((/i, pnd%iID, pnd%pFPD%iIndex/))
         call HTML_ColumnComplex((/cIO_WorldCoords(io, pnd%cZ)/))
         call HTML_ColumnReal((/pnd%rGamma, pnd%rRadius/))
         call HTML_EndRow()

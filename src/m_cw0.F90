@@ -52,8 +52,8 @@ module m_cw0
     !!   real :: rSpecValue
     !!     The 'specified value' (potential difference between this vertex and the
     !!     next one) for this iteration
-    !!   integer :: iFDPIndex
-    !!     Index for the vertex entry in the FDP module. Note: set to -1 for the
+    !!   type(FDP_DIPOLE), pointer :: pFDP
+    !!     Pointer to the vertex entry in the FDP module. Note: set to NULL for the
     !!     last vertex of the string; an element is considered to extend from vertex
     !!     'i' to vertex 'i+1'.
     !!   real :: rCheck
@@ -66,7 +66,7 @@ module m_cw0
     real(kind=AE_REAL) :: rStrength
     real(kind=AE_REAL) :: rLength
     real(kind=AE_REAL) :: rSpecValue
-    integer(kind=AE_INT) :: iFDPIndex
+    type(FDP_DIPOLE), pointer :: pFDP
     real(kind=AE_REAL) :: rCheck
     real(kind=AE_REAL) :: rTransmissivity
     real(kind=AE_REAL) :: rResistanceTerm
@@ -82,15 +82,15 @@ module m_cw0
     !!     Complex coordinate of the end of the radial
     !!   type(CW0_VERTEX), dimension(:), pointer :: Vertices
     !!     A vector of CW0_VERTEX objects
-    !!   integer :: iFWLIndex
-    !!     Points to the FWL function associated with the(inner) end of the radial
+    !!   type(FWL_WELL), pointer :: pFWL
+    !!     Pointer to the FWL function associated with the(inner) end of the radial
     !!
     real(kind=AE_REAL) :: rResistance
     real(kind=AE_REAL) :: rWidth
     real(kind=AE_REAL) :: rBlankLength
     complex(kind=AE_REAL) :: cZEnd
     type(CW0_VERTEX), dimension(:), pointer :: Vertices
-    integer(kind=AE_INT) :: iFWLIndex
+    type(FWL_WELL), pointer :: pFWL
   end type CW0_RADIAL
 
   type :: CW0_WELL
@@ -445,7 +445,7 @@ contains
     type(FDP_COLLECTION), pointer :: fdp
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iSeg, iWel, iRad, iVtx, i, iDP, iWL, iStat
+    integer(kind=AE_INT) :: iSeg, iWel, iRad, iVtx, i, iDP, iStat
     real(kind=AE_REAL) :: rStrength, rDisch, rHead1, rHead2, rHead, rLen, rSumRes, &
                          rTotalLength, rAvgStrength
     complex(kind=AE_REAL) :: cZ1, cZ, cDZi, cRho1, cRho2, cRho3
@@ -499,14 +499,13 @@ contains
           rTotalLength = rTotalLength + this%rLength
           this%rDPStrength = rZERO
           call FDP_New(io, fdp, this%cZ, next%cZ, (/cZERO, cZERO, cZERO/), ELEM_CW0, &
-               iWel, iRad, iWel, this%iFDPIndex)
+               iWel, iRad, iWel, this%pFDP)
           ! For this version, no overspecification -- control points at centers of segments
           this%cCPZ = rHALF * (this%cZ + next%cZ)
         end do
         ! Put a well at the end of each arm
         last_vtx => rad%Vertices(wel%iResolution+1)
-        call FWL_New(io, fwl, last_vtx%cZ, rZERO, rZERO, ELEM_CW0, iWel, iRad, iVtx, iWL)
-        rad%iFWLIndex = iWL
+        call FWL_New(io, fwl, last_vtx%cZ, rZERO, rZERO, ELEM_CW0, iWel, iRad, iVtx, rad%pFWL)
       end do
 
       ! Now, set all the arms' strengths to the average pumping rate per unit length
@@ -751,7 +750,7 @@ contains
       rad => wel%Radials(wel%iNRad)
       last_vtx => rad%Vertices(wel%iResolution)
       first_vtx => wel%Radials(1)%Vertices(1)
-      iDP1 = first_vtx%iFDPIndex
+      iDP1 = first_vtx%pFDP%iIndex
       iNDP = wel%iNRad * wel%iResolution
       iBaseCol = iCol
 
@@ -795,7 +794,7 @@ contains
       if (iElementType == ELEM_CW0 .and. iEqType == EQN_POTENTIALDIFF .and. iElementString == iWel) then
         rad => wel%Radials(iElementVertex)
         this => rad%Vertices(iElementFlag)
-        iVtxCol = iBaseCol + this%iFDPIndex - iDP1 + 1
+        iVtxCol = iBaseCol + this%pFDP%iIndex - iDP1 + 1
         if (iElementFlag /= wel%iResolution) then
           next => rad%Vertices(iElementFlag+1)
           iNextCol = iVtxCol+1
@@ -821,7 +820,7 @@ contains
         this => rad%Vertices(iElementFlag)
         rT1 = rAQU_Transmissivity(io, aqu, this%cCPZ, this%rCheck)
         this%rResistanceTerm = (rT1 * rad%rResistance) / rad%rWidth
-        iVtxCol = iBaseCol + this%iFDPIndex - iDP1 + 1
+        iVtxCol = iBaseCol + this%pFDP%iIndex - iDP1 + 1
         rARow(iVtxCol) = rARow(iVtxCol) - this%rResistanceTerm
       end if
 
@@ -1264,11 +1263,11 @@ contains
             cRho1 = cmplx(this%rDPStrength, rZERO, AE_REAL)
             cRho3 = cmplx(next%rDPStrength, rZERO, AE_REAL)
             cRho2 = rHALF * (cRho1 + cRho3)
-            call FDP_Update(io, fdp, this%iFDPIndex, (/cRho1, cRho2, cRho3/))
+            this%pFDP%cRho = (/cRho1, cRho2, cRho3/)
             rTotalExtraction = rTotalExtraction + this%rLength*this%rStrength
           end do
           ! Put a well at the end of the string
-          call FWL_Update(io, fwl, rad%iFWLIndex, real(cRho3))
+          rad%pFWL%rDischarge = real(cRho3)
         end do
         wel%rCheck = rTotalExtraction
         !    print *, 'ext ', iWel, rTotalExtraction
@@ -1920,7 +1919,7 @@ contains
             call HTML_Header('Radial information', 4)
             call HTML_StartTable()
             call HTML_AttrInteger('Radial #', iRad)
-            call HTML_AttrInteger('FWL index', rad%iFWLIndex)
+            call HTML_AttrInteger('FWL index', rad%pFWL%iIndex)
             call HTML_AttrReal('Tip X', real(rad%cZEnd), '(f12.1)')
             call HTML_AttrReal('Tip Y', aimag(rad%cZEnd), '(f12.1)')
             call HTML_AttrReal('Resistance', rad%rResistance)
@@ -1934,7 +1933,7 @@ contains
             do iVtx = 1, wel%iResolution+1
               vtx => rad%Vertices(iVtx)
               call HTML_StartRow()
-              call HTML_ColumnInteger((/ iVtx, vtx%iFDPIndex /))
+              call HTML_ColumnInteger((/ iVtx, vtx%pFDP%iIndex /))
               call HTML_ColumnComplex((/ vtx%cZ /))
               call HTML_ColumnReal((/ vtx%rStrength /))
               call HTML_ColumnReal((/ vtx%rLength /))

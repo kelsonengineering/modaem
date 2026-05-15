@@ -82,6 +82,7 @@ module f_dipole
     integer(kind=AE_INT) :: iElementString
     integer(kind=AE_INT) :: iElementVertex
     integer(kind=AE_INT) :: iElementFlag
+    integer(kind=AE_INT) :: iIndex
   end type FDP_DIPOLE
 
 
@@ -134,23 +135,22 @@ contains
     allocate(fdp%Dipoles(iMax), stat = iStat)
     call IO_Assert(io, (iStat == 0), "FDP_Create: allocation failed")
 
-    fdp%Dipoles = FDP_DIPOLE(cZERO, cmplx(rONE, rONE, AE_REAL), (/cZERO, cZERO, cZERO/), -1, -1, -1, -1)
+    fdp%Dipoles = FDP_DIPOLE(cZERO, cmplx(rONE, rONE, AE_REAL), (/cZERO, cZERO, cZERO/), -1, -1, -1, -1, -1)
     fdp%iCount = 0
 
     return
   end function FDP_Create
 
 
-  subroutine FDP_New(io, fdp, cZ1, cZ2, cRho, iElementType, iElementString, iElementVertex, iElementFlag, iRV)
+  subroutine FDP_New(io, fdp, cZ1, cZ2, cRho, iElementType, iElementString, iElementVertex, iElementFlag, pRV)
     !! subroutine FDP_New
     !!
     !! Makes a new dipole entry. On call, the geometry and strengths of
     !! the dipole are provided. The internal dipole structures are then
-    !! set up. Returns iRV = the index into the dipole table on success or
-    !! iRV < 0 on failure.
+    !! set up. Returns pRV pointing to the new FDP_DIPOLE on success.
     !!
     !! Calling Sequence:
-    !!    call FDP_New(io, fdp, cZ1, cZ2, cRho, iElementType, iElementString, iElementFlag)
+    !!    call FDP_New(io, fdp, cZ1, cZ2, cRho, iElementType, iElementString, iElementFlag, pRV)
     !!
     !! Arguments:
     !!   (in)    type(FDP_COLLECTION), pointer :: fdp
@@ -160,8 +160,8 @@ contains
     !!   (in)    complex :: cRho(3)
     !!             The complex strengths at cZ1, at the center, and
     !!             at cZ2, respectively.
-    !!   (out)   integer :: iRV
-    !!             On success, the index in fdp%Dipoles used
+    !!   (out)   type(FDP_DIPOLE), pointer :: pRV
+    !!             On success, points to the new FDP_DIPOLE entry
     !!
     !! Note: On failure, forces a fatal error
     !!
@@ -173,7 +173,7 @@ contains
     integer(kind=AE_INT), intent(in) :: iElementString
     integer(kind=AE_INT), intent(in) :: iElementVertex
     integer(kind=AE_INT), intent(in) :: iElementFlag
-    integer(kind=AE_INT), intent(out) :: iRV
+    type(FDP_DIPOLE), pointer, intent(out) :: pRV
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
     type(FDP_DIPOLE), pointer :: dip
@@ -190,52 +190,11 @@ contains
     ! Compute the center and directed length parameters
     fdp%iCount = fdp%iCount + 1
     dip => fdp%Dipoles(fdp%iCount)
-    dip = FDP_DIPOLE(rHALF*(cZ2+cZ1), rHALF*(cZ2-cZ1), cRho, iElementType, iElementString, iElementVertex, iElementFlag)
-    iRV = fdp%iCount
+    dip = FDP_DIPOLE(rHALF*(cZ2+cZ1), rHALF*(cZ2-cZ1), cRho, iElementType, iElementString, iElementVertex, iElementFlag, fdp%iCount)
+    pRV => dip
 
     return
   end subroutine FDP_New
-
-
-  subroutine FDP_Update(io, fdp, iDP, cRho)
-    !! subroutine FDP_Update
-    !!
-    !! Updates the strength coefficients for a dipole entry.
-    !!
-    !! Calling Sequence:
-    !!    call FDP_Update(io, fdp, iDP, cRho, iRV)
-    !!
-    !! Arguments:
-    !!   (in)    type(FDP_COLLECTION), pointer :: fdp
-    !!             The FDP_COLLECTION to be used
-    !!   (in)    integer :: iDP
-    !!             The index for the dipole
-    !!   (in)    complex :: cRho(3)
-    !!             The complex strengths at cZ1, at the center, and
-    !!             at cZ2, respectively.
-    !!
-    !! Note: On failure, forces a fatal error
-    !!
-    ! [ ARGUMENTS ]
-    type(FDP_COLLECTION), pointer :: fdp
-    integer(kind=AE_INT), intent(in) :: iDP
-    complex(kind=AE_REAL), dimension(3), intent(in) :: cRho(3)
-    type(IO_STATUS), pointer :: io
-    ! [ LOCALS ]
-    type(FDP_DIPOLE), pointer :: dip
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(fdp)), "FDP_Update: FDP_Create has not been called")
-      call IO_Assert(io, (associated(fdp%Dipoles)), "FDP_Update: FDP_Alloc has not been called")
-      call IO_Assert(io, (iDP <= size(fdp%Dipoles)), "FDP_Update: Space exhausted")
-      call IO_Assert(io, (size(cRho) == 3), "FDP_Update: Illegal strength vector")
-    end if
-
-    dip => fdp%Dipoles(iDP)
-    dip%cRho = cRho
-
-    return
-  end subroutine FDP_Update
 
 
   subroutine FDP_GetInfluence_IDP(io, fdp, iWhich, iDP1, iNDP, cPathZ, cOrientation, cF)
@@ -889,44 +848,34 @@ contains
   end function rFDP_Extraction
 
 
-  function rFDP_PotentialJump(io, fdp, cZ, iDP) result(rJump)
+  function rFDP_PotentialJump(io, dip, cZ) result(rJump)
     !! real function rFDP_PotentialJump
     !!
-    !! Computes the potential jump at the position cZ in dipole iDP of FDP_COLLECTION fdp
+    !! Computes the potential jump at position cZ for the given dipole
     !!
     !! Calling Sequence:
-    !!    rJump = rFDP_PotentialJump(fdp, iDP, cZ)
+    !!    rJump = rFDP_PotentialJump(io, dip, cZ)
     !!
     !! Arguments:
-    !!   (in)    type(FDP_COLLECTION), pointer :: fdp
-    !!             The FDP_COLLECTION to use
-    !!   (in)    integer :: iDP [OPTIONAL]
-    !!             The index for the dipole to be used
+    !!   (in)    type(FDP_DIPOLE), pointer :: dip
+    !!             Pointer to the dipole to be used
     !!   (in)    complex :: cZ
     !!             The location to be investigated
     !!
     ! [ ARGUMENTS ]
-    type(FDP_COLLECTION), pointer :: fdp
-    integer(kind=AE_INT), intent(in) :: iDP
+    type(FDP_DIPOLE), pointer :: dip
     complex(kind=AE_REAL), intent(in) :: cZ
     type(IO_STATUS), pointer :: io
     ! [ RETURN VALUE ]
     complex(kind=AE_REAL) :: rJump
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: i
     complex(kind=AE_REAL), dimension(3, 1) :: cJ
     complex(kind=AE_REAL) :: cMapZ
-    complex(kind=AE_REAL) :: cA
-    type(FDP_DIPOLE), pointer :: dip
 
     if (io%lDebug) then
-      call IO_Assert(io, (associated(fdp)), "FDP_Jump: FDP_Create has not been called")
-      call IO_Assert(io, (associated(fdp%Dipoles)), "FDP_Jump: FDP_Alloc has not been called")
-      call IO_Assert(io, (iDP > 0 .and. iDP <= fdp%iCount), "FDP_Jump: Illegal index")
+      call IO_Assert(io, (associated(dip)), "FDP_PotentialJump: null dipole pointer")
     end if
 
-    ! Sum up the contribution of all dipoles
-    dip => fdp%Dipoles(iDP)
     cMapZ = (cZ - dip%cZC) / dip%cZL
     cJ = cIDP_InfluenceJ(real(cMapZ))
     rJump = real(sum(dip%cRho*cJ(:, 1)))
@@ -991,7 +940,7 @@ contains
             lFound = .true.
             cBZFix = cmplx(rONE-rEND_FIX_POSITION*rCheckTol, rZERO, AE_REAL)
             cZFix = cBZFix * dip%cZL + dip%cZC
-            rStrength = rFDP_PotentialJump(io, fdp, cZFix, i)
+            rStrength = rFDP_PotentialJump(io, dip, cZFix)
             iElementType = dip%iElementType
             iElementString = dip%iElementString
             iElementVertex = dip%iElementVertex
@@ -1002,7 +951,7 @@ contains
             lFound = .true.
             cBZFix = cmplx(-rONE+rEND_FIX_POSITION*rCheckTol, rZERO, AE_REAL)
             cZFix = cBZFix * dip%cZL + dip%cZC
-            rStrength = rFDP_PotentialJump(io, fdp, cZFix, i)
+            rStrength = rFDP_PotentialJump(io, dip, cZFix)
             iElementType = dip%iElementType
             iElementString = dip%iElementString
             iElementVertex = dip%iElementVertex

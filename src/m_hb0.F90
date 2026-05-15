@@ -57,13 +57,13 @@ module m_hb0
     !!     The doublet strength at the vertex
     !!   real :: rStrength(2)
     !!     The doublet strength at the center of the next segment
-    !!   integer :: iFDPIndex
-    !!     Index for the vertex entry in the FDP module. Note: set to -1 for the
+    !!   type(FDP_DIPOLE), pointer :: pFDP
+    !!     Pointer to the vertex entry in the FDP module. Note: set to NULL for the
     !!     last vertex of the string; an element is considered to extend from vertex
     !!     'i' to vertex 'i+1'.
     !!
     complex(kind=AE_REAL) :: cZ
-    integer(kind=AE_INT) :: iFDPIndex
+    type(FDP_DIPOLE), pointer :: pFDP
     real(kind=AE_REAL), dimension(2) :: rStrength
     real(kind=AE_REAL), dimension(2) :: rCheck
     complex(kind=AE_REAL), dimension(:), pointer :: cVertexCPZ
@@ -411,7 +411,7 @@ contains
         vtx => str%Vertices(iVtx)
         cZ1 = vtx%cZ
         cZ2 = str%Vertices(iVtx+1)%cZ
-        call FDP_New(io, fdp, cZ1, cZ2, (/cZERO, cZERO, cZERO/), ELEM_HB0, iStr, iVtx, -1, vtx%iFDPIndex)
+        call FDP_New(io, fdp, cZ1, cZ2, (/cZERO, cZERO, cZERO/), ELEM_HB0, iStr, iVtx, -1, vtx%pFDP)
       end do
     end do
 
@@ -670,7 +670,7 @@ contains
     do iStr = 1, hb0%iNStr
       str => hb0%Strings(iStr)
       ! Assume: the HB0_Setup routine creates consecutive dipole entries
-      iDP1 = str%Vertices(1)%iFDPIndex
+      iDP1 = str%Vertices(1)%pFDP%iIndex
       iNDP = str%iNPts-1
       allocate(cDPF(0:iNDP+1, 3, 1), cDPW(0:iNDP+1, 3, 1), stat = iStat)
       call IO_Assert(io, (iStat == 0), "HB0_ComputeCoefficients: Allocation failed")
@@ -970,7 +970,7 @@ contains
         else
           cRho3 = cmplx(rZERO, next_vtx%rStrength(1), AE_REAL)
         end if
-        call FDP_Update(io, fdp, this_vtx%iFDPIndex, (/cRho1, cRho2, cRho3/))
+        this_vtx%pFDP%cRho = (/cRho1, cRho2, cRho3/)
       end do
     end do
   end subroutine HB0_Update
@@ -1200,7 +1200,7 @@ contains
           str%iNPts = str%iNPts+1
           vtx => str%Vertices(str%iNPts)
           vtx%cZ = cZ
-          vtx%iFDPIndex = -1
+          nullify(vtx%pFDP)
           vtx%rStrength(1) = rZERO
           vtx%rStrength(2) = rZERO
         case (kOpEND)
@@ -1344,7 +1344,7 @@ contains
         do iVtx = 1, str%iNPts-1
           vtx => str%Vertices(iVtx)
           call HTML_StartRow()
-          call HTML_ColumnInteger((/iVtx, vtx%iFDPIndex/))
+          call HTML_ColumnInteger((/iVtx, vtx%pFDP%iIndex/))
           call HTML_ColumnComplex((/vtx%cZ/))
           call HTML_ColumnReal((/vtx%rStrength(1), vtx%rStrength(2), vtx%rCheck(1), &
                vtx%rCheck(2)/))

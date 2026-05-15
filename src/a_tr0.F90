@@ -171,7 +171,8 @@ contains
     complex(kind=AE_REAL) :: cZ0, cZ1, cZ2, cZWell, cWWell, cDelta
     real(kind=AE_REAL) :: rOrient, rAngle, rDischarge, rRadius
     integer(kind=AE_INT) :: i, j, iDir, iFlag, iElementType, iElementID, iElementVtx
-    integer(kind=AE_INT) :: iWellID, iNParticles, iFWLIndex, iRes, iResX, iResY
+    integer(kind=AE_INT) :: iWellID, iNParticles, iRes, iResX, iResY
+    type(FWL_WELL), pointer :: pFWL
     real(kind=AE_REAL) :: rMinX, rMaxX, rMinY, rMaxY, rDelta, rSizeX, rSizeY, rMinWidth
     character(len=132) :: sFile
     logical :: lFileOpen, lWindowSet, lWellFound, lFlag
@@ -395,7 +396,7 @@ contains
           rT0 = rIO_GetReal(io, "rT0", def=rZERO)
           rC0 = rIO_GetReal(io, "rC0", def=rZERO)
           rMinWidth = rIO_GetReal(io, "rMinWidth", def=rZERO)
-          call WL0_FindWell(io, aem%wl0, iWellID, cZWell, rDischarge, rRadius, iFWLIndex, lWellFound)
+          call WL0_FindWell(io, aem%wl0, iWellID, cZWell, rDischarge, rRadius, pFWL, lWellFound)
           call IO_Assert(io, lWellFound, "TR0_Read: Specified well not found")
           ! Forward trace from injection wells; backward trace from pumping wells
           if (rDischarge < 0) then
@@ -406,7 +407,7 @@ contains
             call IO_ErrorText(io, " >> Reverse tracing is selected from pumping well")
           end if
           ! Now, compute the orientation of the discharge vector, less the well
-          cWWell = cAEM_DischargeAtWell(io, aem, cZWell, iFWLIndex)
+          cWWell = cAEM_DischargeAtWell(io, aem, cZWell, pFWL)
           if (cWWell == cZERO) then
             rOrient = rZERO
           else
