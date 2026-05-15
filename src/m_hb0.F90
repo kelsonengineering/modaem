@@ -411,7 +411,7 @@ contains
         vtx => str%Vertices(iVtx)
         cZ1 = vtx%cZ
         cZ2 = str%Vertices(iVtx+1)%cZ
-        call FDP_New(io, fdp, cZ1, cZ2, (/cZERO, cZERO, cZERO/), ELEM_HB0, iStr, iVtx, -1, vtx%pFDP)
+        vtx%pFDP => FDP_New(io, fdp, cZ1, cZ2, (/cZERO, cZERO, cZERO/), ELEM_HB0, iStr, iVtx, -1)
       end do
     end do
 

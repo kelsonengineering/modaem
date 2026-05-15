@@ -140,15 +140,16 @@ contains
   end function FPD_Create
 
 
-  subroutine FPD_New(io, fpd, cZc, rGamma, rRadius, iElementType, iElementString, iElementVertex, iElementFlag, pRV)
-    !! subroutine FPD_New
+  function FPD_New(io, fpd, cZc, rGamma, rRadius, iElementType, iElementString, iElementVertex, iElementFlag) result(pRV)
+    !! function FPD_New
     !!
     !! Makes a new pond entry. On call, the geometry and discharge of
     !! the pond are provided. The internal pond structures are then
-    !! set up. Returns pRV pointing to the new FPD_POND on success.
+    !! set up. Returns pRV pointing to the new FPD_POND on success,
+    !! or null if space is exhausted.
     !!
     !! Calling Sequence:
-    !!    call FPD_New(io, FPD, cZC, rGamma, rRadius, pRV)
+    !!    pRV => FPD_New(io, FPD, cZC, rGamma, rRadius, ...)
     !!
     !! Arguments:
     !!   (in)    type(FPD_COLLECTION), pointer :: fpd
@@ -159,8 +160,6 @@ contains
     !!             The areal exfiltration rate of the pond
     !!   (in)    real :: rRadius
     !!             The radius of the pond
-    !!   (out)   type(FPD_POND), pointer :: pRV
-    !!             On success, points to the new FPD_POND entry
     !!
     ! [ ARGUMENTS ]
     type(FPD_COLLECTION), pointer :: fpd
@@ -171,25 +170,25 @@ contains
     integer(kind=AE_INT), intent(in) :: iElementString
     integer(kind=AE_INT), intent(in) :: iElementVertex
     integer(kind=AE_INT), intent(in) :: iElementFlag
-    type(FPD_POND), pointer, intent(out) :: pRV
     type(IO_STATUS), pointer :: io
+    ! [ RETURN VALUE ]
+    type(FPD_POND), pointer :: pRV
 
-    ! [ LOCALS ]
-    type(FPD_POND), pointer :: pnd
+    nullify(pRV)
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(fpd)), "FPD_New: FPD_Create has not been called")
       call IO_Assert(io, (associated(fpd%Ponds)), "FPD_New: FPD_Alloc has not been called")
-      call IO_Assert(io, (fpd%iCount < size(fpd%Ponds)), "FPD_New: Space exhausted")
     end if
 
+    if (fpd%iCount >= size(fpd%Ponds)) return
+
     fpd%iCount = fpd%iCount + 1
-    pnd => fpd%Ponds(fpd%iCount)
-    pnd = FPD_POND(cZc, rRadius, rGamma, iElementType, iElementString, iElementVertex, iElementFlag, fpd%iCount)
-    pRV => pnd
+    pRV => fpd%Ponds(fpd%iCount)
+    pRV = FPD_POND(cZc, rRadius, rGamma, iElementType, iElementString, iElementVertex, iElementFlag, fpd%iCount)
 
     return
-  end subroutine FPD_New
+  end function FPD_New
 
 
   subroutine FPD_GetInfluence(io, fpd, iWhich, pPD1, iNPD, cPathZ, cOrientation, cF)

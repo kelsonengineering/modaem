@@ -171,15 +171,15 @@ contains
   end subroutine FWL_Alloc
 
 
-  subroutine FWL_New(io, fwl, cZc, rDischarge, rRadius, iElementType, iElementString, iElementVertex, iElementFlag, pRV)
-    !! subroutine FWL_New
+  function FWL_New(io, fwl, cZc, rDischarge, rRadius, iElementType, iElementString, iElementVertex, iElementFlag) result(pRV)
+    !! function FWL_New
     !!
     !! Makes a new well entry. On call, the geometry and discharge of
     !! the well are provided. The internal well structures are then
-    !! set up. Returns pRV pointing to the new FWL_WELL on success.
+    !! set up. Returns a pointer to the new FWL_WELL, or null on failure.
     !!
     !! Calling Sequence:
-    !!    call FWL_New(io, fwl, cZC, rDischarge, pRV)
+    !!    pWell => FWL_New(io, fwl, cZC, rDischarge, rRadius, ...)
     !!
     !! Arguments:
     !!   (in)    type(FWL_COLLECTION), pointer :: fwl
@@ -188,10 +188,9 @@ contains
     !!             Complex coordinates of the center of the well
     !!   (in)    real :: rDischarge
     !!             The discharge of the well
-    !!   (out)   type(FWL_WELL), pointer :: pRV
-    !!             On success, points to the new FWL_WELL entry
     !!
-    !! Note: On failure, forces a fatal error
+    !! Return value:
+    !!   Pointer to the new FWL_WELL entry, or null if space is exhausted
     !!
     ! [ ARGUMENTS ]
     type(FWL_COLLECTION), pointer :: fwl
@@ -202,27 +201,27 @@ contains
     integer(kind=AE_INT), intent(in) :: iElementString
     integer(kind=AE_INT), intent(in) :: iElementVertex
     integer(kind=AE_INT), intent(in) :: iElementFlag
-    type(FWL_WELL), pointer, intent(out) :: pRV
     type(IO_STATUS), pointer :: io
-    ! [ LOCALS ]
-    type(FWL_WELL), pointer :: wel
+    ! [ RETURN VALUE ]
+    type(FWL_WELL), pointer :: pRV
+
+    nullify(pRV)
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(fwl)), &
            "FWL_New: FWL_Create has not been called")
       call IO_Assert(io, (associated(fwl%Wells)), &
            "FWL_New: FWL_Alloc has not been called")
-      call IO_Assert(io, (fwl%iCount < size(fwl%Wells)), &
-           "FWL_New: Space exhausted")
     end if
 
+    if (fwl%iCount >= size(fwl%Wells)) return
+
     fwl%iCount = fwl%iCount + 1
-    wel => fwl%Wells(fwl%iCount)
-    wel = FWL_WELL(cZc, rRadius, rDischarge, iElementType, iElementString, iElementVertex, iElementFlag, fwl%iCount)
-    pRV => wel
+    pRV => fwl%Wells(fwl%iCount)
+    pRV = FWL_WELL(cZc, rRadius, rDischarge, iElementType, iElementString, iElementVertex, iElementFlag, fwl%iCount)
 
     return
-  end subroutine FWL_New
+  end function FWL_New
 
 
   subroutine FWL_GetInfluence(io, fwl, iWhich, pWL1, iNWL, cPathZ, cOrientation, cF)

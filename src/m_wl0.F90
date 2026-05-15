@@ -363,7 +363,7 @@ contains
     do iWel = 1, wl0%iCount
       ! Create a well function in FWL for each well
       wel => wl0%Wells(iWel)
-      call FWL_New(io, fwl, wel%cZ, wel%rDischarge, wel%rRadius, ELEM_WL0, iWel, -1, -1, wel%pFWL)
+      wel%pFWL => FWL_New(io, fwl, wel%cZ, wel%rDischarge, wel%rRadius, ELEM_WL0, iWel, -1, -1)
       if (wel%lPpWell) then
         wel%bwl => BWL_New(io, wel%cZ, wel%rRadius, wel%rScrBot, wel%rScrTop, &
                            rAQU_Base(io, aqu, wel%cZ), &

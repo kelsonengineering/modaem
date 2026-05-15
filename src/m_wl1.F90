@@ -376,7 +376,7 @@ contains
     do iWel = 1, wl1%iCount
       wel => wl1%Wells(iWel)
 
-      call FWL_New(io, fwl, wel%cZ, rZERO, wel%rRadius, ELEM_WL1, iWel, -1, -1, wel%pFWL)
+      wel%pFWL => FWL_New(io, fwl, wel%cZ, rZERO, wel%rRadius, ELEM_WL1, iWel, -1, -1)
       if (wel%lPpWell) then
         wel%bwl => BWL_New(io, wel%cZ, wel%rRadius, wel%rScrBot, wel%rScrTop, &
                            rAQU_Base(io, aqu, wel%cZ), &

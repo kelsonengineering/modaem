@@ -498,14 +498,14 @@ contains
           this%rLength = abs(next%cZ - this%cZ)
           rTotalLength = rTotalLength + this%rLength
           this%rDPStrength = rZERO
-          call FDP_New(io, fdp, this%cZ, next%cZ, (/cZERO, cZERO, cZERO/), ELEM_CW0, &
-               iWel, iRad, iWel, this%pFDP)
+          this%pFDP => FDP_New(io, fdp, this%cZ, next%cZ, (/cZERO, cZERO, cZERO/), ELEM_CW0, &
+               iWel, iRad, iWel)
           ! For this version, no overspecification -- control points at centers of segments
           this%cCPZ = rHALF * (this%cZ + next%cZ)
         end do
         ! Put a well at the end of each arm
         last_vtx => rad%Vertices(wel%iResolution+1)
-        call FWL_New(io, fwl, last_vtx%cZ, rZERO, rZERO, ELEM_CW0, iWel, iRad, iVtx, rad%pFWL)
+        rad%pFWL => FWL_New(io, fwl, last_vtx%cZ, rZERO, rZERO, ELEM_CW0, iWel, iRad, iVtx)
       end do
 
       ! Now, set all the arms' strengths to the average pumping rate per unit length

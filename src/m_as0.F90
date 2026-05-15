@@ -440,13 +440,13 @@ contains
         rPsiJump = str%rN * rInfl(1, 1)
         cRho3 = cmplx(real(cRho1)-rPsiJump, -rPotJump, AE_REAL)
         ! Now, make the dipole!
-        call FDP_New(io, fdp, seg(1), seg(2), (/cRho1, cRho2, cRho3/), ELEM_AS0, iStr, iSeg, -1, pTempDP)
+        pTempDP => FDP_New(io, fdp, seg(1), seg(2), (/cRho1, cRho2, cRho3/), ELEM_AS0, iStr, iSeg, -1)
         str%iFDPIndex(iSeg) = pTempDP%iIndex
         cRho1 = cRho3                               ! Move on to the next one with this Rho value
       end do
 
       ! Put a well at the end of the string
-      call FWL_New(io, fwl, cZ0, real(cRho3), rZERO, ELEM_AS0, iStr, -1, -1, str%pFWL)
+      str%pFWL => FWL_New(io, fwl, cZ0, real(cRho3), rZERO, ELEM_AS0, iStr, -1, -1)
 
     end do
 

@@ -142,15 +142,16 @@ contains
   end function FDP_Create
 
 
-  subroutine FDP_New(io, fdp, cZ1, cZ2, cRho, iElementType, iElementString, iElementVertex, iElementFlag, pRV)
-    !! subroutine FDP_New
+  function FDP_New(io, fdp, cZ1, cZ2, cRho, iElementType, iElementString, iElementVertex, iElementFlag) result(pRV)
+    !! function FDP_New
     !!
     !! Makes a new dipole entry. On call, the geometry and strengths of
     !! the dipole are provided. The internal dipole structures are then
-    !! set up. Returns pRV pointing to the new FDP_DIPOLE on success.
+    !! set up. Returns pRV pointing to the new FDP_DIPOLE on success,
+    !! or null if space is exhausted or the dipole is too short.
     !!
     !! Calling Sequence:
-    !!    call FDP_New(io, fdp, cZ1, cZ2, cRho, iElementType, iElementString, iElementFlag, pRV)
+    !!    pRV => FDP_New(io, fdp, cZ1, cZ2, cRho, iElementType, iElementString, iElementVertex, iElementFlag)
     !!
     !! Arguments:
     !!   (in)    type(FDP_COLLECTION), pointer :: fdp
@@ -160,10 +161,6 @@ contains
     !!   (in)    complex :: cRho(3)
     !!             The complex strengths at cZ1, at the center, and
     !!             at cZ2, respectively.
-    !!   (out)   type(FDP_DIPOLE), pointer :: pRV
-    !!             On success, points to the new FDP_DIPOLE entry
-    !!
-    !! Note: On failure, forces a fatal error
     !!
     ! [ ARGUMENTS ]
     type(FDP_COLLECTION), pointer :: fdp
@@ -173,28 +170,27 @@ contains
     integer(kind=AE_INT), intent(in) :: iElementString
     integer(kind=AE_INT), intent(in) :: iElementVertex
     integer(kind=AE_INT), intent(in) :: iElementFlag
-    type(FDP_DIPOLE), pointer, intent(out) :: pRV
     type(IO_STATUS), pointer :: io
-    ! [ LOCALS ]
-    type(FDP_DIPOLE), pointer :: dip
+    ! [ RETURN VALUE ]
+    type(FDP_DIPOLE), pointer :: pRV
+
+    nullify(pRV)
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(fdp)), "FDP_New: FDP_Create has not been called")
       call IO_Assert(io, (associated(fdp%Dipoles)), "FDP_New: FDP_Alloc has not been called")
-      call IO_Assert(io, (fdp%iCount < size(fdp%Dipoles)), "FDP_New: Space exhausted")
       call IO_Assert(io, (size(cRho) == 3), "FDP_New: Illegal strength vector")
-      !! Note: the next assertion ensures that the caller has checked the length appropriately
-      call IO_Assert(io, (abs(cZ2-cZ1) > rTINY), "FDP_New: Dipole length is too short")
     end if
 
-    ! Compute the center and directed length parameters
+    if (fdp%iCount >= size(fdp%Dipoles)) return
+    if (abs(cZ2-cZ1) <= rTINY) return
+
     fdp%iCount = fdp%iCount + 1
-    dip => fdp%Dipoles(fdp%iCount)
-    dip = FDP_DIPOLE(rHALF*(cZ2+cZ1), rHALF*(cZ2-cZ1), cRho, iElementType, iElementString, iElementVertex, iElementFlag, fdp%iCount)
-    pRV => dip
+    pRV => fdp%Dipoles(fdp%iCount)
+    pRV = FDP_DIPOLE(rHALF*(cZ2+cZ1), rHALF*(cZ2-cZ1), cRho, iElementType, iElementString, iElementVertex, iElementFlag, fdp%iCount)
 
     return
-  end subroutine FDP_New
+  end function FDP_New
 
 
   subroutine FDP_GetInfluence_IDP(io, fdp, iWhich, pDP1, iNDP, cPathZ, cOrientation, cF)

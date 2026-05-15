@@ -412,14 +412,14 @@ contains
         rDisch = rSigma*abs(cZ2-cZ1)
         cRho3 = cRho1 + rDisch
         cRho2 = rHALF*(cRho1+cRho3)
-        call FDP_New(io, fdp, cZ1, cZ2, (/cRho1, cRho2, cRho3/), ELEM_LS0, iStr, iVtx, -1, this_vtx%pFDP)
+        this_vtx%pFDP => FDP_New(io, fdp, cZ1, cZ2, (/cRho1, cRho2, cRho3/), ELEM_LS0, iStr, iVtx, -1)
         cRho1 = cRho3                               ! Move on to the next one with this Rho value
       end do
 
       ! Put a well at the end of the string
       last_vtx => str%Vertices(str%iNPts)
       cZ1 = last_vtx%cZ
-      call FWL_New(io, fwl, cZ1, real(cRho3), rZERO, ELEM_LS0, iStr, -1, -1, str%pFWL)
+      str%pFWL => FWL_New(io, fwl, cZ1, real(cRho3), rZERO, ELEM_LS0, iStr, -1, -1)
     end do
 
     return

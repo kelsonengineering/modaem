@@ -326,7 +326,7 @@ contains
     do i = 1, pd0%iCount
       ! Create a pond function in FPD for each pond
       pnd => pd0%Ponds(i)
-      call FPD_New(io, fpd, pnd%cZ, pnd%rGamma, pnd%rRadius, ELEM_PD0, i, -1, -1, pnd%pFPD)
+      pnd%pFPD => FPD_New(io, fpd, pnd%cZ, pnd%rGamma, pnd%rRadius, ELEM_PD0, i, -1, -1)
     end do
 
     return

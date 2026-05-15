@@ -622,11 +622,11 @@ contains
         cZ1 = vtx%cZ
         if (iVtx < str%iNPts) then
           cZ2 = str%Vertices(iVtx+1)%cZ
-          call FDP_New(io, fdp, cZ1, cZ2, (/cZERO, cZERO, cZERO/), ELEM_IN0, iStr, iVtx, -1, vtx%pFDP)
+          vtx%pFDP => FDP_New(io, fdp, cZ1, cZ2, (/cZERO, cZERO, cZERO/), ELEM_IN0, iStr, iVtx, -1)
         else
           if (str%lClosed) then
             cZ2 = str%Vertices(1)%cZ
-            call FDP_New(io, fdp, cZ1, cZ2, (/cZERO, cZERO, cZERO/), ELEM_IN0, iStr, iVtx, -1, vtx%pFDP)
+            vtx%pFDP => FDP_New(io, fdp, cZ1, cZ2, (/cZERO, cZERO, cZERO/), ELEM_IN0, iStr, iVtx, -1)
           end if
         end if
       end do

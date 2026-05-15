@@ -435,12 +435,12 @@ contains
         this_vtx => str%Vertices(iVtx)
         next_vtx => str%Vertices(iVtx+1)
         this_vtx%rLength = abs(next_vtx%cZ - this_vtx%cZ)
-        call FDP_New(io, fdp, this_vtx%cZ, next_vtx%cZ, (/cZERO, cZERO, cZERO/), ELEM_LS1, iStr, iVtx, -1, this_vtx%pFDP)
+        this_vtx%pFDP => FDP_New(io, fdp, this_vtx%cZ, next_vtx%cZ, (/cZERO, cZERO, cZERO/), ELEM_LS1, iStr, iVtx, -1)
       end do
 
       ! Put a well at the end of the string
       last_vtx => str%Vertices(str%iNPts)
-      call FWL_New(io, fwl, last_vtx%cZ, rZERO, rZERO, ELEM_LS1, iStr, -1, -1, str%pFWL)
+      str%pFWL => FWL_New(io, fwl, last_vtx%cZ, rZERO, rZERO, ELEM_LS1, iStr, -1, -1)
     end do
 
     return
