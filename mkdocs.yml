@@ -1,0 +1,43 @@
+site_name: ModAEM User's Manual
+site_description: Documentation for the ModAEM analytic element groundwater flow model
+site_author: Vic Kelson
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - toc.integrate
+  palette:
+    primary: blue
+    accent: light blue
+
+nav:
+  - Home: index.md
+  - Introduction: introduction.md
+  - Groundwater Modeling Concepts: groundwater_modeling.md
+  - Script Files: script_files.md
+  - Aquifer Specification: aquifer_specification.md
+  - Element Modules: element_modules.md
+  - Processing Directives: processing_directives.md
+  - Analysis Modules: analysis_modules.md
+  - Validation: validation.md
+  - Tools: tools.md
+  - Appendix — Mathematical Formulation: mathematical_formulation.md
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

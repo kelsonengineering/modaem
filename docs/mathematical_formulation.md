@@ -1,0 +1,3 @@
+# Mathematical formulation of ModAEM elements
+
+Ugh...
