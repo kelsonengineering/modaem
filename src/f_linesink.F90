@@ -657,7 +657,7 @@ contains
 
     if (fls%iCount > 0) then
       call HTML_StartTable()
-      call HTML_TableHeader((/'      ', 'Re(ZC)', 'Im(ZC)', 'Re(ZL)', 'Im(ZL)', 'Re(S)', 'Im(S)'/))
+      call HTML_TableHeader((/'      ', 'Re(ZC)', 'Im(ZC)', 'Re(ZL)', 'Im(ZL)', 'Re(S) ', 'Im(S) '/))
       do i = 1, fls%iCount
         ls => fls%Linesinks(i)
         call HTML_StartRow()

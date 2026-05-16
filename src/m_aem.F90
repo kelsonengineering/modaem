@@ -32,6 +32,7 @@ module m_aem
   use f_well
   use f_dipole
   use f_pond
+  use f_linesink
   use m_aqu
   use m_wl0
   use m_wl1
@@ -62,6 +63,8 @@ module m_aem
     !!     Collection of pond functions
     !!   type(FDP_COLLECTION), pointer :: fdp
     !!     Collection of dipole functions
+    !!   type(FLS_COLLECTION), pointer :: fls
+    !!     Collection of first-order linesink functions (used by LS3)
     !!   type(WL0_COLLECTION), pointer :: wl0
     !!     WL0 elements -- discharge wells
     !!   type(WL1_COLLECTION), pointer :: wl1
@@ -136,6 +139,7 @@ module m_aem
     type(FWL_COLLECTION), pointer :: fwl
     type(FPD_COLLECTION), pointer :: fpd
     type(FDP_COLLECTION), pointer :: fdp
+    type(FLS_COLLECTION), pointer :: fls
     type(WL0_COLLECTION), pointer :: wl0
     type(PD0_COLLECTION), pointer :: pd0
     type(LS0_COLLECTION), pointer :: ls0
@@ -202,6 +206,7 @@ contains
     nullify(aem%fwl)
     nullify(aem%fpd)
     nullify(aem%fdp)
+    nullify(aem%fls)
     nullify(aem%aqu)
     nullify(aem%mat)
     ! Init pointers to NULL for now
@@ -331,6 +336,7 @@ contains
              cFWL_Potential(io, aem%fwl, cZArg) + &
              cFPD_Potential(io, aem%fpd, cZArg) + &
              cFDP_Potential(io, aem%fdp, cZArg) + &
+             cFLS_Potential(io, aem%fls, cZArg) + &
              rAS0_InsidePotential(io, aem%as0_top, cZArg) + &
              rAS0_InsidePotential(io, aem%as0_bottom, cZArg)
 
@@ -401,6 +407,7 @@ contains
          cFWL_Discharge(io, aem%fwl, cZArg) + &
          cFPD_Discharge(io, aem%fpd, cZArg) + &
          cFDP_Discharge(io, aem%fdp, cZArg) + &
+         cFLS_Discharge(io, aem%fls, cZArg) + &
          cAS0_InsideDischarge(io, aem%as0_top, cZArg) + &
          cAS0_InsideDischarge(io, aem%as0_bottom, cZArg) + &
          cZERO
@@ -541,6 +548,7 @@ contains
          rFWL_Extraction(io, aem%fwl) + &
          rFPD_Extraction(io, aem%fpd) + &
          rFDP_Extraction(io, aem%fdp) + &
+         rFLS_Extraction(io, aem%fls) + &
          rAS0_Extraction(io, aem%as0_top) - &
          rAS0_Extraction(io, aem%as0_bottom)
 
@@ -844,6 +852,7 @@ contains
             rFWL_Flow(io, aem%fwl, cZArg) + &
             rFPD_Flow(io, aem%fpd, cZArg) + &
             rFDP_Flow(io, aem%fdp, cZArg) + &
+            rFLS_Flow(io, aem%fls, cZArg) + &
             rAS0_InsideFlow(io, aem%as0_top, cZArg) + &
             rAS0_InsideFlow(io, aem%as0_bottom, cZArg)
     deallocate(cZArg)
@@ -899,7 +908,7 @@ contains
     type(AEM_DOMAIN), pointer :: aem
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iNFWL, iNFPD, iNFDP
+    integer(kind=AE_INT) :: iNFWL, iNFPD, iNFDP, iNFLS
     integer(kind=AE_INT) :: i
 
     !******************************************************************************************
@@ -908,6 +917,7 @@ contains
     iNFWL = 0
     iNFPD = 0
     iNFDP = 0
+    iNFLS = 0
 
     !******************************************************************************************
     ! Given-strength(no equations necessary) go here
@@ -953,9 +963,7 @@ contains
     iNFPD = iNFPD + iLS2_GetInfo(io, aem%ls2, SIZE_FPD, 0)
     iNFDP = iNFDP + iLS2_GetInfo(io, aem%ls2, SIZE_FDP, 0)
     ! LS3 Module(head-specified linesinks with resistance/routing)
-    iNFWL = iNFWL + iLS3_GetInfo(io, aem%ls3, SIZE_FWL, 0)
-    iNFPD = iNFPD + iLS3_GetInfo(io, aem%ls3, SIZE_FPD, 0)
-    iNFDP = iNFDP + iLS3_GetInfo(io, aem%ls3, SIZE_FDP, 0)
+    iNFLS = iNFLS + iLS3_GetInfo(io, aem%ls3, SIZE_FLS, 0)
     ! HB0 Module(no-flow boundaries)
     iNFWL = iNFWL + iHB0_GetInfo(io, aem%hb0, SIZE_FWL, 0)
     iNFPD = iNFPD + iHB0_GetInfo(io, aem%hb0, SIZE_FPD, 0)
@@ -988,6 +996,9 @@ contains
     ! dipole functions...
     aem%fdp => FDP_Create(io, iNFDP)
     !******************************************************************************************
+    ! First-order linesink functions (used by LS3)...
+    aem%fls => FLS_Create(io, max(iNFLS, 1))
+    !******************************************************************************************
     ! Modify for new function types:
     ! Add additional function modules above...
     !******************************************************************************************
@@ -1002,7 +1013,7 @@ contains
     call LS0_SetupFunctions(io, aem%ls0, aem%fwl, aem%fdp)
     call LS1_SetupFunctions(io, aem%ls1, aem%fwl, aem%fdp)
     call LS2_SetupFunctions(io, aem%ls2, aem%fwl, aem%fdp)
-    call LS3_SetupFunctions(io, aem%ls3, aem%fwl, aem%fdp)
+    call LS3_SetupFunctions(io, aem%ls3, aem%fls)
     call HB0_SetupFunctions(io, aem%hb0, aem%fdp)
     call WL1_SetupFunctions(io, aem%wl1, aem%fwl, aem%aqu)
     call AS0_SetupFunctions(io, aem%as0_top, aem%fwl, aem%fdp)
@@ -1396,7 +1407,7 @@ contains
 
       ! Generate the coefficients for the LS3 element module and store them in the matrix row
       if (aem%iLS3NUnk > 0) then
-        call LS3_ComputeCoefficients(io, aem%ls3, aem%aqu, aem%fwl, aem%fdp, (/(cCPZ(ic), ic = 1, iNCP)/), &
+        call LS3_ComputeCoefficients(io, aem%ls3, aem%aqu, aem%fls, (/(cCPZ(ic), ic = 1, iNCP)/), &
              iEqType, iElementType, iElementString, iElementVertex, iElementFlag, &
              cOrientation, rGhbDistance, iIteration, rMultiplier, &
              rARow(aem%iLS3Start:aem%iLS3Start+aem%iLS3NUnk-1))
@@ -1608,7 +1619,7 @@ contains
     ! LS2 module
     call LS2_Update(io, aem%ls2, aem%fwl, aem%fdp)
     ! LS3 module
-    call LS3_Update(io, aem%ls3, aem%fwl, aem%fdp)
+    call LS3_Update(io, aem%ls3, aem%fls)
     ! HB0 module
     call HB0_Update(io, aem%hb0, aem%fdp)
     ! WL0 module (for adjustable-discharge wells)
@@ -2260,7 +2271,7 @@ contains
     call AQU_Load(io, aem%aqu, aem%fdp, mode)
     call LS1_Load(io, aem%ls1, aem%fwl, aem%fdp, mode)
     call LS2_Load(io, aem%ls2, aem%fwl, aem%fdp, mode)
-    call LS3_Load(io, aem%ls3, aem%fwl, aem%fdp, mode)
+    call LS3_Load(io, aem%ls3, aem%fls, mode)
     call HB0_Load(io, aem%hb0, aem%fdp, mode)
     call WL1_Load(io, aem%wl1, aem%fwl, mode)
 #ifndef __GPL__

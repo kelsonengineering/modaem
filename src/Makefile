@@ -126,7 +126,7 @@ $(BUILDDIR)/m_ls1.o: $(SRCROOT)/m_ls1.F90 $(BUILDDIR)/u_constants.o $(BUILDDIR)/
 	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) -c	$(SRCROOT)/m_ls1.F90 -o $@
 $(BUILDDIR)/m_ls2.o: $(SRCROOT)/m_ls2.F90 $(BUILDDIR)/u_constants.o $(BUILDDIR)/u_io.o $(BUILDDIR)/f_well.o $(BUILDDIR)/f_dipole.o $(BUILDDIR)/u_matrix.o $(BUILDDIR)/m_aqu.o
 	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) -c	$(SRCROOT)/m_ls2.F90 -o $@
-$(BUILDDIR)/m_ls3.o: $(SRCROOT)/m_ls3.F90 $(BUILDDIR)/u_constants.o $(BUILDDIR)/u_io.o $(BUILDDIR)/f_well.o $(BUILDDIR)/f_dipole.o $(BUILDDIR)/u_matrix.o $(BUILDDIR)/m_aqu.o
+$(BUILDDIR)/m_ls3.o: $(SRCROOT)/m_ls3.F90 $(BUILDDIR)/u_constants.o $(BUILDDIR)/u_io.o $(BUILDDIR)/f_linesink.o $(BUILDDIR)/u_matrix.o $(BUILDDIR)/m_aqu.o
 	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) -c	$(SRCROOT)/m_ls3.F90 -o $@
 $(BUILDDIR)/m_pd0.o: $(SRCROOT)/m_pd0.F90 $(BUILDDIR)/u_constants.o $(BUILDDIR)/u_io.o $(BUILDDIR)/f_pond.o
 	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) -c	$(SRCROOT)/m_pd0.F90 -o $@
@@ -134,7 +134,7 @@ $(BUILDDIR)/m_wl0.o: $(SRCROOT)/m_wl0.F90 $(BUILDDIR)/u_constants.o $(BUILDDIR)/
 	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) -c	$(SRCROOT)/m_wl0.F90 -o $@
 $(BUILDDIR)/m_wl1.o: $(SRCROOT)/m_wl1.F90 $(BUILDDIR)/u_constants.o $(BUILDDIR)/u_io.o $(BUILDDIR)/f_well.o $(BUILDDIR)/u_matrix.o $(BUILDDIR)/m_aqu.o
 	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) -c	$(SRCROOT)/m_wl1.F90 -o $@
-$(BUILDDIR)/m_aem.o: $(SRCROOT)/m_aem.F90 $(BUILDDIR)/u_constants.o $(BUILDDIR)/u_io.o $(BUILDDIR)/u_matrix.o $(BUILDDIR)/f_well.o $(BUILDDIR)/f_dipole.o $(BUILDDIR)/f_pond.o $(BUILDDIR)/m_aqu.o $(BUILDDIR)/m_wl0.o $(BUILDDIR)/m_wl1.o \
+$(BUILDDIR)/m_aem.o: $(SRCROOT)/m_aem.F90 $(BUILDDIR)/u_constants.o $(BUILDDIR)/u_io.o $(BUILDDIR)/u_matrix.o $(BUILDDIR)/f_well.o $(BUILDDIR)/f_dipole.o $(BUILDDIR)/f_pond.o $(BUILDDIR)/f_linesink.o $(BUILDDIR)/m_aqu.o $(BUILDDIR)/m_wl0.o $(BUILDDIR)/m_wl1.o \
                               $(BUILDDIR)/m_pd0.o $(BUILDDIR)/m_ls0.o $(BUILDDIR)/m_ls1.o $(BUILDDIR)/m_ls2.o $(BUILDDIR)/m_ls3.o $(BUILDDIR)/m_hb0.o $(BUILDDIR)/m_as0.o $(BUILDDIR)/m_cw0.o
 	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) -c	$(SRCROOT)/m_aem.F90 -o $@
 $(BUILDDIR)/m_ext.o: $(SRCROOT)/m_ext.F90 $(BUILDDIR)/u_constants.o $(BUILDDIR)/u_io.o $(BUILDDIR)/m_wl0.o $(BUILDDIR)/m_wl1.o $(BUILDDIR)/m_ls0.o $(BUILDDIR)/m_ls1.o $(BUILDDIR)/m_hb0.o $(BUILDDIR)/m_aem.o
