@@ -1309,10 +1309,8 @@ contains
     real(kind=AE_REAL) :: rMultiplier
 
     select case (iElementType)
-      case (ELEM_AQU)
-        rMultiplier = rAQU_GetCoefficientMultiplier(io, aem%aqu, iElementString, iElementVertex, iElementFlag)
-      case (ELEM_IN0)
-        rMultiplier = rIN0_GetCoefficientMultiplier(io, aem%aqu%in0, iElementString, iElementVertex, iElementFlag)
+      case (ELEM_AQU, ELEM_IN0)
+        rMultiplier = rAQU_GetCoefficientMultiplier(io, aem%aqu, iElementType, iElementString, iElementVertex, iElementFlag)
       case (ELEM_LS1)
         rMultiplier = rLS1_GetCoefficientMultiplier(io, aem%ls1, iElementString, iElementVertex, iElementFlag)
       case (ELEM_LS2)

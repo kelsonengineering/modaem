@@ -44,20 +44,118 @@ module m_aqu
   !!          conversion of heads and potentials, looking up aquifer properties, etc.
   !! In addition, the AQU module must allow the other m_xxx element modules to access
   !! its "global" conversion functions.
+  !!
+  !! This module also incorporates the functionality previously in m_in0,
+  !! providing inhomogeneity domain support directly.
 
   use u_constants
   use u_io
   use u_matrix
+  use u_polygon
 
   use f_dipole
 
   use i_linesink
 
-  use m_in0
-
   implicit none
 
   public
+
+  private :: lAQU_PointInsideDomain, &
+             lAQU_LineIntersectsDomain, &
+             lAQU_DomainInsideDomain
+
+  type, public :: AQU_VERTEX
+    !! type AQU_VERTEX
+    !!
+    !! Type that holds information for one vertex along the edge of an inhomogeneity
+    !!
+    !! Members:
+    !!   complex :: cZ
+    !!     The complex coordinate of the vertex
+    !!   real :: rStrength(3)
+    !!     The doublet strength at the vertex
+    !!   type(FDP_DIPOLE), pointer :: pFDP
+    !!     Pointer to the vertex entry in the FDP module.
+    !!
+    complex(kind=AE_REAL) :: cZ
+    type(FDP_DIPOLE), pointer :: pFDP
+    real(kind=AE_REAL), dimension(3) :: rStrength
+    real(kind=AE_REAL), dimension(3) :: rCheckPot
+    real(kind=AE_REAL), dimension(3) :: rLeftH
+    real(kind=AE_REAL), dimension(3) :: rRightH
+    real(kind=AE_REAL), dimension(3) :: rLeftT
+    real(kind=AE_REAL), dimension(3) :: rRightT
+    real(kind=AE_REAL), dimension(3) :: rError
+    complex(kind=AE_REAL), dimension(3) :: cCPZ
+    complex(kind=AE_REAL), dimension(3) :: cCPZOpp
+  end type AQU_VERTEX
+
+  type, public :: AQU_DOMAIN
+    !! type AQU_DOMAIN
+    !!
+    !! Type that holds information for one inhomogeneity domain
+    !!
+    !! Members:
+    !!   complex :: cZ(:)
+    !!     Vertices of the domain polygon
+    !!   integer :: iInsideDomain
+    !!     Number of the AQU_DOMAIN that this domain is inside
+    !!   integer :: iNPts
+    !!     The number of vertices actually in use
+    !!   integer :: iID
+    !!     The ID number for the domain
+    !!   real :: rBase
+    !!     Base elevation
+    !!   real :: rThickness
+    !!     Thickness of the aquifer
+    !!   real :: rHydCond
+    !!     Hydraulic conductivity
+    !!   real :: rPorosity
+    !!     Porosity
+    !!
+    complex(kind=AE_REAL), dimension(:), pointer :: cZ
+    integer(kind=AE_INT) :: iInsideDomain
+    integer(kind=AE_INT) :: iOutsideDomain
+    integer(kind=AE_INT) :: iNPts
+    integer(kind=AE_INT) :: iID
+    real(kind=AE_REAL) :: rBase
+    real(kind=AE_REAL) :: rThickness
+    real(kind=AE_REAL) :: rHydCond
+    real(kind=AE_REAL) :: rPorosity
+    real(kind=AE_REAL) :: rTopPot
+    real(kind=AE_REAL) :: rAvgHead
+  end type AQU_DOMAIN
+
+  type, public :: AQU_STRING
+    !! type AQU_STRING
+    !!
+    !! Type that holds information for one inhomogeneity string.
+    !! Strings are defined separately from the domains.
+    !!
+    !! Members:
+    !!   type(AQU_VERTEX), dimension(:), pointer :: Vertices
+    !!     A vector of AQU_VERTEX objects
+    !!   integer :: iLeftID
+    !!     ID of the AQU_DOMAIN that is to the left of the string
+    !!   integer :: iRightID
+    !!     ID of the AQU_DOMAIN that is to the right of the string
+    !!   integer :: iNPts
+    !!     The number of vertices actually in use
+    !!   logical :: lClosed
+    !!     .true. if the string closes on itself
+    !!   integer :: iID
+    !!     The ID number for the string
+    !!
+    type(AQU_VERTEX), dimension(:), pointer :: Vertices
+    integer(kind=AE_INT) :: iLeftID
+    integer(kind=AE_INT) :: iRightID
+    real(kind=AE_REAL) :: rLeftB
+    real(kind=AE_REAL) :: rRightB
+    integer(kind=AE_INT) :: iNPts
+    logical :: lClosed
+    integer(kind=AE_INT) :: iID
+  end type AQU_STRING
 
   type, public :: AQU_BDYELEMENT
     !! type AQU_BDYELEMENT
@@ -82,10 +180,6 @@ module m_aqu
     !!     Length of the line segment
     !!   real :: rStrength
     !!     Sink density of the line segment
-    !!   real :: rDPStrength
-    !!     Dipole strength of the line segment
-    !!   integer :: iFWLIndex
-    !!     Index into FWL for the segment
     !!
     complex(kind=AE_REAL) :: cZ1
     complex(kind=AE_REAL) :: cZ2
@@ -131,6 +225,14 @@ module m_aqu
     !!     Vector of vertices which make up the perimeter of the aquifer
     !!   integer :: iNBdy
     !!     Number of perimeter points currently in use
+    !!   type(AQU_DOMAIN) :: Domains(:)
+    !!     Vector of inhomogeneity domains
+    !!   integer :: iNDom
+    !!     Number of domains in use
+    !!   type(AQU_STRING) :: Strings(:)
+    !!     Vector of inhomogeneity strings
+    !!   integer :: iNStr
+    !!     Number of strings in use
     !!
     complex(kind=AE_REAL) :: cRefPoint
     real(kind=AE_REAL) :: rRefHead
@@ -141,7 +243,17 @@ module m_aqu
     type(AQU_BDYELEMENT), dimension(:), pointer :: BdyElements
     integer(kind=AE_INT) :: iNBdy
     logical :: lPrecondition
-    type(IN0_COLLECTION), pointer :: in0
+    ! Inhomogeneity domains and strings (dissolved from IN0_COLLECTION)
+    type(AQU_DOMAIN), dimension(:), pointer :: Domains
+    integer(kind=AE_INT) :: iNDom
+    type(AQU_STRING), dimension(:), pointer :: Strings
+    integer(kind=AE_INT) :: iNStr
+    integer(kind=AE_INT) :: iRegenerate
+    logical :: lInitialIteration
+    ! Inhomogeneity iterator fields (renamed from in0%iIterStr, etc.)
+    integer(kind=AE_INT) :: iInhoIterStr
+    integer(kind=AE_INT) :: iInhoIterVtx
+    integer(kind=AE_INT) :: iInhoIterFlag
     ! Iterator information(aquifers with reference conditions)
     ! Position = -1          - > reset
     ! Position = 0           - > reference potential
@@ -174,6 +286,15 @@ module m_aqu
   ! in FWL_Flow
   real(kind=AE_REAL), private, parameter :: PERIMETER_TOLERANCE = 1.0e-2_AE_REAL
   real(kind=AE_REAL), private, parameter :: BDY_MOVE_FACTOR = 1.0e-4_AE_REAL
+  ! Matrix generator element flags (for inhomogeneities)
+  integer(kind=AE_INT), private, parameter :: kAQU_Vertex = 1
+  integer(kind=AE_INT), private, parameter :: kAQU_Center = 2
+  integer(kind=AE_INT), private, parameter :: kAQU_Vertex2 = 3
+  ! How far do I move the control points off the line segments?
+  real(kind=AE_REAL), private, parameter :: AQU_NORMAL_OFFSET = -1.0e-7_AE_REAL
+  real(kind=AE_REAL), private, parameter :: AQU_OPPOSITE_OFFSET = 1.0e-7_AE_REAL
+
+  real(kind=AE_REAL) :: MOVEFACTOR = 1.0001_AE_REAL
 
 
 contains
@@ -208,6 +329,7 @@ contains
     type(AQU_COLLECTION), pointer :: aqu
     ! [ LOCALS ]
     integer(kind=AE_INT) :: iStat
+    type(AQU_DOMAIN), pointer :: dom
 
     allocate(aqu, stat = iStat)
     call IO_Assert(io, (iStat == 0), "AQU_Create: allocation failed")
@@ -219,7 +341,30 @@ contains
     rHydCond = rIO_getReal(io, 'rHydCond', minimum = rZERO)
     rPorosity = rIO_getReal(io, 'rPorosity', minimum = rTINY)
     rAvgHead = rIO_getReal(io, 'rAvgHead', minimum = rBase)
-    aqu%in0 => IN0_Create(io, iNInho, iNStr, rBase, rThick, rHydCond, rPorosity, rAvgHead)
+
+    ! Initialize the inhomogeneity data structures (was IN0_Create)
+    allocate(aqu%Domains(iNInho), aqu%Strings(iNStr), stat = iStat)
+    call IO_Assert(io, (iStat == 0), "AQU_Create: allocation failed")
+    aqu%Domains%iID = -1
+    aqu%Strings%iID = -1
+
+    aqu%iNDom = 1
+    aqu%iNStr = 0
+    aqu%iRegenerate = 1
+    aqu%lInitialIteration = .true.
+    aqu%lPrecondition = .true.
+
+    ! Build the infinite aquifer domain
+    dom => aqu%Domains(1)
+    dom%rBase = rBase
+    dom%rThickness = rThick
+    dom%rHydCond = rHydCond
+    dom%rPorosity = rPorosity
+    dom%rAvgHead = rAvgHead
+    dom%iInsideDomain = 0
+    dom%iOutsideDomain = 0
+    dom%iNPts = 0
+    dom%iID = 0
 
     aqu%cRefPoint = cZERO
     aqu%rRefHead = rZERO
@@ -232,7 +377,6 @@ contains
     ! The following are determined in AQU_Setup
     aqu%rSolConst = rZERO
     aqu%rCheck = rZERO
-    aqu%lPrecondition = .true.
     ! First time up, no regen
     aqu%lFSRegen = .false.
     ! Boundary isn't set yet
@@ -251,7 +395,7 @@ contains
     logical, intent(in) :: lPre
     type(IO_STATUS), pointer :: io
 
-    call IN0_SetPrecondition(io, aqu%in0, lPre)
+    aqu%lPrecondition = lPre
 
     return
   end subroutine AQU_SetPrecondition
@@ -314,7 +458,13 @@ contains
     type(AQU_COLLECTION), pointer :: aqu
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: i, istat
+    integer(kind=AE_INT) :: i, istat, iDom, iDom2, iStr, iVtx, iNChanges
+    character(len=255) :: sBuf
+    type(AQU_DOMAIN), pointer :: dom, dom2, outside
+    type(AQU_STRING), pointer :: str
+    type(AQU_VERTEX), pointer :: vtx
+    complex(kind=AE_REAL), dimension(:), allocatable :: cTempZ
+    real(kind=AE_REAL) :: rH, rT
 
     ! Fix up the perimeter stuff as necessary
     if (aqu%iNBdy > 0) then
@@ -332,8 +482,96 @@ contains
       aqu%iNPerimeter = 0
     end if
 
-    ! Set up the IN0 module stuff
-    call IN0_PreSolve(io, aqu%in0)
+    ! Set up the inhomogeneity module stuff (was IN0_PreSolve)
+    ! Compute the necessary constants
+    do iDom = 1, aqu%iNDom
+      dom => aqu%Domains(iDom)
+      if (iDom > 1) then
+        call PGN_MakePositivelyOriented(dom%cZ(1:dom%iNPts))
+      end if
+    end do
+
+    ! Nest the domains, if necessary, using an iterative strategy
+    print *, 'Checking for nested inhomogeneities...'
+    ! Handle the potentials at bottom and top of all aquifers
+    aqu%Domains(:)%rTopPot = rHALF * aqu%Domains(:)%rHydCond * aqu%Domains(:)%rThickness**2
+    do
+      iNChanges = 0
+      do iDom = 2, aqu%iNDom
+        dom => aqu%Domains(iDom)
+        do iDom2 = 2, aqu%iNDom
+          dom2 => aqu%Domains(iDom2)
+          if (iDom /= iDom2) then
+            ! Set iDom's domain to be iDom2 if (1) iDom2 contains iDom's outside
+            ! domain and(2) iDom is inside iDom2
+            if (lAQU_DomainInsideDomain(io, aqu, iAQU_DomainIDIndex(io, aqu, dom%iOutsideDomain), iDom2) .and. &
+                lAQU_DomainInsideDomain(io, aqu, iDom2, iDom)) then
+              dom%iOutsideDomain = dom2%iID
+              iNChanges = iNChanges+1
+            end if
+          end if
+        end do
+
+        outside => AQU_FindDomainID(io, aqu, dom%iOutsideDomain)
+      end do
+      if (iNChanges == 0) exit
+    end do
+
+    ! If no strings were explicitly defined, create strings for the domains
+    if (aqu%iNStr == 0) then
+      print *, 'Copying AQU domains into strings...'
+      call IO_Assert(io, (size(aqu%Strings) >= aqu%iNDom-1), &
+           "AQU_PreSolve: Insufficient number of strings is available")
+      do iDom = 2, aqu%iNDom
+        aqu%iNStr = aqu%iNStr+1
+        dom => aqu%Domains(iDom)
+        str => aqu%Strings(aqu%iNStr)
+        allocate(str%Vertices(dom%iNPts), stat = iStat)
+        call IO_Assert(io, (iStat == 0), &
+             "AQU_PreSolve: Space exhausted")
+        str%iNPts = dom%iNPts
+        do iVtx = 1, dom%iNPts
+          vtx => str%Vertices(iVtx)
+          vtx%cZ = dom%cZ(iVtx)
+          vtx%rStrength = rZERO
+          vtx%rCheckPot = rZERO
+          nullify(vtx%pFDP)
+        end do
+        str%iLeftID = dom%iInsideDomain
+        str%iRightID = dom%iOutsideDomain
+        str%lClosed = .true.
+        str%iID = dom%iID
+      end do
+    end if
+
+    ! Set the RightB and LeftB base elevations for all strings
+    do iStr = 1, aqu%iNStr
+      str => aqu%Strings(iStr)
+      dom => AQU_FindDomainID(io, aqu, str%iLeftID)
+      str%rLeftB = dom%rBase
+      if (dom%rAvgHead > (dom%rBase+dom%rThickness)) then
+        rH = dom%rThickness
+      else
+        rH = dom%rAvgHead - dom%rBase
+      end if
+      do iVtx = 1, str%iNPts
+        vtx => str%Vertices(iVtx)
+        vtx%rLeftH = rH
+        vtx%rLeftT = rH * dom%rHydCond
+      end do
+      dom => AQU_FindDomainID(io, aqu, str%iRightID)
+      str%rRightB = dom%rBase
+      if (dom%rAvgHead > (dom%rBase+dom%rThickness)) then
+        rH = dom%rThickness
+      else
+        rH = dom%rAvgHead - dom%rBase
+      end if
+      do iVtx = 1, str%iNPts
+        vtx => str%Vertices(iVtx)
+        vtx%rRightH = rH
+        vtx%rRightT = rH * dom%rHydCond
+      end do
+    end do
 
     return
   end subroutine AQU_PreSolve
@@ -365,27 +603,56 @@ contains
     type(IO_STATUS), pointer :: io
     ! [ RETURN VALUE ]
     integer(kind=AE_INT) :: iValue
+    ! [ LOCALS ]
     integer(kind=AE_INT) :: iStr
+    type(AQU_STRING), pointer :: str
 
     if (aqu%lDebug) then
       call IO_Assert(io, (associated(aqu)), &
            "AQU_GetInfo: AQU_Create has not been called")
     end if
 
-    iValue = iIN0_GetInfo(io, aqu%in0, iOption, iIteration)
-    !  print *, 'IN0', iValue
+    ! First, count the inhomogeneity contributions (was iIN0_GetInfo)
+    iValue = 0
     select case (iOption)
-      case (SIZE_FWL)
-        continue
       case (SIZE_FDP)
-        continue
+        do iStr = 1, aqu%iNStr
+          str => aqu%Strings(iStr)
+          if (str%lClosed) then
+            iValue = iValue + str%iNPts
+          else
+            iValue = iValue + str%iNPts-1
+          end if
+        end do
       case (SIZE_EQUATIONS)
+        do iStr = 1, aqu%iNStr
+          str => aqu%Strings(iStr)
+          if (str%lClosed) then
+            iValue = iValue + 2*str%iNPts
+          else
+            iValue = iValue + 2*str%iNPts-1
+          end if
+        end do
         iValue = iValue + aqu%iNBdy
         if (aqu%lReference .or. aqu%iNBdy == 0) iValue = iValue + 1
       case (SIZE_UNKNOWNS)
+        do iStr = 1, aqu%iNStr
+          str => aqu%Strings(iStr)
+          if (str%lClosed) then
+            iValue = iValue + 2*str%iNPts
+          else
+            iValue = iValue + 2*str%iNPts-1
+          end if
+        end do
         iValue = iValue + aqu%iNBdy
         if (aqu%lReference .or. aqu%iNBdy == 0) iValue = iValue + 1
       case (INFO_REGENERATE)
+        ! Force a regen on the first two iterations
+        if (iIteration < 2) then
+          iValue = 1
+        else
+          iValue = aqu%iRegenerate
+        end if
         if (iIteration < 2 .or. aqu%lFSRegen) then
           iValue = 1
         end if
@@ -398,7 +665,7 @@ contains
 
 
   subroutine AQU_SetupFunctions(io, aqu, fdp)
-    !! subroutine AQU_SetupFunction
+    !! subroutine AQU_SetupFunctions
     !!
     !! This routine sets up the functions in f_well and f_dipole for the perimeter
     !! and sets up the equation for the reference point.
@@ -406,24 +673,16 @@ contains
     !! Note: This routine assumes that sufficient space has been allocated
     !! in f_well and in f_dipole by SOL_Alloc.
     !!
-    !! Calling Sequence:
-    !!    call AQU_SetupFunction(io, iL)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    type(FDP_COLLECTION), pointer :: fwl
-    !!             FDP_COLLECTION object where functions may be added
-    !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
     type(FDP_COLLECTION), pointer :: fdp
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    complex(kind=AE_REAL) :: cCPZ1, cCPZ2
-    integer(kind=AE_INT) :: iBdy
-    integer(kind=AE_INT) :: iNWL, iNPD, iNDP, iNEQ, iNUN
-    type(AQU_BDYELEMENT), pointer :: this
+    integer(kind=AE_INT) :: iStat, iStr, iVtx
+    real(kind=AE_REAL) :: rSum
+    complex(kind=AE_REAL) :: cZ1, cZ2
+    type(AQU_STRING), pointer :: str
+    type(AQU_VERTEX), pointer :: vtx
 
     call IO_Assert(io, (associated(aqu)), "AQU_Setup: AQU_Create has not been called")
 
@@ -433,8 +692,29 @@ contains
       aqu%BdyElements(1:aqu%iNBdy)%cZL = rHALF * (aqu%BdyElements(1:aqu%iNBdy)%cZ2 - aqu%BdyElements(1:aqu%iNBdy)%cZ1)
     end if
 
-    ! Set the confined potential
-    call IN0_SetupFunctions(io, aqu%in0, fdp)
+    ! Set the confined potential (was IN0_SetupFunctions)
+    ! Build dipoles for all segments
+    if (io%lDebug) then
+      call IO_Assert(io, (associated(fdp)), &
+           "AQU_SetupFunctions: Illegal FDP_COLLECTION object")
+    end if
+
+    do iStr = 1, aqu%iNStr
+      str => aqu%Strings(iStr)
+      do iVtx = 1, str%iNPts
+        vtx => str%Vertices(iVtx)
+        cZ1 = vtx%cZ
+        if (iVtx < str%iNPts) then
+          cZ2 = str%Vertices(iVtx+1)%cZ
+          vtx%pFDP => FDP_New(io, fdp, cZ1, cZ2, (/cZERO, cZERO, cZERO/), ELEM_IN0, iStr, iVtx, -1)
+        else
+          if (str%lClosed) then
+            cZ2 = str%Vertices(1)%cZ
+            vtx%pFDP => FDP_New(io, fdp, cZ1, cZ2, (/cZERO, cZERO, cZERO/), ELEM_IN0, iStr, iVtx, -1)
+          end if
+        end if
+      end do
+    end do
 
     return
   end subroutine AQU_SetupFunctions
@@ -449,30 +729,102 @@ contains
     !! Note: This routine assumes that sufficient space has been allocated
     !! in f_well and in f_dipole by SOL_Alloc.
     !!
-    !! Calling Sequence:
-    !!    call AQU_SetupMatrix(io, aqu, mat)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    type(MAT_MATRIX), pointer :: mat
-    !!             MAT_MATRIX object for the solver
-    !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
     type(MAT_MATRIX), pointer :: mat
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
     complex(kind=AE_REAL) :: cCPZ0, cCPZ1, cCPZ2, cNormal, cN1, cN2, cUnitOffset
+    complex(kind=AE_REAL) :: cZ1, cZ2, cZ3
+    complex(kind=AE_REAL), dimension(6) :: cCPResult1, cCPResult2
+    complex(kind=AE_REAL), dimension(3) :: cCPVtx
     real(kind=AE_REAL) :: rElev, rOffsetDistance
-    integer(kind=AE_INT) :: iBdy
+    integer(kind=AE_INT) :: iBdy, iStr, iVtx
     integer(kind=AE_INT) :: iNWL, iNPD, iNDP, iNEQ, iNUN, iEQ
+    integer(kind=AE_INT) :: irv
     type(AQU_BDYELEMENT), pointer :: this, prev, next
+    type(AQU_STRING), pointer :: str
+    type(AQU_VERTEX), pointer :: vtx
+    character(len=255) :: sBuf
 
     call IO_Assert(io, (associated(aqu)), "AQU_Setup: AQU_Create has not been called")
 
-    ! Set the confined potential
-    call IN0_SetupMatrix(io, aqu%in0, mat)
+    ! Build matrix entries for inhomogeneity strings (was IN0_SetupMatrix)
+    if (io%lDebug) then
+      call IO_Assert(io, (associated(mat)), &
+           "AQU_SetupMatrix: Illegal MAT_MATRIX object")
+    end if
+
+    ! Build matrix entries for all segments
+    do iStr = 1, aqu%iNStr
+      str => aqu%Strings(iStr)
+      ! Set up the unknown variables
+      do iVtx = 1, str%iNPts
+        vtx => str%Vertices(iVtx)
+        ! Make a doublet vertex variable
+        call MAT_CreateVariable(io, mat, ELEM_IN0, iStr, iVtx, kAQU_Vertex)
+        call MAT_CreateVariable(io, mat, ELEM_IN0, iStr, iVtx, kAQU_Center)
+        if (.not. str%lClosed .and. iVtx == str%iNPts-1) then
+          ! Create the 'tip' variable, only if not closed, then exit the loop!
+          call MAT_CreateVariable(io, mat, ELEM_IN0, iStr, iVtx, kAQU_Vertex2)
+          exit
+        end if
+      end do
+
+      ! Set up control point sets and equations
+      if (str%lClosed) then
+        ! Closed boundary
+        do iVtx = 1, str%iNPts
+          vtx => str%Vertices(iVtx)
+          ! Now, create the equation entries...
+          cZ1 = vtx%cZ
+          if (iVtx < str%iNPts) then
+            cZ2 = str%Vertices(iVtx+1)%cZ
+          else
+            cZ2 = str%Vertices(1)%cZ
+          end if
+          ! Compute control point locations
+          call MAT_ComputeControlPoints(io, cZ1, cZ2, 1, cCPResult1, AQU_NORMAL_OFFSET, &
+               (/0.001_AE_REAL, 0.501_AE_REAL/))
+          ! Vertex entry
+          iEQ = MAT_CreateEquation(io, mat, (/cCPResult1(1)/), EQN_INHO, ELEM_IN0, &
+                                   iStr, iVtx, kAQU_Vertex, cZ2-cZ1, rZERO)
+          ! Center entry
+          iEQ = MAT_CreateEquation(io, mat, (/cCPResult1(2)/), EQN_INHO, ELEM_IN0, &
+                                   iStr, iVtx, kAQU_Center, cZ2-cZ1, rZERO)
+          vtx%cCPZ(1:2) = cCPResult1(1:2)
+          call MAT_ComputeControlPoints(io, cZ1, cZ2, 1, cCPResult1, AQU_NORMAL_OFFSET, &
+               (/0.001_AE_REAL, 0.501_AE_REAL/))
+          vtx%cCPZOpp(1:2) = cCPResult1(1:2)
+        end do
+      else
+        ! Open string
+        do iVtx = 1, str%iNPts-1
+          vtx => str%Vertices(iVtx)
+          ! Now, create the equation entries...
+          cZ1 = vtx%cZ
+          cZ2 = str%Vertices(iVtx+1)%cZ
+          ! Compute control point locations
+          call MAT_ComputeControlPoints(io, cZ1, cZ2, 1, cCPResult1, AQU_NORMAL_OFFSET, &
+               (/0.001_AE_REAL, rHALF, rONE-0.001_AE_REAL/))
+          ! Vertex entry
+          iEQ = MAT_CreateEquation(io, mat, (/cCPResult1(1)/), EQN_INHO, ELEM_IN0, &
+                                   iStr, iVtx, kAQU_Vertex, cZ2-cZ1, rZERO)
+          vtx%cCPZ(kAQU_Vertex) = cCPResult1(1)
+          ! Center entry
+          iEQ = MAT_CreateEquation(io, mat, (/cCPResult1(2)/), EQN_INHO, ELEM_IN0, &
+                                   iStr, iVtx, kAQU_Center, cZ2-cZ1, rZERO)
+          vtx%cCPZ(kAQU_Center) = cCPResult1(2)
+          if (iVtx == str%iNPts-1) then
+            ! End of an open string
+            iEQ = MAT_CreateEquation(io, mat, (/cCPResult1(3)/), EQN_INHO, ELEM_IN0, &
+                                     iStr, iVtx, kAQU_Vertex2, cZ2-cZ1, rZERO)
+            vtx%cCPZ(kAQU_Vertex2) = cCPResult1(3)
+          end if
+        end do
+      end if
+
+    end do
 
     ! Build the matrix entries for the perimeter(if any)
     if (aqu%iNBdy > 0) then
@@ -500,8 +852,6 @@ contains
             cUnitOffset = (cN1 + cN2) / abs(cN1 + cN2)
             this%cCPZ2 = this%cZ2 + rOffsetDistance * cUnitOffset
             next%cCPZ1 = next%cZ1 + rOffsetDistance * cUnitOffset
-!            write(unit=*, fmt="('bdy', 4(1x,'(',2f10.3,')'),i3)") this%cZ1, this%cZ2, &
-!                & next%cZ2, this%cCPZ2, PGN_CheckPoint(aqu%cPerimeter,this%cCPZ2)
           end if
           ! Save the starting locations for the vertices
           this%cFSZ1 = this%cCPZ1
@@ -520,8 +870,6 @@ contains
                                                    EQN_BDYGHB, ELEM_AQU, kAQUBoundary, iBdy, 0, cZERO, &
                  this%rGhbDistance/this%rLength)
           case (BDY_FREESURF)
-            ! For free-surface elements, choose the proper initial boundary condition
-            !write(unit=*,fmt="('MAT',i10,1x,i1,1x,l1,4(e16.8,1x))") ibdy, this%iBdyFlag, this%lFSHeadSpec, this%cCPZ1, this%cCPZ2
             if (.not. aqu%lBoundaryInPlace) then
               rElev = max(aimag(this%cFSZ1), aimag(this%cFSZ2))
               if (this%rSpecHead >= rElev) then
@@ -547,7 +895,6 @@ contains
 
     end if
     ! Build a matrix entry for the reference point(if any)
-    !print *, aqu%lReference, aqu%iNBdy
     if (aqu%lReference) then
       call MAT_CreateVariable(io, mat, ELEM_AQU, kAQUReference, 0, 0)
       iEQ = MAT_CreateEquation(io, mat, (/aqu%cRefPoint/), EQN_HEAD, ELEM_AQU, kAQUReference, 0, 0, cZERO, rZERO)
@@ -566,15 +913,6 @@ contains
     !! Prepares the module for a new iteration
     !!
     !! Do-nothing for m_aqu
-    !!
-    !! Calling Sequence:
-    !!    call AQU_Prepare(io, aqu)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    type(MAT_MATRIX), pointer
-    !!             MAT_MATRIX object to be used
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -618,18 +956,29 @@ contains
   end subroutine AQU_GetNeighborBdy
 
 
-  function rAQU_GetCoefficientMultiplier(io, aqu, iElementString, iElementVertex, iElementFlag) result(rMultiplier)
+  function rAQU_GetCoefficientMultiplier(io, aqu, iElementType, iElementString, iElementVertex, iElementFlag) result(rMultiplier)
     !! Returns the coefficient multiplier
     !! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
+    integer(kind=AE_INT), intent(in) :: iElementType
     integer(kind=AE_INT), intent(in) :: iElementString
     integer(kind=AE_INT), intent(in) :: iElementVertex
     integer(kind=AE_INT), intent(in) :: iElementFlag
     type(IO_STATUS), pointer :: io
     !! [ RETURN VALUE ]
     real(kind=AE_REAL) :: rMultiplier
+    ! [ LOCALS ]
+    type(AQU_STRING), pointer :: str
+    type(AQU_VERTEX), pointer :: vtx
 
-    rMultiplier = rONE
+    select case (iElementType)
+      case (ELEM_IN0)
+        str => aqu%Strings(iElementString)
+        vtx => str%Vertices(iElementVertex)
+        rMultiplier = vtx%rLeftT(iElementFlag) - vtx%rRightT(iElementFlag)
+      case default
+        rMultiplier = rONE
+    end select
 
     return
   end function rAQU_GetCoefficientMultiplier
@@ -638,38 +987,10 @@ contains
   subroutine AQU_ComputeCoefficients(io, aqu, fdp, cPathZ, iEqType, iElementType, iElementString, &
                iElementVertex, iElementFlag, cOrientation, rGhbFactor, &
                iIteration, rMultiplier, rARow)
-    !! subroutine HB0_ComputeCoefficients
+    !! subroutine AQU_ComputeCoefficients
     !!
-    !! Computes a row of matrix coefficients(with no corrections) for the HB0
-    !! elements in layer iL.
-    !!
-    !! Calling Sequence:
-    !!    call AQU_ComputeCoefficients(io, aqu, fwl, fdp, mat, cPathZ, iEqType, cOrientation, rMultiplier, rRow)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    type(FWL_COLLECTION), pointer :: fwl
-    !!             FWL_COLLECTION object where functions may be added
-    !!   (in)    type(FDP_COLLECTION), pointer :: fdp
-    !!             FDP_COLLECTION object where functions may be added
-    !!   (in)    complex :: cPathZ(:)
-    !!             The control point(or control path) to be used
-    !!   (in)    integer :: iEqType
-    !!             The equation type
-    !!   (in)    integer :: iElementType
-    !!             The element type that created this equation
-    !!   (in)    integer :: iElementString
-    !!             The element string corresponding to this equation
-    !!   (in)    integer :: iElementVertex
-    !!             The element vertex corresponding to this equation
-    !!   (in)    integer :: iElementFlag
-    !!             The element flag(if any) for this equation
-    !!   (in)    complex :: cOrientation
-    !!             Orientation unit vector(for discharge-based equations)
-    !!   (out)   real :: rARow(:)
-    !!             The output row of coefficients(to be concatenated with
-    !!             row portions for other element modules.
+    !! Computes a row of matrix coefficients(with no corrections) for the AQU
+    !! elements.
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -687,12 +1008,16 @@ contains
     real(kind=AE_REAL), dimension(:), intent(out) :: rARow
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: i, iStat, iCol, iBdy, iIN0NUN
+    integer(kind=AE_INT) :: i, iStat, iCol, iBdy, iAQUNUN
+    integer(kind=AE_INT) :: iSkipCol, iVtx, iNDP, iWhich, irv, iBaseCol, iStr
     complex(kind=AE_REAL) :: cZC, cZL, cBigZ1, cBigZ2, cUnit
     complex(kind=AE_REAL), dimension(1, 1) :: cTemp
-    real(kind=AE_REAL), dimension(1, 1) :: rTemp
     complex(kind=AE_REAL), dimension(:), allocatable :: cBigZ
+    complex(kind=AE_REAL), dimension(:, :, :), allocatable :: cDPF, cDPW
+    complex(kind=AE_REAL), dimension(1, 3, 1) :: cDPJ
     type(AQU_BDYELEMENT), pointer :: bdy
+    type(AQU_STRING), pointer :: str
+    type(AQU_VERTEX), pointer :: this_vtx, next_vtx
 
     if (aqu%lDebug) then
       call IO_Assert(io, (associated(aqu)), &
@@ -701,12 +1026,115 @@ contains
     ! Set it up
     rARow = rZERO
 
-    ! Build entries for the inhomogeneities
-    iIN0NUN = iIN0_GetInfo(io, aqu%in0, SIZE_UNKNOWNS, 0)
-    call IN0_ComputeCoefficients(io, aqu%in0, fdp, cPathZ, iEqType, iElementType, iElementString, &
-         iElementVertex, iElementFlag, cOrientation, rGhbFactor, &
-         iIteration, rMultiplier, rARow(1:iIN0NUN))
-    iCol = iIN0NUN + 1
+    ! Build entries for the inhomogeneities (was IN0_ComputeCoefficients)
+    if (io%lDebug) then
+      call IO_Assert(io, (associated(fdp)), &
+           "AQU_ComputeCoefficients: Illegal FDP_COLLECTION object")
+    end if
+
+    iSkipCol = 0
+    do iStr = 1, aqu%iNStr
+      str => aqu%Strings(iStr)
+      ! Assume: the AQU_SetupFunctions routine creates consecutive dipole entries
+      if (str%lClosed) then
+        iNDP = str%iNPts
+      else
+        iNDP = str%iNPts-1
+      end if
+      allocate(cDPF(0:iNDP+1, 3, 1), cDPW(0:iNDP+1, 3, 1), stat = iStat)
+      call IO_Assert(io, (iStat == 0), "AQU_ComputeCoefficients: Allocation failed")
+
+      ! Now, compute the matrix coefficients
+      cDPF = cZERO
+      ! Get the appropriate influence functions for the boundary condition type
+      select case (iEqType)
+        case (EQN_HEAD)
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_P, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+        case (EQN_BDYGHB)
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_P, str%Vertices(1)%pFDP, iNDP, (/rHALF*sum(cPathZ)/), cOrientation, cDPF(1:iNDP, :, :))
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_F, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPW(1:iNDP, :, :))
+          cDPF = cDPF + rGhbFactor*cDPW
+        case (EQN_FLOW)
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_F, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+        case (EQN_INHO)
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_P, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+        case (EQN_DISCHARGE)
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_W, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+        case (EQN_RECHARGE)
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_G, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+        case (EQN_CONTINUITY)
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_Q, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+        case (EQN_POTENTIALDIFF)
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_D, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+        case (EQN_TOTALFLOW)
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_Z, str%Vertices(1)%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+      end select
+
+      do iVtx = 1, iNDP
+        this_vtx => str%Vertices(iVtx)
+        if (iVtx < iNDP) then
+          next_vtx => str%Vertices(iVtx+1)
+        else
+          next_vtx => str%Vertices(1)
+        end if
+
+        iBaseCol = 2*iVtx-1 + iSkipCol
+
+        ! Compute the contributions for all line-doublets
+        ! Vertex 1 contribution
+        rARow(iBaseCol) = rARow(iBaseCol)   - rMultiplier * aimag(cDPF(iVtx, 1, 1))
+        ! Center contribution
+        rARow(iBaseCol+1) = rARow(iBaseCol+1) - rMultiplier * aimag(cDPF(iVtx, 2, 1))
+        ! Vertex 2 contribution
+        if (str%lClosed) then
+          ! For closed strings...
+          if (iVtx < iNDP) then
+            rARow(iBaseCol+2) = rARow(iBaseCol+2) - rMultiplier * aimag(cDPF(iVtx, 3, 1))
+          else
+            rARow(1+iSkipCol) = rARow(1+iSkipCol) - rMultiplier * aimag(cDPF(iVtx, 3, 1))
+          end if
+        else
+          ! For open strings, store the last term
+          rARow(iBaseCol+2) = rARow(iBaseCol+2) - rMultiplier * aimag(cDPF(iVtx, 3, 1))
+        end if
+
+        ! Do I compute the additional term for the inhomogeneity?
+        if ((iEqType == EQN_INHO) .and. &
+            (iElementType == ELEM_IN0) .and. &
+            (iElementString == iStr) .and. &
+            (iElementVertex == iVtx)) then
+          call FDP_GetInfluence_IDP(io, fdp, INFLUENCE_J, str%Vertices(iVtx)%pFDP, 1, cPathZ(1:1), cOrientation, cDPJ)
+          ! Vertex 1 contribution
+          rARow(iBaseCol) = rARow(iBaseCol)   - this_vtx%rRightT(1)*aimag(cDPJ(1, 1, 1))
+          ! Center contribution
+          rARow(iBaseCol+1) = rARow(iBaseCol+1) - this_vtx%rRightT(2)*aimag(cDPJ(1, 2, 1))
+          ! Vertex 2 contribution
+          if (str%lClosed) then
+            ! For closed strings...
+            if (iVtx < iNDP) then
+              rARow(iBaseCol+2) = rARow(iBaseCol+2) - next_vtx%rRightT(1)*aimag(cDPJ(1, 3, 1))
+            else
+              rARow(1+iSkipCol) = rARow(1+iSkipCol) - next_vtx%rRightT(1)*aimag(cDPJ(1, 3, 1))
+            end if
+          else
+            ! For open strings, update the last term
+            rARow(iBaseCol+2) = rARow(iBaseCol+2) - this_vtx%rRightT(3)*aimag(cDPJ(1, 3, 1))
+          end if
+        end if
+      end do
+
+      ! Now, advance through the buffer
+      if (str%lClosed) then
+        iSkipCol = iSkipCol + 2*str%iNPts
+      else
+        iSkipCol = iSkipCol + 2*str%iNPts - 1
+      end if
+
+      ! No memory leaks, please!
+      deallocate(cDPF, cDPW)
+    end do
+
+    iCol = iSkipCol + 1
 
     ! Build entries for the boundary elements
     if (associated(aqu%BdyElements)) then
@@ -786,26 +1214,6 @@ contains
     !!
     !! Computes the right-hand side value for the solution
     !!
-    !! Calling Sequence:
-    !!   rRHS = rAQU_ComputeRHS(io, aqu, rValue, iElementType, iElementString, iElementVertex, &
-         !!                          iElementFlag, rSpecValue, rCheck)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    integer :: iElementType
-    !!             Element type(either ELAM_AQU or ELEM_IN0)
-    !!   (in)    integer :: iElementString
-    !!             Element string number
-    !!   (in)    integer :: iElementVertex
-    !!             Element vertex number
-    !!   (in)    integer :: iElementFlag
-    !!             Element flag(e.g. for vertices which yield more than one equation)
-    !!
-    !! Return Value:
-    !!   real :: rRHS
-    !!     The RHS value for the module
-    !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
     type(FDP_COLLECTION), pointer :: fdp
@@ -817,9 +1225,13 @@ contains
     integer(kind=AE_INT), intent(in) :: iIteration
     logical, intent(in) :: lDirect
     type(IO_STATUS), pointer :: io
-    ! [ LOCALS ]
+    ! [ RETURN VALUE ]
     real(kind=AE_REAL) :: rRHS
+    ! [ LOCALS ]
+    real(kind=AE_REAL) :: rCorr
     type(AQU_BDYELEMENT), pointer :: bdy
+    type(AQU_STRING), pointer :: str
+    type(AQU_VERTEX), pointer :: vtx, next_vtx
 
     select case (iElementType)
       case (ELEM_AQU)
@@ -829,9 +1241,9 @@ contains
             select case (bdy%iBdyFlag)
               case (BDY_HEAD)
                 if (lDirect) then
-                  rRHS = rIN0_HeadToPotential(io, aqu%in0, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2))
+                  rRHS = rAQU_HeadToPotential(io, aqu, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2))
                 else
-                  rRHS = rIN0_HeadToPotential(io, aqu%in0, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2)) - bdy%rCheckPot
+                  rRHS = rAQU_HeadToPotential(io, aqu, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2)) - bdy%rCheckPot
                 end if
               case (BDY_FLUX)
                 if (lDirect) then
@@ -840,14 +1252,14 @@ contains
                   rRHS = bdy%rSpecFlux - bdy%rCheckFlux
                 end if
               case (BDY_GHB)
-                rRHS = rIN0_HeadToPotential(io, aqu%in0, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2)) - &
+                rRHS = rAQU_HeadToPotential(io, aqu, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2)) - &
                        bdy%rCheckPot - bdy%rCheckFlux*bdy%rGhbDistance/bdy%rLength
               case (BDY_FREESURF)
                 if (bdy%lFSHeadSpec) then
                   if (lDirect) then
-                    rRHS = rIN0_HeadToPotential(io, aqu%in0, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2))
+                    rRHS = rAQU_HeadToPotential(io, aqu, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2))
                   else
-                    rRHS = rIN0_HeadToPotential(io, aqu%in0, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2)) - bdy%rCheckPot
+                    rRHS = rAQU_HeadToPotential(io, aqu, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2)) - bdy%rCheckPot
                   end if
                 else
                   if (lDirect) then
@@ -860,17 +1272,44 @@ contains
           case (kAQUReference)
             if (aqu%lReference) then
               if (lDirect) then
-                rRHS = rIN0_HeadToPotential(io, aqu%in0, aqu%rRefHead, aqu%cRefPoint)
+                rRHS = rAQU_HeadToPotential(io, aqu, aqu%rRefHead, aqu%cRefPoint)
               else
-                rRHS = rIN0_HeadToPotential(io, aqu%in0, aqu%rRefHead, aqu%cRefPoint) - aqu%rCheck
+                rRHS = rAQU_HeadToPotential(io, aqu, aqu%rRefHead, aqu%cRefPoint) - aqu%rCheck
               end if
             else
               rRHS = rZERO
             end if
         end select
       case (ELEM_IN0)
-        rRHS = rIN0_ComputeRHS(io, aqu%in0, fdp, iEqType, iElementType, iElementString, iElementVertex, &
-               iElementFlag, iIteration, lDirect)
+        ! Compute the inhomogeneity RHS (was rIN0_ComputeRHS)
+        ! Assertions...
+        if (io%lDebug) then
+          call IO_Assert(io, (iElementString <= aqu%iNStr), &
+               "rAQU_ComputeRHS: Illegal string number")
+        end if
+        ! Compute the correction needed in the jump...
+        str => aqu%Strings(iElementString)
+        if (io%lDebug) then
+          call IO_Assert(io, (iElementVertex <= str%iNPts), &
+               "rAQU_ComputeRHS: Illegal vertex number")
+          if (iElementVertex == str%iNPts .and. .not. str%lClosed) then
+            call IO_Assert(io, (iElementFlag == kAQU_Vertex2), &
+                 "rAQU_ComputeRHS: No center strength at last vertex of open string")
+          end if
+        end if
+        vtx => str%Vertices(iElementVertex)
+
+        ! The sign on the "Jump" is negative due to the i*i factor in the computations
+        if (lDirect) then
+          rRHS = - (vtx%rLeftT(iElementFlag) - vtx%rRightT(iElementFlag)) * vtx%rCheckPot(iElementFlag) + &
+                 vtx%rLeftT(iElementFlag) * vtx%rRightT(iElementFlag) * &
+                 (str%rLeftB-str%rRightB + rHALF*(vtx%rLeftH(iElementFlag)-vtx%rRightH(iElementFlag)))
+        else
+          rRHS = - (vtx%rLeftT(iElementFlag) - vtx%rRightT(iElementFlag)) * vtx%rCheckPot(iElementFlag) - &
+                 vtx%rRightT(iElementFlag) * rFDP_PotentialJump(io, vtx%pFDP, vtx%cCPZ(iElementFlag)) + &
+                 vtx%rLeftT(iElementFlag) * vtx%rRightT(iElementFlag) * &
+                 (str%rLeftB-str%rRightB + rHALF*(vtx%rLeftH(iElementFlag)-vtx%rRightH(iElementFlag)))
+        end if
     end select
 
     return
@@ -881,24 +1320,7 @@ contains
     !! subroutine AQU_StoreResult
     !!
     !! Stores the results of a solution for a single equation associated with
-    !! the LS1 module.
-    !!
-    !! Calling Sequence:
-    !!    LS1_StoreResult(io, aqu, rValue, cCPZ, iEqType, cOrientation, rRHS)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    real :: rValue
-    !!             The new result value from the solution vector
-    !!   (in)    integer :: iElementType
-    !!             Element type(either ELAM_AQU or ELEM_IN0)
-    !!   (in)    integer :: iElementString
-    !!             Element string number
-    !!   (in)    integer :: iElementVertex
-    !!             Element vertex number
-    !!   (in)    integer :: iElementFlag
-    !!             Element flag(e.g. for vertices which yield more than one equation)
+    !! the AQU module.
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -911,9 +1333,11 @@ contains
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
     type(AQU_BDYELEMENT), pointer :: this
+    type(AQU_STRING), pointer :: str
+    type(AQU_VERTEX), pointer :: vtx
 
     if (aqu%lDebug) then
-      call IO_Assert(io, (associated(aqu)), "AQU_Update: AQU_Create has not been called")
+      call IO_Assert(io, (associated(aqu)), "AQU_StoreResult: AQU_Create has not been called")
     end if
 
     select case (iElementType)
@@ -934,7 +1358,33 @@ contains
             end if
         end select
       case (ELEM_IN0)
-        call IN0_StoreResult(io, aqu%in0, rValue, iElementType, iElementString, iElementVertex, iElementFlag, lDirect)
+        ! Store inhomogeneity result (was IN0_StoreResult)
+        if (io%lDebug) then
+          call IO_Assert(io, (iElementString >= 1 .and. iElementString <= aqu%iNStr), &
+               "AQU_StoreResult: Bad element string ID")
+        end if
+
+        str => aqu%Strings(iElementString)
+
+        if (io%lDebug) then
+          call IO_Assert(io, (iElementVertex >= 1 .and. iElementVertex <= str%iNPts), &
+               "AQU_StoreResult: Bad element vertex ID")
+        end if
+
+        ! All is well.  Store the result...
+        vtx => str%Vertices(iElementVertex)
+        if (lDirect) then
+          vtx%rStrength = rZERO
+        end if
+
+        select case (iElementFlag)
+          case (kAQU_Vertex)
+            vtx%rStrength(1) = vtx%rStrength(1) + rValue
+          case (kAQU_Center)
+            vtx%rStrength(2) = vtx%rStrength(2) + rValue
+          case (kAQU_Vertex2)
+            vtx%rStrength(3) = vtx%rStrength(3) + rValue
+        end select
     end select
 
     return
@@ -946,30 +1396,60 @@ contains
     !!
     !! Updates the underlying function objects for the specified layer.
     !!
-    !! Calling Sequence:
-    !!    AQU_Update(io, aqu, fwl, fdp)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    type(fdp_COLLECTION), pointer :: fdp
-    !!             FDP_COLLECTION object to be used
-    !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
     type(FDP_COLLECTION), pointer :: fdp
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iStr, iBdy, iRV
+    integer(kind=AE_INT) :: iStr, iBdy, iVtx, iRV
     complex(kind=AE_REAL) :: cRho1, cRho2, cRho3
     type(AQU_BDYELEMENT), pointer :: this
+    type(AQU_STRING), pointer :: str
+    type(AQU_VERTEX), pointer :: this_vtx, next_vtx
 
     if (aqu%lDebug) then
       call IO_Assert(io, (associated(aqu)), "AQU_Update: AQU_Create has not been called")
     end if
 
-    ! Update the inhomogeneities
-    call IN0_Update(io, aqu%in0, fdp)
+    ! Update the inhomogeneities (was IN0_Update)
+    if (io%lDebug) then
+      call IO_Assert(io, (associated(fdp)), &
+           "AQU_Update: Illegal FDP_COLLECTION object")
+    end if
+
+    do iStr = 1, aqu%iNStr
+      str => aqu%Strings(iStr)
+      if (str%lClosed) then
+        do iVtx = 1, str%iNPts
+          this_vtx => str%Vertices(iVtx)
+          cRho1 = cmplx(rZERO, this_vtx%rStrength(1), AE_REAL)
+          cRho2 = cmplx(rZERO, this_vtx%rStrength(2), AE_REAL)
+          if (iVtx < str%iNPts) then
+            next_vtx => str%Vertices(iVtx+1)
+          else
+            next_vtx => str%Vertices(1)
+          end if
+          cRho3 = cmplx(rZERO, next_vtx%rStrength(1), AE_REAL)
+          this_vtx%pFDP%cRho = (/cRho1, cRho2, cRho3/)
+        end do
+      else
+        do iVtx = 1, str%iNPts-1
+          this_vtx => str%Vertices(iVtx)
+          cRho1 = cmplx(rZERO, this_vtx%rStrength(1), AE_REAL)
+          cRho2 = cmplx(rZERO, this_vtx%rStrength(2), AE_REAL)
+          if (iVtx < str%iNPts-1) then
+            next_vtx => str%Vertices(iVtx+1)
+            cRho3 = cmplx(rZERO, next_vtx%rStrength(1), AE_REAL)
+          else
+            cRho3 = cmplx(rZERO, this_vtx%rStrength(3), AE_REAL)
+          end if
+          this_vtx%pFDP%cRho = (/cRho1, cRho2, cRho3/)
+        end do
+      end if
+    end do
+
+    ! If we've done this once, it's not the initial iteration anymore
+    aqu%lInitialIteration = .false.
 
     return
   end subroutine AQU_Update
@@ -979,15 +1459,6 @@ contains
     !! subroutine AQU_ResetIterator
     !!
     !! Resets the module's iterator prior to traversing for check data
-    !!
-    !! Calling Sequence:
-    !!    call AQU_ResetIterator(io, aqu)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION to be used
-    !!   (in)    type(IO_STATUS), pointer :: aqu
-    !!             Tracks error conditions
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -1000,7 +1471,16 @@ contains
 
     aqu%iIterPosition = 0
     aqu%iIterFlag = VALUE_POTENTIAL
-    call IN0_ResetIterator(io, aqu%in0)
+
+    ! Reset inhomogeneity iterator (was IN0_ResetIterator)
+    if (io%lDebug) then
+      call IO_Assert(io, (associated(aqu)), &
+           "AQU_ResetIterator: AQU_Create has not been called")
+    end if
+
+    aqu%iInhoIterStr = 1
+    aqu%iInhoIterVtx = 0
+    aqu%iInhoIterFlag = kAQU_Center
 
     return
   end subroutine AQU_ResetIterator
@@ -1011,25 +1491,13 @@ contains
     !!
     !! Advances the module's iterator one step
     !!
-    !! Calling Sequence:
-    !!    call AQU_NextIterator(io, aqu)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION to be used
-    !!   (in)    type(IO_STATUS), pointer :: aqu
-    !!             Tracks error conditions
-    !!
-    !! Return Value:
-    !!   type(ITERATOR_RESULT), pointer :: itr
-    !!     Pointer to the information for data retrieval
-    !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
     type(IO_STATUS), pointer :: io
     ! [ RETURN VALUE ]
     type(ITERATOR_RESULT), pointer :: itr
     type(AQU_BDYELEMENT), pointer :: bdy
+    type(AQU_DOMAIN), pointer :: dom
     integer(kind=AE_INT) :: iStat
 
     if (aqu%lDebug) then
@@ -1091,7 +1559,62 @@ contains
           aqu%iIterFlag = VALUE_POTENTIAL
       end select
     else
-      itr => IN0_NextIterator(io, aqu%in0)
+      ! Handle inhomogeneity iterator (was IN0_NextIterator)
+      if (io%lDebug) then
+        call IO_Assert(io, (associated(aqu)), &
+             "AQU_NextIterator: AQU_Create has not been called")
+      end if
+
+      if (aqu%iInhoIterStr > aqu%iNStr) then
+        nullify(itr)
+        return
+      end if
+
+      ! Update the iterator
+      if (aqu%iInhoIterFlag == kAQU_Vertex2) then
+        ! Our last iterator step hit the end of an open string...
+        aqu%iInhoIterStr = aqu%iInhoIterStr+1
+        aqu%iInhoIterVtx = 1
+        aqu%iInhoIterFlag = kAQU_Vertex
+        if (aqu%iInhoIterStr > aqu%iNStr) then
+          nullify(itr)
+          return
+        end if
+      else if (aqu%iInhoIterFlag == kAQU_Center) then
+        ! We're at a center interval -- what next?
+        if (aqu%Strings(aqu%iInhoIterStr)%lClosed .and. &
+            aqu%iInhoIterVtx+1 > aqu%Strings(aqu%iInhoIterStr)%iNPts) then
+          ! Aha -- end of the buffer. Handle that.
+          aqu%iInhoIterFlag = kAQU_Vertex
+          aqu%iInhoIterStr = aqu%iInhoIterStr+1
+          aqu%iInhoIterVtx = 1
+          if (aqu%iInhoIterStr > aqu%iNStr) then
+            nullify(itr)
+            return
+          end if
+        else if (.not. aqu%Strings(aqu%iInhoIterStr)%lClosed .and. &
+               aqu%iInhoIterVtx+1 > aqu%Strings(aqu%iInhoIterStr)%iNPts-1) then
+          ! Open string -- Move on to the last vertex
+          aqu%iInhoIterFlag = kAQU_Vertex2
+        else
+          ! Not at the end of the string -- move to the next vertex
+          aqu%iInhoIterVtx = aqu%iInhoIterVtx + 1
+          aqu%iInhoIterFlag = kAQU_Vertex
+        end if
+      else
+        ! We were at a "first" vertex end -- move to the center of the same segment
+        aqu%iInhoIterFlag = kAQU_Center
+      end if
+
+      allocate(itr)
+      itr%iElementType = ELEM_IN0
+      itr%iElementString = aqu%iInhoIterStr
+      itr%iElementVertex = aqu%iInhoIterVtx
+      itr%iElementFlag = aqu%iInhoIterFlag
+      itr%iValueSelector = VALUE_POTENTIAL
+      allocate(itr%cZ(1))
+      itr%cZ(1) = aqu%Strings(aqu%iInhoIterStr)%Vertices(aqu%iInhoIterVtx)%cCPZ(aqu%iInhoIterFlag)
+      dom => AQU_FindDomain(io, aqu, itr%cZ(1))
     end if
 
     return
@@ -1099,20 +1622,9 @@ contains
 
 
   subroutine AQU_SetIterator(io, aqu, fdp, itr, cValue, lLinearize)
-    !! function AQU_SetIterator
+    !! subroutine AQU_SetIterator
     !!
-    !! Advances the module's iterator one step
-    !!
-    !! Calling Sequence:
-    !!    call AQU_SetIterator(io, aqu)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION to be used
-    !!   (in)    complex :: cValue
-    !!             The value retrieved from the color
-    !!   (in)    type(IO_STATUS), pointer :: aqu
-    !!             Tracks error conditions
+    !! Sets iterator check values
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -1125,10 +1637,14 @@ contains
     type(AQU_BDYELEMENT), pointer :: bdy
     ! [ LOCALS ]
     complex(kind=AE_REAL) :: cUnit
+    type(AQU_DOMAIN), pointer :: left, right
+    type(AQU_STRING), pointer :: str
+    type(AQU_VERTEX), pointer :: vtx
+    real(kind=AE_REAL) :: H1, H2, rHead
 
     if (aqu%lDebug) then
       call IO_Assert(io, (associated(aqu)), &
-           "AQU_NextIterator: AQU_Create has not been called")
+           "AQU_SetIterator: AQU_Create has not been called")
     end if
 
     if (itr%iElementType == ELEM_AQU) then
@@ -1144,13 +1660,44 @@ contains
           case (VALUE_FLOW)
             bdy => aqu%BdyElements(itr%iElementVertex)
             bdy%rCheckFlux = real(cValue, AE_REAL)
-            !if (bdy%iBdyFlag == BDY_FREESURF .and. .not. bdy%lFSHeadSpec) then
-            !  write(unit=*,fmt="('set', i10, 2(1x,'(',f12.4,1x,f12.4,')'),1x,e14.6)") itr%iElementVertex, itr%cZ, real(cValue,AE_REAL)
-            !end if
         end select
       end if
     else if (itr%iElementType == ELEM_IN0) then
-      call IN0_SetIterator(io, aqu%in0, fdp, itr, cValue, lLinearize)
+      ! Handle inhomogeneity iterator setting (was IN0_SetIterator)
+      if (io%lDebug) then
+        call IO_Assert(io, (aqu%iInhoIterStr <= aqu%iNStr), &
+             "AQU_SetIterator: Iterator out of range")
+      end if
+
+      ! Clear the "regen" flag unless something interesting happens...
+      aqu%iRegenerate = 0
+
+      str => aqu%Strings(itr%iElementString)
+      vtx => str%Vertices(itr%iElementVertex)
+      if (itr%iValueSelector == VALUE_POTENTIAL) then
+        vtx%rCheckPot(itr%iElementFlag) = real(cValue, AE_REAL)
+        ! Do I update coefficients?
+        if (lLinearize) then
+          left => AQU_FindDomainID(io, aqu, str%iLeftID)
+          right => AQU_FindDomainID(io, aqu, str%iRightID)
+          rHead = rHALF * (rAQU_PotentialToHead(io, aqu, vtx%rCheckPot(itr%iElementFlag), vtx%cCPZ(itr%iElementFlag)) + &
+                  rAQU_PotentialToHead(io, aqu, vtx%rCheckPot(itr%iElementFlag), vtx%cCPZ(itr%iElementFlag)))
+          H1 = rAQU_DomainThickness(io, aqu, left, rHead)
+          H2 = rAQU_DomainThickness(io, aqu, right, rHead)
+          if (H1 /= vtx%rLeftH(itr%iElementFlag) .or. H2 /= vtx%rRightH(itr%iElementFlag)) then
+            aqu%iRegenerate = 1
+            vtx%rLeftH(itr%iElementFlag) = H1
+            vtx%rRightH(itr%iElementFlag) = H2
+            vtx%rLeftT(itr%iElementFlag) = H1 * left%rHydCond
+            vtx%rRightT(itr%iElementFlag) = H2 * right%rHydCond
+          end if
+        end if
+        vtx%rError(itr%iElementFlag) = - (vtx%rLeftT(itr%iElementFlag) - &
+            vtx%rRightT(itr%iElementFlag)) * vtx%rCheckPot(itr%iElementFlag) - &
+            vtx%rRightT(itr%iElementFlag) * rFDP_PotentialJump(io, vtx%pFDP, vtx%cCPZ(itr%iElementFlag)) + &
+            vtx%rLeftT(itr%iElementFlag) * vtx%rRightT(itr%iElementFlag) * &
+            (str%rLeftB-str%rRightB + rHALF*(vtx%rLeftH(itr%iElementFlag)-vtx%rRightH(itr%iElementFlag)))
+      end if
     end if
 
     return
@@ -1162,39 +1709,21 @@ contains
     !!
     !! Reads the aquifer information for layer iL from the input LU
     !!
-    !! Calling Sequence:
-    !!    call AQU_Read(io, aqu)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             Layer number to be read
-    !!   (out)   integer :: iRV
-    !!             Error code or errOK for success
-    !!
     !! The format of the aqu section of the input file appears as follows:
     !!
     !! AQU ninho base thickness hyd-cond porosity
     !! REF(z0) refhead(Qx0, Qy0)    [ optional ]
     !! BDY nvertices                 [ optional ]
     !!     (x1, y1) (x2, y2) head flux ghb-distance flag
-    !!     (x1, y1) (x2, y2) head flux ghb-distance flag
-    !!     ... up to nvertices
+    !!     ...
     !! END
     !! IN0 [optional]
     !! DOM nvertices base thickness hyd-cond porosity
     !!     (x, y)
-    !!     (x, y)
-    !!     ... up to nvertices
-    !! DOM ...
-    !! ... up to ninho
+    !!     ...
     !! END
     !!
     !! NOTE: It is assumed that the AQU line was found by the caller
-    !!
-    !! The BDY section(perimeter boundary) requests the specified flux or head
-    !! values, based on the 'flag' value. If flag = 0, use the flux boundary; if
-    !! flag = 1, uses the head boundary. Assumes that for vertex 'i', the flux
-    !! or head specified is that of segment 'i', if flag = 2, a GHB is used
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -1226,7 +1755,7 @@ contains
     integer(kind=AE_INT) :: iParseMode
     integer(kind=AE_INT), parameter :: PARSE_NONE = 0
     integer(kind=AE_INT), parameter :: PARSE_BDY = 1
-    type(IN0_DOMAIN), pointer :: dom
+    type(AQU_DOMAIN), pointer :: dom
     character(len=132) :: sOption
 
     call IO_MessageText(io, "  Reading AQU module input")
@@ -1278,7 +1807,7 @@ contains
           cRefPoint = cIO_GetCoordinate(io, 'cRefPoint', extents=.true.)
           rRefHead = rIO_GetReal(io, 'rRefHead')
           cRefUniformFlow = cIO_GetComplex(io, 'cUniformFlow')
-          dom => IN0_FindDomain(io, aqu%in0, cRefPoint)
+          dom => AQU_FindDomain(io, aqu, cRefPoint)
           call IO_Assert(io, (rRefHead > dom%rBase), "AQU_Read: Base elevation below aquifer top")
           aqu%cRefPoint = cRefPoint
           aqu%rRefHead = rRefHead
@@ -1304,7 +1833,7 @@ contains
             call IO_MessageText(io, "New boundary condition logic is enabled")
           end if
         case (kOpIN0)
-          call IN0_Read(io, aqu%in0)
+          call AQU_ReadInho(io, aqu)
         case default
       end select
     end do
@@ -1314,15 +1843,222 @@ contains
   end subroutine AQU_Read
 
 
+  subroutine AQU_ReadInho(io, aqu)
+    !! subroutine AQU_ReadInho
+    !!
+    !! Reads the inhomogeneity information (was IN0_Read)
+    !!
+    !! The format of the IN0 section appears as follows:
+    !!
+    !! IN0
+    !! DOM nvertices base thickness hyd-cond porosity
+    !!     (x, y)
+    !!     ...
+    !! END
+    !!
+    !! NOTE: It is assumed that the IN0 line was found by the caller
+    !!
+    ! [ ARGUMENTS ]
+    type(AQU_COLLECTION), pointer :: aqu
+    type(IO_STATUS), pointer :: io
+    ! Locals -- for Directive parsing
+    type(DIRECTIVE), dimension(3), parameter :: dirDirectives = &
+                       (/dirEND, dirDOM, dirSTR/)
+    ! Locals -- Input values
+    integer(kind=AE_INT) :: iParseMode
+    integer(kind=AE_INT) :: iVtx
+    integer(kind=AE_INT) :: iOpCode
+    integer(kind=AE_INT) :: iStat
+    integer(kind=AE_INT) :: iMax
+    integer(kind=AE_INT) :: iID
+    integer(kind=AE_INT) :: iLeftID
+    integer(kind=AE_INT) :: iRightID
+    logical :: lClosed
+    real(kind=AE_REAL) :: rBase
+    real(kind=AE_REAL) :: rHydCond
+    real(kind=AE_REAL) :: rPorosity
+    real(kind=AE_REAL) :: rThickness
+    real(kind=AE_REAL) :: rRefHead
+    real(kind=AE_REAL) :: rAvgHead
+    complex(kind=AE_REAL) :: cZ
+    logical :: lFlag
+    type(AQU_DOMAIN), pointer :: dom
+    type(AQU_STRING), pointer :: str
+    type(AQU_VERTEX), pointer :: vtx
+    character(len=32) :: sTag
+    ! [ CONSTANTS ]
+    integer(kind=AE_INT), parameter :: PARSE_NONE = 0
+    integer(kind=AE_INT), parameter :: PARSE_DOMAIN = 1
+    integer(kind=AE_INT), parameter :: PARSE_STRING = 2
+
+    iParseMode = PARSE_NONE
+    call IO_MessageText(io, "  Reading IN0 module input")
+
+    call IO_Assert(io, (associated(aqu)), "AQU_ReadInho: AQU_Create has not been called")
+
+    do
+      call IO_InputRecord(io, dirDirectives, iOpCode)
+      select case (iOpCode)
+        case (kOpError)
+          call IO_Assert(io, .false., "AQU_ReadInho: I/O Error")
+        case (kOpFileEOF)
+          call IO_Assert(io, .false., "AQU_ReadInho: Unexpected EOF")
+        case (kOpData)
+          select case (iParseMode)
+            case (PARSE_NONE)
+              call IO_Assert(io, .false., "AQU_ReadInho: Unexpected data record")
+            case (PARSE_DOMAIN)
+              call IO_Assert(io, (associated(dom%cZ)), "AQU_ReadInho: No DOM directive")
+              call IO_Assert(io, (dom%iNPts < size(dom%cZ)), &
+                   "AQU_ReadInho: Space exhausted")
+              write (unit=sTag, fmt=*) 'cZ dom', aqu%iNDom, dom%iNPts+1
+              cZ = cIO_GetCoordinate(io, sTag, extents=.true., check_points=dom%cZ)
+              dom%iNPts = dom%iNPts+1
+              dom%cZ(dom%iNPts) = cZ
+            case (PARSE_STRING)
+              call IO_Assert(io, (associated(str%Vertices)), "AQU_ReadInho: No STR directive")
+              call IO_Assert(io, (str%iNPts < size(str%Vertices)), &
+                   "AQU_ReadInho: Space exhausted")
+              write (unit=sTag, fmt=*) 'cZ str', aqu%iNStr, str%iNPts+1
+              cZ = cIO_GetCoordinate(io, sTag, extents=.true., check_points=str%Vertices(:)%cZ)
+              str%iNPts = str%iNPts+1
+              str%Vertices(str%iNPts)%cZ = cZ
+          end select
+        case (kOpEND)
+          return
+        case (kOpDOM)
+          ! Start a new domain
+          call IO_Assert(io, (associated(aqu%Domains)), &
+               "AQU_ReadInho: No domains have been allocated")
+          call IO_Assert(io, (aqu%iNDom < size(aqu%Domains)), &
+               "AQU_ReadInho: Space exhausted")
+          iMax = iIO_GetInteger(io, 'iMax', minimum = 3)
+          rBase = rIO_GetReal(io, 'rBase')
+          rThickness = rIO_GetReal(io, 'rThickness', minimum = rTINY)
+          rHydCond = rIO_GetReal(io, 'rHydCond', minimum = rTINY)
+          rPorosity = rIO_GetReal(io, 'rPorosity', minimum = rTINY)
+          rAvgHead = rIO_GetReal(io, 'rAvgHead', minimum = rBase)
+          iID = iIO_GetInteger(io, 'iID', forbidden=aqu%Domains%iID)
+
+          aqu%iNDom = aqu%iNDom+1
+          dom => aqu%Domains(aqu%iNDom)
+          dom%iNPts = 0
+          dom%rBase = rBase
+          dom%rThickness = rThickness
+          dom%rHydCond = rHydCond
+          dom%rPorosity = rPorosity
+          dom%rAvgHead = rAvgHead
+          dom%iID = iID
+          dom%iInsideDomain = iID
+          dom%iOutsideDomain = 0
+          allocate(dom%cZ(iMax), stat = iStat)
+          call IO_Assert(io, (iStat == 0), "AQU_ReadInho: Allocation failed")
+          dom%cZ = cZERO
+          iParseMode = PARSE_DOMAIN
+        case (kOpSTR)
+          ! Start a new string
+          call IO_Assert(io, (associated(aqu%Strings)), &
+               "AQU_ReadInho: No strings have been allocated")
+          call IO_Assert(io, (aqu%iNStr < size(aqu%Strings)), &
+               "AQU_ReadInho: Space exhausted")
+          iMax = iIO_GetInteger(io, 'iMax')
+          iLeftID = iIO_GetInteger(io, 'iLeftID')
+          iRightID = iIO_GetInteger(io, 'iRightID')
+          lClosed = lIO_GetLogical(io, 'lClosed')
+          iID = iIO_GetInteger(io, 'iID', forbidden=aqu%Strings%iID)
+
+          aqu%iNStr = aqu%iNStr+1
+          str => aqu%Strings(aqu%iNStr)
+          str%iNPts = 0
+          str%iLeftID = iLeftID
+          str%iRightID = iRightID
+          str%lClosed = lClosed
+          str%iID = iID
+          allocate(str%Vertices(iMax), stat = iStat)
+          call IO_Assert(io, (iStat == 0), "AQU_ReadInho: Allocation failed")
+          do iVtx = 1, size(str%Vertices)
+            vtx => str%Vertices(iVtx)
+            vtx%cZ = cZERO
+            vtx%rStrength = rZERO
+            vtx%rCheckPot(:) = rZERO
+            nullify(vtx%pFDP)
+          end do
+          iParseMode = PARSE_STRING
+        case default
+      end select
+    end do
+
+    call IO_MessageText(io, "Leaving IN0 module")
+
+    return
+  end subroutine AQU_ReadInho
+
+
+  subroutine AQU_NewDomain(io, aqu, cZ, iNPts, rBase, rThickness, rHydCond, rPorosity)
+    !! subroutine AQU_NewDomain
+    !!
+    !! Adds a new AQU_DOMAIN object to the AQU_COLLECTION (was IN0_New)
+    !!
+    ! [ ARGUMENTS ]
+    type(AQU_COLLECTION), pointer :: aqu
+    complex(kind=AE_REAL), dimension(:) :: cZ
+    integer(kind=AE_INT), intent(in) :: iNPts
+    real(kind=AE_REAL), intent(in) :: rBase
+    real(kind=AE_REAL), intent(in) :: rThickness
+    real(kind=AE_REAL), intent(in) :: rHydCond
+    real(kind=AE_REAL), intent(in) :: rPorosity
+    type(IO_STATUS), pointer :: io
+    ! [ LOCALS ]
+    integer(kind=AE_INT) :: iStat
+    integer(kind=AE_INT) :: iDom
+    type(AQU_DOMAIN), pointer :: dom
+
+    if (io%lDebug) then
+      call IO_Assert(io, (associated(aqu)), &
+           "AQU_NewDomain: AQU_Create has not been called")
+    end if
+
+    call IO_Assert(io, (aqu%iNDom < size(aqu%Domains)), &
+         "AQU_NewDomain: Space exhausted")
+    call IO_Assert(io, (iNPts <= size(dom%cZ)), &
+         "AQU_NewDomain: Size of provided vertices is inconsistent")
+
+    aqu%iNDom = aqu%iNDom + 1
+    dom => aqu%Domains(aqu%iNDom)
+    allocate(dom%cZ(iNPts), stat = iStat)
+    call IO_Assert(io, (iStat == 0), "AQU_NewDomain: Allocation failed")
+    dom%cZ = cZ(1:iNPts)
+    dom%iNPts = iNPts
+    dom%rBase = rBase
+    dom%rThickness = rThickness
+    dom%rHydCond = rHydCond
+    dom%rPorosity = rPorosity
+
+    ! This version does not support nested inhomogeneity domains
+    ! Check to ensure that no nesting or overlapping of domains has occurred
+    do iDom = 2, aqu%iNDom-1
+      call IO_Assert(io, (.not. lAQU_DomainOverlapsDomain(io, aqu, iDom, aqu%iNDom)), &
+           "AQU_NewDomain: New domain overlaps another domain")
+    end do
+
+    return
+  end subroutine AQU_NewDomain
+
+
   subroutine AQU_Report(io, aqu)
-    ! Reports aquifer information for layer iL
+    ! Reports aquifer information
     type(AQU_COLLECTION), pointer :: aqu
     type(IO_STATUS), pointer :: io
     integer(kind=AE_INT) :: nWL, nPD, nDP, nEQ, nUN, iBdy
+    integer(kind=AE_INT) :: iDom, iStr, iVtx, i
     type(AQU_BDYELEMENT), pointer :: bdy
+    type(AQU_DOMAIN), pointer :: dom
+    type(AQU_STRING), pointer :: str
+    type(AQU_VERTEX), pointer :: vtx
     real(kind=AE_REAL) :: rCheckHead
+    real(kind=AE_REAL), dimension(2) :: rError
 
-    ! Inhomogeneities data from this module
+    ! Aquifer data from this module
     call HTML_Header('Module AQU', 1)
     call HTML_Header('Basic aquifer information', 2)
 
@@ -1398,8 +2134,85 @@ contains
       call HTML_Header('No boundary elements', 3)
     end if
 
-    ! Write out the inhomogeneities for property definitions
-    call IN0_Report(io, aqu%in0)
+    ! Write out the inhomogeneities (was IN0_Report)
+    call HTML_Header('Module IN0 (Inhomogeneities)', 1)
+    call HTML_Header('Inhomogeneity information', 2)
+
+    if (.not. associated(aqu%Domains)) then
+      call HTML_Header('No domains allocated', 3)
+    else
+      call HTML_StartTable()
+      call HTML_AttrInteger('Number of domains', aqu%iNDom)
+      call HTML_AttrInteger('Number of strings', aqu%iNStr)
+      call HTML_AttrInteger('Number of FWL functions', iAQU_GetInfo(io, aqu, SIZE_FWL, 0))
+      call HTML_AttrInteger('Number of FPD functions', iAQU_GetInfo(io, aqu, SIZE_FPD, 0))
+      call HTML_AttrInteger('Number of FDP functions', iAQU_GetInfo(io, aqu, SIZE_FDP, 0))
+      call HTML_AttrInteger('Number of equations', iAQU_GetInfo(io, aqu, SIZE_EQUATIONS, 0))
+      call HTML_AttrInteger('Number of unknowns', iAQU_GetInfo(io, aqu, SIZE_UNKNOWNS, 0))
+      call HTML_EndTable()
+
+      do iDom = 1, aqu%iNDom
+        call HTML_Header('Domain Information', 3)
+        call HTML_StartTable()
+        dom => aqu%Domains(iDom)
+        call HTML_AttrInteger('Domain number ', iDom)
+        call HTML_AttrInteger('ID', dom%iID)
+        call HTML_AttrReal('Base elevation', dom%rBase)
+        call HTML_AttrReal('Thickness', dom%rThickness)
+        call HTML_AttrReal('Hydraulic conductivity', dom%rHydCond)
+        call HTML_AttrReal('Porosity', dom%rPorosity)
+        call HTML_EndTable()
+
+        if (.not. associated(dom%cZ)) then
+          call HTML_Header('No vertices -- infinite aquifer', 4)
+        else
+          call HTML_Header('Vertices', 4)
+          call HTML_StartTable()
+          call HTML_TableHeader((/'X', 'Y'/))
+          do iVtx = 1, dom%iNPts
+            call HTML_StartRow()
+            call HTML_ColumnComplex((/cIO_WorldCoords(io, dom%cZ(iVtx))/))
+            call HTML_EndRow()
+          end do
+          call HTML_EndTable()
+        end if
+      end do
+
+      do iStr = 1, aqu%iNStr
+        call HTML_Header('String Information', 3)
+        call HTML_StartTable()
+        str => aqu%Strings(iStr)
+        call HTML_AttrInteger('String number', iStr)
+        call HTML_AttrInteger('ID', str%iID)
+        call HTML_AttrInteger('Left domain', str%iLeftID)
+        call HTML_AttrInteger('Right domain', str%iRightID)
+        call HTML_AttrLogical('Closed?', str%lClosed)
+        call HTML_EndTable()
+
+        call HTML_Header('Vertices', 4)
+        call HTML_StartTable()
+        call HTML_TableHeader((/'Vertex', 'X     ', 'Y     ', 'FDP # ', 'V1 Str', 'C Str ', 'V1 Err', 'C Err '/))
+        do iVtx = 1, str%iNPts
+          vtx => str%Vertices(iVtx)
+          do i = 1, 2
+            if (vtx%rStrength(i) /= rZERO) then
+              rError(i) = vtx%rError(i) / vtx%rStrength(i)
+            else
+              rError(i) = rZERO
+            end if
+          end do
+          call HTML_StartRow()
+          call HTML_ColumnInteger((/iVtx/))
+          call HTML_ColumnComplex((/cIO_WorldCoords(io, vtx%cZ)/))
+          call HTML_ColumnInteger((/vtx%pFDP%iIndex/))
+          call HTML_ColumnReal(vtx%rStrength(1:2), 'e13.6')
+          call HTML_ColumnReal(rError, 'e13.6')
+          call HTML_EndRow()
+        end do
+        call HTML_EndTable()
+      end do
+
+    end if
 
     return
   end subroutine AQU_Report
@@ -1410,29 +2223,23 @@ contains
     !!
     !! Writes an inquiry report for all barriers to iLU
     !!
-    !! Calling Sequence:
-    !!    call AQU_Inquiry(io, aqu, iLU)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    integer :: iLU
-    !!             The output LU to receive output
-    !!
-    ! [ aqu%lDebug ]
+    ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
     integer(kind=AE_INT), intent(in) :: iLU
     type(IO_STATUS), pointer :: io
 
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iBdy
+    integer(kind=AE_INT) :: iBdy, iStr, iVtx, i
+    real(kind=AE_REAL) :: rLength, rARecip
+    real(kind=AE_REAL), dimension(2) :: rError
     type(AQU_BDYELEMENT), pointer :: bdy
+    type(AQU_STRING), pointer :: str
+    type(AQU_VERTEX), pointer :: vtx, next
 
     if (aqu%lDebug) then
       call IO_Assert(io, (associated(aqu)), &
            "AQU_Inquiry: AQU_Create has not been called")
     end if
-
 
     if (aqu%lReference) then
       write (unit=iLU, &
@@ -1468,7 +2275,39 @@ contains
       end do
     end if
 
-    call IN0_Inquiry(io, aqu%in0, iLU)
+    ! Inhomogeneity inquiry (was IN0_Inquiry)
+    if (io%lDebug) then
+      call IO_Assert(io, (associated(aqu)), &
+           "AQU_Inquiry: AQU_Create has not been called")
+    end if
+
+    write (unit=iLU, &
+           fmt="(""#IN0, ID, VTX, X1, Y1, X2, Y2, LENGTH, STRENGTH1, STRENGTH2, POT1, POT1, ERROR1, ERROR2"")")
+    do iStr = 1, aqu%iNStr
+      str => aqu%Strings(iStr)
+      do iVtx = 1, str%iNPts-1
+        vtx => str%Vertices(iVtx)
+        next => str%Vertices(iVtx+1)
+        if (iVtx < str%iNPts) then
+          rLength = abs(str%Vertices(iVtx+1)%cZ - vtx%cZ)
+        else
+          rLength = rZERO
+        end if
+        rARecip = rAQU_ARecip(io, aqu, iStr)
+        do i = 1, 2
+          if (vtx%rStrength(i) /= rZERO) then
+            rError(i) = vtx%rError(i) / vtx%rStrength(i)
+          else
+            rError(i) = rZERO
+          end if
+        end do
+        write (unit=iLU, &
+               fmt="('IN0', 2(', ', i9), 11(', ', e16.8))" &
+               ) str%iID, iVtx, cIO_WorldCoords(io, vtx%cZ), cIO_WorldCoords(io, next%cZ), &
+                 rLength, vtx%rStrength(1), vtx%rStrength(2), vtx%rCheckPot(1), vtx%rCheckPot(2), &
+                 rError(1), rError(2)
+      end do
+    end do
 
     return
   end subroutine AQU_Inquiry
@@ -1482,19 +2321,6 @@ contains
     !! complex function cAQU_Potential
     !!
     !! Computes the complex potential due to the reference aquifer at cZ
-    !!
-    !! Calling Sequence:
-    !!    cOmega = cFDP_Potential(io, aqu, cZ, iDP1, iNDP)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    complex :: cZ
-    !!             The point at which to determine the potential
-    !!
-    !! Return Value:
-    !!           complex :: cOmega
-    !!             The complex potential at the point cZ
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -1531,19 +2357,6 @@ contains
     !!
     !! Computes the complex discharge due to the reference aquifer at cZ
     !!
-    !! Calling Sequence:
-    !!    cOmega = cFDP_Discharge(io, aqu, cZ, iDP1, iNDP)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    complex :: cZ
-    !!             The point at which to determine the discharge
-    !!
-    !! Return Value:
-    !!           complex :: cW
-    !!             The complex discharge at the point cZ in layer iL
-    !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
     complex(kind=AE_REAL), intent(in) :: cZ
@@ -1576,22 +2389,9 @@ contains
 
 
   function rAQU_Flow(io, aqu, cPathZ) result(rFlow)
-    !! real function cAQU_Flow
+    !! real function rAQU_Flow
     !!
     !! Computes the integrated flow due to the current set of dipoles.
-    !!
-    !! Calling Sequence:
-    !!    rFlow = fAQU_Flow(io, aqu, cPathZ, iDP1, iNDP)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    complex :: cPathZ(:)
-    !!             The path across which the flow is desired
-    !!
-    !! Return Value:
-    !!           real :: rFlow
-    !!             The integrated flux across the path cPathZ
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -1616,7 +2416,6 @@ contains
       rFlow = rZERO
     end if
 
-
     allocate(cBigZ(size(cPathZ)), stat = iStat)
     call IO_Assert(io, (iStat == 0), 'rAQU_Flow: Allocation failed')
     do iBdy = 1, aqu%iNBdy
@@ -1638,15 +2437,6 @@ contains
     !!
     !! Computes the recharge rate due to the aquifer
     !!
-    !! Calling Sequence:
-    !!    rG = rAQU_Recharge(io, aqu, cZ)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             The AQU_COLLECTION object to be used
-    !!   (in)    complex :: cZ
-    !!             The point at which to determine the potential
-    !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
     complex(kind=AE_REAL), intent(in) :: cZ
@@ -1666,15 +2456,6 @@ contains
     !!
     !! Computes the extraction due to the aquifer
     !!
-    !! Calling Sequence:
-    !!    rQ = rAQU_Extraction(io, aqu)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             The AQU_COLLECTION object to be used
-    !!   (in)    complex :: cZ
-    !!             The point at which to determine the potential
-    !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
     type(IO_STATUS), pointer :: io
@@ -1692,22 +2473,9 @@ contains
 
 
   function rAQU_BranchCut(io, aqu, cPathZ) result(rBC)
-    !! real function cAQU_Flow
+    !! real function rAQU_BranchCut
     !!
     !! Computes the net branch cut.
-    !!
-    !! Calling Sequence:
-    !!    rFlow = rAQU_BranchCut(io, aqu, cPathZ)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    complex :: cPathZ(:)
-    !!             The path across which the flow is desired
-    !!
-    !! Return Value:
-    !!           real :: rFlow
-    !!             The integrated flux across the path cPathZ
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -1723,8 +2491,6 @@ contains
 
     call IO_Assert(io, (associated(aqu)), "rAQU_Flow: No AQU_COLLECTION object")
 
-    ! The reference point(if any) and the uniform flow function satisfy
-    ! Laplace equation, so we need to only look at the ends of the path
     rBC = rZERO
 
     allocate(cBigZ(size(cPathZ)), stat = iStat)
@@ -1749,8 +2515,6 @@ contains
     !!
     !! Checks the specified point and returns .true. if the point is within a tolerance of the
     !! perimeter of a pond.
-    !! If rTol > 0, the tolerance is used in the test, otherwise the global constant rVERTEXTOL
-    !! is used. If the point is within the tolerance, cZFix is set to a point on the well bore.
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -1789,8 +2553,6 @@ contains
       cZFix = cZERO
       do i = 1, aqu%iNBdy
         bdy => aqu%BdyElements(i)
-        ! Check to see(1) we're within the tolerance of the extension of the line segment,
-        ! then(2) we're along the(-1, +1) extension
         if (abs(aimag(cMapZ(i))) < rCheckTol) then
           ! We're near a segment. Are we at an end?
           if (abs(real(cMapZ(i))-cONE) < rCheckTol) then
@@ -1830,16 +2592,9 @@ contains
 
   function lAQU_CheckIntersection(io, aqu, cZ1, cZ2, cZInt, cZBefore, cZAfter, &
              iElementType, iElementString, iElementVertex, iElementFlag, cENormal) result(lFound)
-    !! function lFDP_CheckIntersection
+    !! function lAQU_CheckIntersection
     !!
     !! Checks the specified line segment Z1-Z2 and returns .true. if there is an intersection.
-    !! In addition, if the return value is .true., iElementType, iElementString, iElementVertex,
-    !! and iElementFlag point to the feature that is intersected, cZInt is the coordinate of the
-    !! intersection, and cZBefore and cZAfter are points just before and just after the
-    !! intersection, normal to the dipole that is intersected.
-    !!
-    !! If rTol > 0, the tolerance is based on the constant rVERTEXTOL
-    !! is used. If the point is within the tolerance, cZFix is set to a point on the well bore.
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -1863,8 +2618,6 @@ contains
     real(kind=AE_REAL) :: rStr
     real(kind=AE_REAL) :: rCheckTol
     ! [ LOCAL PARAMETERS ]
-    ! This is the fraction of the dipole length that cZBefore and cZAfter will be away from
-    ! the intersection point.
     real(kind=AE_REAL), parameter :: rPOINT_TOLERANCE_FACTOR = rTWO
     real(kind=AE_REAL), parameter :: rINTERSECTION_TOLERANCE = 1.0e-4_AE_REAL
 
@@ -1881,7 +2634,6 @@ contains
     end if
 
     if (aqu%iNBdy > 0) then
-      ! Set the check tolerance
       ! Find the smallest distance to a dipole
       allocate(cMapZ1(aqu%iNBdy), cMapZ2(aqu%iNBdy), cMapZInt(aqu%iNBdy), rDist(aqu%iNBdy))
       cMapZ1(:) = (cMyZ1-aqu%BdyElements(1:aqu%iNBdy)%cZC) / aqu%BdyElements(1:aqu%iNBdy)%cZL
@@ -1902,12 +2654,8 @@ contains
         bdy => aqu%BdyElements(iLoc)
         ! Reverse-map to get the intersection
         cZInt = cMapZInt(iLoc) * bdy%cZL + bdy%cZC
-        ! Compute ZBefore and ZAfter in the direction of the Z1-Z2 line segment, using the
-        ! rINTERSECTION_TOLERANCE*abs(Z2-Z1) as the distance before and after the intersection
         cZBefore = cZInt - rINTERSECTION_TOLERANCE * (cZ2-cZ1)
         cZAfter = cZInt + rINTERSECTION_TOLERANCE * (cZ2-cZ1)
-        ! If the before point is farther away from the intersection than the first point,
-        ! Use the first point as the before point(and similarly for the after point)
         if (abs(cZ1-cZInt) < abs(cZBefore-cZInt)) cZBefore = cZ1
         if (abs(cZ2-cZInt) < abs(cZAfter-cZInt)) cZAfter = cZ2
         lFound = .true.
@@ -1941,34 +2689,20 @@ contains
     return
   end function lAQU_CheckIntersection
 
+
   !! UTILITY ROUTINES
   !! These routines provide computational aids for AEM models
-  !! They make use of the IN0 equivalent calls
 
 
   function rAQU_ActiveArea(io, aqu, poly) result(rArea)
-    !! real function rAQU_ComputeActiveArea
+    !! real function rAQU_ActiveArea
     !!
-    !! Computes the area of 'poly' that lies within the active area of the
-    !! aquifer 'aqu'.
+    !! Computes the area of 'poly' that lies within the active area of the aquifer.
     !!
-    !! Calling Sequence:
-    !!    rA = rAQU_ComputeActiveArea(io, aqu, poly)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    complex, dimension(:) :: poly
-    !!             The polygon to be intersected with the aquifer
-    !!
-    !! Return Value:
-    !!           real :: rA
-    !!             The intersecting area
-    !! [ ARGUMENTS ]
+    ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
     complex(kind=AE_REAL), dimension(:), intent(in) :: poly
     type(IO_STATUS), pointer :: io
-    !! [ LOCALS ]
     !! [ RETURN VALUE ]
     real(kind=AE_REAL) :: rArea
 
@@ -1981,25 +2715,8 @@ contains
   function rAQU_HeadToPotential(io, aqu, rHead, cZ) result(rPot)
     !! real function rAQU_HeadToPotential
     !!
-    !! Converts head to a discharge potential based on the in0ifer properties
+    !! Converts head to a discharge potential based on the aquifer properties
     !! at cZ. Returns the(real) potential.
-    !!
-    !! Calling Sequence:
-    !!    rPot = rAQU_HeadToPotential(io, aqu, rHead, cZ)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    real :: rHead
-    !!             The head value to be converted
-    !!   (in)    complex :: cZ
-    !!             The point in the aquifer where the conversion is to take place
-    !!
-    !! Return Value:
-    !!           real :: rPot
-    !!             The discharge potential corresponding to the head 'rHead'
-    !! Note:
-    !!   If iDP1 is not provided, all dipoles will be used
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -2008,33 +2725,32 @@ contains
     type(IO_STATUS), pointer :: io
     ! [ RETURN VALUE ]
     real(kind=AE_REAL) :: rPot
+    ! [ LOCALS ]
+    real(kind=AE_REAL) :: rHd
+    type(AQU_DOMAIN), pointer :: dom
 
-    rPot = rIN0_HeadToPotential(io, aqu%in0, rHead, cZ)
+    if (io%lDebug) then
+      call IO_Assert(io, (associated(aqu)), &
+           "rAQU_HeadToPotential: AQU_Create has not been called")
+    end if
+
+    dom => AQU_FindDomain(io, aqu, cZ)
+
+    rHd = rHead - dom%rBase
+    if (rHd > dom%rThickness) then
+      rPot = dom%rHydCond * dom%rThickness * rHd - rHALF * dom%rHydCond * dom%rThickness**2
+    else
+      rPot = rHALF * dom%rHydCond * rHd**2
+    end if
 
     return
   end function rAQU_HeadToPotential
 
 
   function rAQU_PotentialToHead(io, aqu, rPot, cZ, lTest) result(rHead)
-    !! real function rAQU_HeadToPotential
+    !! real function rAQU_PotentialToHead
     !!
-    !! Converts head to a discharge potential based on the in0ifer properties
-    !! at cZ. Returns the(real) potential.
-    !!
-    !! Calling Sequence:
-    !!    rPot = rAQU_HeadToPotential(io, in0, rHead, cZ)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    real :: rHead
-    !!             The head value to be converted
-    !!   (in)    complex :: cZ
-    !!             The point in the in0ifer where the conversion is to take place
-    !!
-    !! Return Value:
-    !!           real :: rHead
-    !!             The head corresponding to the discharge potential 'rPot'
+    !! Converts potential to head based on the aquifer properties at cZ.
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -2044,11 +2760,27 @@ contains
     logical, intent(in), optional :: lTest
     ! [ RETURN VALUE ]
     real(kind=AE_REAL) :: rHead
+    ! [ LOCALS ]
+    type(AQU_DOMAIN), pointer :: dom
 
-    if (.not. present(lTest)) then
-      rHead = rIN0_PotentialToHead(io, aqu%in0, rPot, cZ)
+    if (io%lDebug) then
+      call IO_Assert(io, (associated(aqu)), &
+           "rAQU_PotentialToHead: AQU_Create has not been called")
+    end if
+
+    dom => AQU_FindDomain(io, aqu, cZ)
+
+    if (present(lTest)) print *,"P->H", rPot, cZ, dom%iID, dom%rBase, dom%rHydCond, dom%rThickness, dom%rTopPot
+
+    if (rPot < rZERO) then
+      rHead = dom%rBase
+      if (present(lTest)) print *,"  P<B", rHead
+    else if (rPot > dom%rTopPot) then
+      rHead = (rPot + rHALF*dom%rHydCond*dom%rThickness**2) / (dom%rHydCond * dom%rThickness) + dom%rBase
+      if (present(lTest)) print *,"  CNF", rHead
     else
-      rHead = rIN0_PotentialToHead(io, aqu%in0, rPot, cZ, lTest)
+      rHead = sqrt(rTWO * rPot / dom%rHydCond) + dom%rBase
+      if (present(lTest)) print *,"  UNC", rHead
     end if
 
     return
@@ -2059,24 +2791,7 @@ contains
     !! function cAQU_DischargeToVelocity
     !!
     !! Converts Discharge to velocity, using the potential and the location cZ
-    !! to compute saturated thickness
-    !!
-    !! Calling Sequence:
-    !!    cV = cAQU_DischargeToVelocity(io, in0, rDischarge, cZ, rPot)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    real :: rDischarge
-    !!             The discharge value to be converted
-    !!   (in)    complex :: cZ
-    !!             The point in the in0ifer where the conversion is to take place
-    !!   (in)    real :: rPot
-    !!             The(real) potential at cZ
-    !!
-    !! Return Value:
-    !!           complex :: cV
-    !!             The velocity
+    !! to compute saturated thickness.
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -2086,32 +2801,40 @@ contains
     type(IO_STATUS), pointer :: io
     ! [ RETURN VALUE ]
     complex(kind=AE_REAL) :: cVelocity
+    ! [ LOCALS ]
+    real(kind=AE_REAL) :: rSatdThick
+    type(AQU_DOMAIN), pointer :: dom
 
-    cVelocity = cIN0_DischargeToVelocity(io, aqu%in0, cDischarge, cZ, rPot)
+    if (io%lDebug) then
+      call IO_Assert(io, (associated(aqu)), &
+           "cAQU_DischargeToVelocity: AQU_Create has not been called")
+    end if
+
+    dom => AQU_FindDomain(io, aqu, cZ)
+
+    if (rPot < rZERO) then
+      cVelocity = cZERO
+      return
+    else
+      ! Find the saturated thickness
+      if (rPot > dom%rTopPot) then
+        rSatdThick = dom%rThickness
+      else
+        rSatdThick = rAQU_PotentialToHead(io, aqu, rPot, cZ) - dom%rBase
+      end if
+
+      ! Compute the velocity
+      cVelocity = cDischarge / (rSatdThick * dom%rPorosity)
+    end if
 
     return
   end function cAQU_DischargeToVelocity
 
 
   function lAQU_IsConfined(io, aqu, cZ, rPot) result(lConfined)
-    !! function lAQU_IsConfined`
+    !! function lAQU_IsConfined
     !!
-    !! Checks to see if the flow condition at some point is confined
-    !!
-    !! Calling Sequence:
-    !!    if (lAQU_IsConfined(io, aqu, cZ, rPot)) then ...
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    complex :: cZ
-    !!             The point in the in0ifer where the check is to take place
-    !!   (in)    real :: rPot
-    !!             The(real) potential at cZ
-    !!
-    !! Return Value:
-    !!           complex :: cV
-    !!             The velocity
+    !! Checks to see if the flow condition at some point is confined.
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -2120,30 +2843,32 @@ contains
     type(IO_STATUS), pointer :: io
     ! [ RETURN VALUE ]
     logical :: lConfined
+    ! [ LOCALS ]
+    real(kind=AE_REAL) :: rHead
+    type(AQU_DOMAIN), pointer :: dom
 
-    lConfined = lIN0_IsConfined(io, aqu%in0, cZ, rPot)
+    dom => AQU_FindDomain(io, aqu, cZ)
+
+    if (aqu%lPrecondition) then
+      rHead = dom%rAvgHead
+    else
+      rHead = rAQU_PotentialToHead(io, aqu, rPot, cZ)
+    end if
+
+    if ((rHead - dom%rBase) < dom%rThickness) then
+      lConfined = .false.
+    else
+      lConfined = .true.
+    end if
 
     return
   end function lAQU_IsConfined
 
 
   function rAQU_Base(io, aqu, cZ) result(rBase)
-    !! function rAQU_HydCond
+    !! function rAQU_Base
     !!
-    !! Computes the base elevation at the point cZ
-    !!
-    !! Calling Sequence:
-    !!    rB = rAQU_Base(io, aqu, cZ)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQu_COLLECTION object to be used
-    !!   (in)    complex :: cZ
-    !!             The point in the in0ifer where the conversion is to take place
-    !!
-    !! Return Value:
-    !!           complex :: rBase
-    !!             The base elevation
+    !! Computes the base elevation at the point cZ.
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -2151,8 +2876,11 @@ contains
     type(IO_STATUS), pointer :: io
     ! [ RETURN VALUE ]
     real(kind=AE_REAL) :: rBase
+    ! [ LOCALS ]
+    type(AQU_DOMAIN), pointer :: dom
 
-    rBase = rIN0_Base(io, aqu%in0, cZ)
+    dom => AQU_FindDomain(io, aqu, cZ)
+    rBase = dom%rBase
 
     return
   end function rAQU_Base
@@ -2161,11 +2889,7 @@ contains
   function rAQU_InterfaceElevation(io, aqu, cZ, rPot) result(rIfcElev)
     !! real function rAQU_InterfaceElevation
     !!
-    !! Converts head to a discharge potential based on the in0ifer properties
-    !! at cZ. Returns the(real) potential.
-    !!
-    !! Calling Sequence:
-    !!    rPot = rAQU_InterfaceElevation(io, in0, rPot, cZ)
+    !! Interface calculations (not yet available)
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -2183,24 +2907,9 @@ contains
 
 
   function rAQU_SatdThickness(io, aqu, cZ, rPot) result(rH)
-    !! function cAQU_SatdThickness
+    !! function rAQU_SatdThickness
     !!
-    !! Computes the saturated thickness at point cZ in layer iL where the potential is rPot
-    !!
-    !! Calling Sequence:
-    !!    cV = cAQU_SatdThickness(io, in0, cZ, rPot)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    complex :: cZ
-    !!             The point in the in0ifer where the conversion is to take place
-    !!   (in)    real :: rPot
-    !!             The(real) potential at cZ
-    !!
-    !! Return Value:
-    !!           complex :: cV
-    !!             The velocity
+    !! Computes the saturated thickness at point cZ where the potential is rPot.
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -2209,28 +2918,36 @@ contains
     type(IO_STATUS), pointer :: io
     ! [ RETURN VALUE ]
     real(kind=AE_REAL) :: rH
+    ! [ LOCALS ]
+    real(kind=AE_REAL) :: rHead
+    type(AQU_DOMAIN), pointer :: dom
 
-    rH = rIN0_SatdThickness(io, aqu%in0, cZ, rPot)
+    dom => AQU_FindDomain(io, aqu, cZ)
+
+    if (aqu%lPrecondition) then
+      if (dom%rAvgHead > dom%rBase+dom%rThickness) then
+        rHead = dom%rAvgHead + dom%rBase
+      else
+        rHead = dom%rAvgHead
+      end if
+    else
+      rHead = rAQU_PotentialToHead(io, aqu, rPot, cZ)
+    end if
+
+    if ((rHead - dom%rBase) < dom%rThickness) then
+      rH = rHead - dom%rBase
+    else
+      rH = dom%rThickness
+    end if
 
     return
   end function rAQU_SatdThickness
 
 
   function rAQU_DefaultPotential(io, aqu, cZ) result(rP)
-    !! function cAQU_SatdThickness
+    !! function rAQU_DefaultPotential
     !!
-    !! Returns the potential at the aquifer top cZ
-    !!
-    !! Calling Sequence:
-    !!    cV = cAQU_DefaultPotential(io, in0, cZ, rPot)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    complex :: cZ
-    !!             The point in the in0ifer where the conversion is to take place
-    !!
-    !! Return Value:
+    !! Returns the potential at the aquifer top cZ.
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -2238,8 +2955,11 @@ contains
     type(IO_STATUS), pointer :: io
     ! [ RETURN VALUE ]
     real(kind=AE_REAL) :: rP
+    ! [ LOCALS ]
+    type(AQU_DOMAIN), pointer :: dom
 
-    rP = rIN0_DefaultPotential(io, aqu%in0, cZ)
+    dom => AQU_FindDomain(io, aqu, cZ)
+    rP = dom%rHydCond * dom%rAvgHead
 
     return
   end function rAQU_DefaultPotential
@@ -2248,21 +2968,7 @@ contains
   function rAQU_Transmissivity(io, aqu, cZ, rPot) result(rT)
     !! function rAQU_Transmissivity
     !!
-    !! Computes the transmissivity at the point cZ where the potential is rPot
-    !!
-    !! Calling Sequence:
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQu_COLLECTION object to be used
-    !!   (in)    complex :: cZ
-    !!             The point in the in0ifer where the conversion is to take place
-    !!   (in)    real :: rPot
-    !!             The(real) potential at cZ
-    !!
-    !! Return Value:
-    !!           complex :: cV
-    !!             The velocity
+    !! Computes the transmissivity at the point cZ where the potential is rPot.
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -2271,8 +2977,25 @@ contains
     type(IO_STATUS), pointer :: io
     ! [ RETURN VALUE ]
     real(kind=AE_REAL) :: rT
+    ! [ LOCALS ]
+    real(kind=AE_REAL) :: rHead
+    type(AQU_DOMAIN), pointer :: dom
 
-    rT = rIN0_Transmissivity(io, aqu%in0, cZ, rPot)
+    dom => AQU_FindDomain(io, aqu, cZ)
+
+    if (aqu%lPrecondition) then
+      rHead = dom%rAvgHead
+    else
+      rHead = rAQU_PotentialToHead(io, aqu, rPot, cZ)
+    end if
+
+    if ((rHead - dom%rBase) < rONE_TENTH*dom%rThickness) then
+      rT = rONE_TENTH * dom%rThickness
+    else if ((rHead - dom%rBase) < dom%rThickness) then
+      rT = dom%rHydCond * (rHead - dom%rBase)
+    else
+      rT = dom%rHydCond * dom%rThickness
+    end if
 
     return
   end function rAQU_Transmissivity
@@ -2302,20 +3025,7 @@ contains
   function rAQU_HydCond(io, aqu, cZ) result(rHydCond)
     !! function rAQU_HydCond
     !!
-    !! Computes the hydraulic conductivity at the point cZ
-    !!
-    !! Calling Sequence:
-    !!    cV = cAQU_HydCond(io, aqu, cZ, rPot)
-    !!
-    !! Arguments:
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQu_COLLECTION object to be used
-    !!   (in)    complex :: cZ
-    !!             The point in the in0ifer where the conversion is to take place
-    !!
-    !! Return Value:
-    !!           complex :: rHydCond
-    !!             The hydraulic conductivity
+    !! Computes the hydraulic conductivity at the point cZ.
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -2323,11 +3033,80 @@ contains
     type(IO_STATUS), pointer :: io
     ! [ RETURN VALUE ]
     real(kind=AE_REAL) :: rHydCond
+    ! [ LOCALS ]
+    type(AQU_DOMAIN), pointer :: dom
 
-    rHydCond = rIN0_HydCond(io, aqu%in0, cZ)
+    dom => AQU_FindDomain(io, aqu, cZ)
+    rHydCond = dom%rHydCond
 
     return
   end function rAQU_HydCond
+
+
+  function rAQU_ARecip(io, aqu, iString) result(rARecip)
+    !! function rAQU_ARecip
+    !!
+    !! Returns the factor A*, defined as the reciprocal of(k+ - k-) / k-
+    !! where k+ is the inside conductivity and k- is the outside conductivity
+    !!
+    ! [ ARGUMENTS ]
+    type(AQU_COLLECTION), pointer :: aqu
+    integer(kind=AE_INT), intent(in) :: iString
+    type(IO_STATUS), pointer :: io
+    ! [ RETURN VALUE ]
+    real(kind=AE_REAL) :: rARecip
+    ! [ LOCALS ]
+    type(AQU_STRING), pointer :: str
+    type(AQU_DOMAIN), pointer :: left, right
+
+    if (io%lDebug) then
+      call IO_Assert(io, (associated(aqu)), &
+           "rAQU_ARecip: AQU_Create has not been called")
+      call IO_Assert(io, (iString >= 1 .and. iString <= aqu%iNDom), &
+           "rAQU_ARecip: Bad domain index")
+    end if
+
+    str => aqu%Strings(iString)
+    left => AQU_FindDomainID(io, aqu, str%iLeftID)
+    right => AQU_FindDomainID(io, aqu, str%iRightID)
+
+    rARecip = right%rHydCond / (left%rHydCond - right%rHydCond)
+
+    return
+  end function rAQU_ARecip
+
+
+  function rAQU_DomainThickness(io, aqu, dom, rHead) result(rH)
+    !! function rAQU_DomainThickness
+    !!
+    !! Internal helper function.
+    !! Computes the saturated thickness in a domain when the head is 'rHead'.
+    !!
+    ! [ ARGUMENTS ]
+    type(AQU_COLLECTION), pointer :: aqu
+    type(AQU_DOMAIN), pointer :: dom
+    real(kind=AE_REAL), intent(in) :: rHead
+    type(IO_STATUS), pointer :: io
+    ! [ RETURN VALUE ]
+    real(kind=AE_REAL) :: rH
+    ! [ LOCALS ]
+    real(kind=AE_REAL) :: rMyHead
+
+    if (aqu%lInitialIteration) then
+      rMyHead = dom%rAvgHead
+    else
+      rMyHead = rHead
+    end if
+
+    if (rMyHead < dom%rBase) then
+      rH = 1.0e-4_AE_REAL * aqu%Domains(1)%rThickness
+    else if ((rMyHead - dom%rBase) < dom%rThickness) then
+      rH = (rMyHead - dom%rBase)
+    else
+      rH = dom%rThickness
+    end if
+    return
+  end function rAQU_DomainThickness
 
 
   subroutine AQU_Save(io, aqu, mode)
@@ -2337,8 +3116,10 @@ contains
     type(AQU_COLLECTION), pointer :: aqu
     integer(kind=AE_INT), intent(in) :: mode
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: ibdy
+    integer(kind=AE_INT) :: ibdy, istr, ivtx, iflg
     type(AQU_BDYELEMENT), pointer :: bdy
+    type(AQU_STRING), pointer :: str
+    type(AQU_VERTEX), pointer :: vtx
 
     ! Write the solution constant
     if (mode == IO_MODE_BINARY) then
@@ -2355,15 +3136,27 @@ contains
         write (unit=LU_SCRATCH, fmt=*) "AQU", ibdy, 1, 1, bdy%rStrength
       end if
     end do
-    ! Save the inhomogeneities!
-    call IN0_Save(io, aqu%in0, mode)
+    ! Save the inhomogeneities
+    do istr = 1, aqu%iNStr
+      str => aqu%Strings(istr)
+      do ivtx = 1, str%iNPts
+        vtx => str%Vertices(ivtx)
+        do iflg = 1, ubound(vtx%rStrength, 1)
+          if (mode == IO_MODE_BINARY) then
+            write (unit=LU_SCRATCH) ELEM_IN0, istr, ivtx, iflg, vtx%rStrength(iflg)
+          else
+            write (unit=LU_SCRATCH, fmt=*) "IN0", istr, ivtx, iflg, vtx%rStrength(iflg)
+          end if
+        end do
+      end do
+    end do
 
     return
   end subroutine AQU_Save
 
 
   subroutine AQU_Load(io, aqu, fdp, mode)
-    !! Loads the AQU records from the file on the SCRATCH LU
+    !! Loads the AQU and IN0 records from the file on the SCRATCH LU
     ! [ ARGUMENTS ]
     type(IO_STATUS), pointer :: io
     type(AQU_COLLECTION), pointer :: aqu
@@ -2374,39 +3167,277 @@ contains
     real(kind=AE_REAL) :: rstrength
     character(len=3) :: smodule
     type(AQU_BDYELEMENT), pointer :: bdy
+    type(AQU_STRING), pointer :: str
+    type(AQU_VERTEX), pointer :: vtx
 
     ! Scans the entire precondition file for the AQU data
     rewind(unit=LU_SCRATCH)
     do
       if (mode == IO_MODE_BINARY) then
         read (unit=LU_SCRATCH, iostat=istat) imodule, ibdy, ivtx, iflg, rstrength
-        if (imodule /= ELEM_AQU) cycle
+        if (istat < 0) exit
+        call IO_Assert(io, istat == 0, "I/O error on precondition file")
+        if (imodule == ELEM_AQU) then
+          if (ibdy == 0) then
+            aqu%rSolConst = rstrength
+          else
+            call IO_Assert(io, ibdy > 0 .and. ibdy <= aqu%iNBdy, "AQU bdyl not found")
+            bdy => aqu%BdyElements(ibdy)
+            bdy%rStrength = rstrength
+          end if
+        else if (imodule == ELEM_IN0) then
+          call IO_Assert(io, ibdy > 0 .and. ibdy <= aqu%iNStr, "IN0 string not found")
+          str => aqu%Strings(ibdy)
+          call IO_Assert(io, ivtx > 0 .and. ivtx <= str%iNPts, "IN0 vertex not found")
+          vtx => str%Vertices(ivtx)
+          call IO_Assert(io, iflg > 0 .and. iflg <= ubound(vtx%rStrength, 1), "IN0 strength index not found")
+          vtx%rStrength(iflg) = rstrength
+        end if
       else
         read (unit=LU_SCRATCH, fmt=*, iostat=istat) smodule, ibdy, ivtx, iflg, rstrength
-        if (uppercase (trim(smodule)) /= "AQU") cycle
-      end if
-      if (istat < 0) exit
-      call IO_Assert(io, istat == 0, "I/O error on precondition file")
-      if (ibdy == 0) then
-        aqu%rSolConst = rstrength
-        call IO_Assert(io, ivtx == 1, "AQU vertex not found")
-        call IO_Assert(io, iflg == 1, "AQU bdyength index not found")
-      else
-        call IO_Assert(io, ibdy > 0 .and. ibdy <= aqu%iNBdy, "AQU bdyl not found")
-        bdy => aqu%BdyElements(ibdy)
-        call IO_Assert(io, ivtx == 1, "AQU vertex not found")
-        call IO_Assert(io, iflg == 1, "AQU bdyength index not found")
-        bdy%rStrength = rstrength
+        if (istat < 0) exit
+        call IO_Assert(io, istat == 0, "I/O error on precondition file")
+        if (uppercase(trim(smodule)) == "AQU") then
+          if (ibdy == 0) then
+            aqu%rSolConst = rstrength
+          else
+            call IO_Assert(io, ibdy > 0 .and. ibdy <= aqu%iNBdy, "AQU bdyl not found")
+            bdy => aqu%BdyElements(ibdy)
+            bdy%rStrength = rstrength
+          end if
+        else if (uppercase(trim(smodule)) == "IN0") then
+          call IO_Assert(io, ibdy > 0 .and. ibdy <= aqu%iNStr, "IN0 string not found")
+          str => aqu%Strings(ibdy)
+          call IO_Assert(io, ivtx > 0 .and. ivtx <= str%iNPts, "IN0 vertex not found")
+          vtx => str%Vertices(ivtx)
+          call IO_Assert(io, iflg > 0 .and. iflg <= ubound(vtx%rStrength, 1), "IN0 strength index not found")
+          vtx%rStrength(iflg) = rstrength
+        end if
       end if
     end do
 
-    ! Load the inhomogeneities
-    call IN0_Load(io, aqu%in0, fdp, mode)
-
-    ! Now, populate the internal data bdyuctures
+    ! Populate the internal data structures
     call AQU_Update(io, aqu, fdp)
 
     return
   end subroutine AQU_Load
+
+
+  function AQU_FindDomain(io, aqu, cZ) result(dom)
+    !! Returns a pointer to the domain containing the point cZ
+    ! [ ARGUMENTS ]
+    type(AQU_COLLECTION), pointer :: aqu
+    complex(kind=AE_REAL), intent(in) :: cZ
+    type(IO_STATUS), pointer :: io
+    ! [ RETURN VALUE ]
+    type(AQU_DOMAIN), pointer :: dom
+    ! [ LOCALS ]
+    integer(kind=AE_INT) :: iDom
+
+    ! Default to the infinite domain
+    dom => aqu%Domains(1)
+    do iDom = 2, aqu%iNDom
+      if (lAQU_PointInsideDomain(io, aqu, iDom, cZ)) then
+        dom => aqu%Domains(iDom)
+      end if
+    end do
+
+    return
+  end function AQU_FindDomain
+
+
+  function AQU_FindDomainID(io, aqu, iID) result(dom)
+    !! Returns a pointer to the domain with ID iID
+    ! [ ARGUMENTS ]
+    type(AQU_COLLECTION), pointer :: aqu
+    integer(kind=AE_INT), intent(in) :: iID
+    type(IO_STATUS), pointer :: io
+    ! [ RETURN VALUE ]
+    type(AQU_DOMAIN), pointer :: dom
+    ! [ LOCALS ]
+    integer(kind=AE_INT) :: iDom
+
+    ! Default to the infinite domain
+    dom => aqu%Domains(1)
+    do iDom = 2, aqu%iNDom
+      if (aqu%Domains(iDom)%iID == iID) then
+        dom => aqu%Domains(iDom)
+      end if
+    end do
+
+    return
+  end function AQU_FindDomainID
+
+
+  function iAQU_DomainIDIndex(io, aqu, iID) result(iRes)
+    !! Returns the array index of the domain with ID iID
+    ! [ ARGUMENTS ]
+    type(AQU_COLLECTION), pointer :: aqu
+    integer(kind=AE_INT), intent(in) :: iID
+    type(IO_STATUS), pointer :: io
+    ! [ RETURN VALUE ]
+    integer(kind=AE_INT) :: iRes
+    ! [ LOCALS ]
+    integer(kind=AE_INT) :: iDom
+
+    iRes = 1
+    do iDom = 1, aqu%iNDom
+      if (aqu%Domains(iDom)%iID == iID) then
+        iRes = iDom
+        return
+      end if
+    end do
+    call IO_Assert(io, .false., 'iAQU_DomainIDIndex: Could not find ID')
+
+    return
+  end function iAQU_DomainIDIndex
+
+
+  function lAQU_PointInsideDomain(io, aqu, iDomain, cZ) result(lInside)
+    !! Tests to see if the specified point is inside the Domain
+    ! [ ARGUMENTS ]
+    type(AQU_COLLECTION), pointer :: aqu
+    integer(kind=AE_INT), intent(in) :: iDomain
+    complex(kind=AE_REAL), intent(in) :: cZ
+    type(IO_STATUS), pointer :: io
+    ! [ RETURN VALUE ]
+    logical :: lInside
+    ! [ LOCALS ]
+    integer(kind=AE_INT) :: i, ii
+    real(kind=AE_REAL) :: rSum
+    type(AQU_DOMAIN), pointer :: dom
+
+    dom => aqu%Domains(iDomain)
+    if (size(dom%cZ) == 0) then
+      lInside = .true.
+    else
+      if (any((cZ == dom%cZ(1:dom%iNPts)), 1)) then
+        lInside = .true.
+      else
+        rSum = rZERO
+        ii = dom%iNPts
+        do i = 1, dom%iNPts
+          rSum = rSum + aimag(log((cZ-dom%cZ(i)) / (cZ-dom%cZ(ii))))
+          ii = i
+        end do
+        lInside = (rSum > rONE)
+      end if
+    end if
+
+    return
+  end function lAQU_PointInsideDomain
+
+
+  function lAQU_LineIntersectsDomain(io, aqu, iDomain, cZ1, cZ2) result(lIntersects)
+    !! Tests to see if the line segment cZ1-cZ2 intersects the Domain
+    ! [ ARGUMENTS ]
+    type(AQU_COLLECTION), pointer :: aqu
+    integer(kind=AE_INT), intent(in) :: iDomain
+    complex(kind=AE_REAL), intent(in) :: cZ1, cZ2
+    type(IO_STATUS), pointer :: io
+    ! [ RETURN VALUE ]
+    logical :: lIntersects
+    ! [ LOCALS ]
+    integer(kind=AE_INT) :: i, j
+    complex(kind=AE_REAL) :: cMapZ1, cMapZ2
+    real(kind=AE_REAL) :: rXInt
+    type(AQU_DOMAIN), pointer :: dom
+
+    dom => aqu%Domains(iDomain)
+    lIntersects = .false.
+    j = dom%iNPts
+    do i = 1, dom%iNPts
+      cMapZ1 = (dom%cZ(i) - rHALF * (cZ2+cZ1)) / (rHALF * (cZ2-cZ1))
+      cMapZ2 = (dom%cZ(j) - rHALF * (cZ2+cZ1)) / (rHALF * (cZ2-cZ1))
+      if ((aimag(cMapZ1) >= rZERO .and. aimag(cMapZ2) < rZERO) .or. &
+          (aimag(cMapZ2) >= rZERO .and. aimag(cMapZ1) < rZERO)) then
+        rXInt = real(cMapZ1) - aimag(cMapZ1) * ((real(cMapZ2)-real(cMapZ1)) / &
+                (aimag(cMapZ2)-aimag(cMapZ1)))
+        if (abs(rXInt) <= rONE) then
+          lIntersects = .true.
+          return
+        end if
+      end if
+      j = i
+    end do
+
+    return
+  end function lAQU_LineIntersectsDomain
+
+
+  function lAQU_DomainInsideDomain(io, aqu, iDomain, iDomain2) result(lInside)
+    !! Tests to see if Domain iDomain2 is completely inside Domain iDomain
+    ! [ ARGUMENTS ]
+    type(AQU_COLLECTION), pointer :: aqu
+    integer(kind=AE_INT), intent(in) :: iDomain
+    integer(kind=AE_INT), intent(in) :: iDomain2
+    type(IO_STATUS), pointer :: io
+    ! [ RETURN VALUE ]
+    logical :: lInside
+    ! [ LOCALS ]
+    integer(kind=AE_INT) :: i, j
+    type(AQU_DOMAIN), pointer :: dom, dom2
+
+    dom => aqu%Domains(iDomain)
+    dom2 => aqu%Domains(iDomain2)
+    if (size(dom%cZ, 1) == 0) then
+      lInside = .true.
+    else
+      if (size(dom2%cZ) == 0) then
+        lInside = .false.
+      else
+        lInside = .true.
+        j = dom2%iNPts
+        do i = 1, dom2%iNPts
+          if (.not. lAQU_PointInsideDomain(io, aqu, iDomain, dom2%cZ(i)) .or. &
+              lAQU_LineIntersectsDomain(io, aqu, iDomain, dom2%cZ(i), dom2%cZ(j))) then
+            lInside = .false.
+            return
+          end if
+          j = i
+        end do
+      end if
+    end if
+
+    return
+  end function lAQU_DomainInsideDomain
+
+
+  function lAQU_DomainOverlapsDomain(io, aqu, iDomain, iDomain2) result(lOverlap)
+    !! Tests to see if Domain iDomain2 overlaps Domain iDomain
+    ! [ ARGUMENTS ]
+    type(AQU_COLLECTION), pointer :: aqu
+    integer(kind=AE_INT), intent(in) :: iDomain
+    integer(kind=AE_INT), intent(in) :: iDomain2
+    type(IO_STATUS), pointer :: io
+    ! [ RETURN VALUE ]
+    logical :: lOverlap
+    ! [ LOCALS ]
+    integer(kind=AE_INT) :: i, j
+    type(AQU_DOMAIN), pointer :: dom, dom2
+
+    dom => aqu%Domains(iDomain)
+    dom2 => aqu%Domains(iDomain2)
+    if (size(dom%cZ, 1) == 0) then
+      lOverlap = .true.
+    else
+      if (size(dom2%cZ) == 0) then
+        lOverlap = .false.
+      else
+        lOverlap = .false.
+        j = size(dom2%cZ, 1)
+        do i = 1, size(dom2%cZ, 1)
+          if (lAQU_LineIntersectsDomain(io, aqu, iDomain, dom2%cZ(i), dom2%cZ(j))) then
+            lOverlap = .true.
+            return
+          end if
+          j = i
+        end do
+      end if
+    end if
+
+    return
+  end function lAQU_DomainOverlapsDomain
+
 
 end module m_aqu
