@@ -10,6 +10,7 @@ add_executable(modaem
     # Functional elements
     f_bwl.F90
     f_dipole.F90
+    f_linesink.F90
     f_pond.F90
     f_well.F90
     # Interface modules
@@ -25,7 +26,6 @@ add_executable(modaem
     m_cw0.F90
     m_ext.F90
     m_hb0.F90
-    m_in0.F90
     m_inq.F90
     m_ls0.F90
     m_ls1.F90
