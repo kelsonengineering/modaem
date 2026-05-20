@@ -379,10 +379,10 @@ contains
       wel%pFWL => FWL_New(io, fwl, wel%cZ, rZERO, wel%rRadius, ELEM_WL1, iWel, -1, -1)
       if (wel%lPpWell) then
         wel%bwl => BWL_New(io, wel%cZ, wel%rRadius, wel%rScrBot, wel%rScrTop, &
-                           rAQU_Base(io, aqu, wel%cZ), &
-                           rAQU_Base(io, aqu, wel%cZ) + &
-                             rAQU_SatdThickness(io, aqu, wel%cZ, real(cAQU_Potential(io, aqu, wel%cZ))), &
-                           rAQU_HydCond(io, aqu, wel%cZ), &
+                           rDOM_Base(io, aqu%dom, wel%cZ), &
+                           rDOM_Base(io, aqu%dom, wel%cZ) + &
+                             rDOM_SatdThickness(io, aqu%dom, wel%cZ, real(cAQU_Potential(io, aqu, wel%cZ))), &
+                           rDOM_HydCond(io, aqu%dom, wel%cZ), &
                            wel%rKhKv)
         wel%cZHead = wel%cZ + wel%rRadius
       end if
@@ -478,8 +478,8 @@ contains
     do iwel = 1, wl1%iCount
       wel => wl1%Wells(iwel)
       if (wel%lPpWell) then
-        rAqTop = rAQU_Base(io, aqu, wel%cZ) + &
-                 rAQU_SatdThickness(io, aqu, wel%cZ, real(cAQU_Potential(io, aqu, wel%cZ)))
+        rAqTop = rDOM_Base(io, aqu%dom, wel%cZ) + &
+                 rDOM_SatdThickness(io, aqu%dom, wel%cZ, real(cAQU_Potential(io, aqu, wel%cZ)))
         call BWL_Solve(io, wel%bwl, rAqTop, lChange)
         if (lChange) iChanges = iChanges+1
       end if
@@ -675,9 +675,9 @@ contains
     ! Set up the unknown variables
     wel => wl1%Wells(iElementVertex)
     if (lDirect) then
-      rRHS = rAQU_HeadToPotential(io, aqu, wel%rHead, wel%cZHead)
+      rRHS = rDOM_HeadToPotential(io, aqu%dom, wel%rHead, wel%cZHead)
     else
-      rRHS = rAQU_HeadToPotential(io, aqu, wel%rHead, wel%cZHead) - wel%rCheckPot
+      rRHS = rDOM_HeadToPotential(io, aqu%dom, wel%rHead, wel%cZHead) - wel%rCheckPot
     end if
 
     ! Make the correction for the partially-penetrating well?
@@ -887,7 +887,7 @@ contains
     rPot = real(cValue, AE_REAL)
     wel => wl1%Wells(itr%iElementString)
     wel%rCheckPot = rPot
-    wel%rDFHead = rAQU_PotentialToHead(io, aqu, rPot, wel%cZHead)
+    wel%rDFHead = rDOM_PotentialToHead(io, aqu%dom, rPot, wel%cZHead)
     if ( wel%lPpWell ) then
         wel%rError = wel%rDFHead - &
                      wel%rStrength * wel%bwl%rInfl(wel%bwl%iLayer) - &
@@ -1045,7 +1045,7 @@ contains
              cIO_WorldCoords(io, wel%cZHead), &
              wel%rHead, &
              wel%rStrength, &
-             rAQU_PotentialToHead(io, aqu, wel%rCheckPot, wel%cZHead), &
+             rDOM_PotentialToHead(io, aqu%dom, wel%rCheckPot, wel%cZHead), &
              wel%rDFHead, &
              pp_wtbl, &
              pp_head, &

@@ -797,27 +797,27 @@ contains
         if (iElementFlag /= wel%iResolution) then
           next => rad%Vertices(iElementFlag+1)
           iNextCol = iVtxCol+1
-          rT1 = rAQU_Transmissivity(io, aqu, this%cCPZ, this%rCheck)
-          rT2 = rAQU_Transmissivity(io, aqu, next%cCPZ, next%rCheck)
+          rT1 = rDOM_Transmissivity(io, aqu%dom, this%cCPZ, this%rCheck)
+          rT2 = rDOM_Transmissivity(io, aqu%dom, next%cCPZ, next%rCheck)
           this%rResistanceTerm = (rHALF * (rT1+rT2) * rad%rResistance) / rad%rWidth
           rARow(iVtxCol) = rARow(iVtxCol) - this%rResistanceTerm
           rARow(iNextCol) = rARow(iNextCol) + this%rResistanceTerm
         else
           next => last_vtx
           iNextCol = iCol
-          rT1 = rAQU_Transmissivity(io, aqu, this%cCPZ, this%rCheck)
-          rT2 = rAQU_Transmissivity(io, aqu, next%cCPZ, next%rCheck)
+          rT1 = rDOM_Transmissivity(io, aqu%dom, this%cCPZ, this%rCheck)
+          rT2 = rDOM_Transmissivity(io, aqu%dom, next%cCPZ, next%rCheck)
           this%rResistanceTerm = (rHALF * (rT1+rT2) * rad%rResistance) / rad%rWidth
           rARow(iVtxCol) = rARow(iVtxCol) - this%rResistanceTerm
           rARow(iNextCol) = rARow(iNextCol) + this%rResistanceTerm
         end if
       else if (iElementType == ELEM_CW0 .and. iEqType == EQN_TOTALFLOW .and. iElementString == iWel) then
-        rT1 = rAQU_Transmissivity(io, aqu, last_vtx%cCPZ, last_vtx%rCheck)
+        rT1 = rDOM_Transmissivity(io, aqu%dom, last_vtx%cCPZ, last_vtx%rCheck)
         last_vtx%rResistanceTerm = (rT1 * rad%rResistance) / rad%rWidth
       else if (iElementType == ELEM_CW0 .and. iEqType == EQN_HEAD .and. iElementString == iWel) then
         rad => wel%Radials(iElementVertex)
         this => rad%Vertices(iElementFlag)
-        rT1 = rAQU_Transmissivity(io, aqu, this%cCPZ, this%rCheck)
+        rT1 = rDOM_Transmissivity(io, aqu%dom, this%cCPZ, this%rCheck)
         this%rResistanceTerm = (rT1 * rad%rResistance) / rad%rWidth
         iVtxCol = iBaseCol + this%pFDP%iIndex - first_vtx%pFDP%iIndex + 1
         rARow(iVtxCol) = rARow(iVtxCol) - this%rResistanceTerm
@@ -925,9 +925,9 @@ contains
       else if (iEqType == EQN_HEAD) then
         ! Closure condition -- specified head
         if (lDirect) then
-          rRHS = rAQU_HeadToPotential(io, aqu, wel%rQ, this%cCPZ)
+          rRHS = rDOM_HeadToPotential(io, aqu%dom, wel%rQ, this%cCPZ)
         else
-          rRHS = rAQU_HeadToPotential(io, aqu, wel%rQ, this%cCPZ) - this%rCheck
+          rRHS = rDOM_HeadToPotential(io, aqu%dom, wel%rQ, this%cCPZ) - this%rCheck
           rRHS = rRHS + this%rResistanceTerm * this%rStrength
         end if
       else if (iEqType == EQN_TOTALFLOW) then
@@ -1171,7 +1171,7 @@ contains
       wel => cw0%Wells(iWel)
       rad => wel%Radials(wel%iNRad)
       vtx => rad%Vertices(wel%iResolution)
-      rCaissonHead = rAQU_PotentialToHead(io, aqu, vtx%rCheck, vtx%cCPZ) - vtx%rStrength * rad%rResistance / rad%rWidth
+      rCaissonHead = rDOM_PotentialToHead(io, aqu%dom, vtx%rCheck, vtx%cCPZ) - vtx%rStrength * rad%rResistance / rad%rWidth
 
       return
     end function rCW0_ComputeCaissonHead
@@ -1839,8 +1839,8 @@ contains
                    cIO_WorldCoords(io, next%cZ), &
                    rLength, &
                    this%rStrength, &
-                   rAQU_PotentialToHead(io, aqu, this%rCheck, this%cCPZ), &
-                   rAQU_PotentialToHead(io, aqu, this%rCheck - &
+                   rDOM_PotentialToHead(io, aqu%dom, this%rCheck, this%cCPZ), &
+                   rDOM_PotentialToHead(io, aqu%dom, this%rCheck - &
                    this%rResistanceTerm*this%rStrength, this%cCPZ)
           end do
         end do
@@ -1936,8 +1936,8 @@ contains
               call HTML_ColumnComplex((/ vtx%cZ /))
               call HTML_ColumnReal((/ vtx%rStrength /))
               call HTML_ColumnReal((/ vtx%rLength /))
-              call HTML_ColumnReal((/ rAQU_PotentialToHead(io, aqu, vtx%rCheck, vtx%cCPZ) /))
-              call HTML_ColumnReal((/ rAQU_PotentialToHead(io, aqu, vtx%rCheck, vtx%cCPZ) - &
+              call HTML_ColumnReal((/ rDOM_PotentialToHead(io, aqu%dom, vtx%rCheck, vtx%cCPZ) /))
+              call HTML_ColumnReal((/ rDOM_PotentialToHead(io, aqu%dom, vtx%rCheck, vtx%cCPZ) - &
                                       vtx%rStrength*rad%rResistance/rad%rWidth /))
               call HTML_EndRow()
             end do

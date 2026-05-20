@@ -738,9 +738,9 @@ contains
     ! For LS1, compute the RHS by subtracting the previous result from the
     ! desired potential at the control-point
     if (lDirect) then
-      rRHS = rAQU_HeadToPotential(io, aqu, vtx%rCPHead, vtx%cCPZ(1))
+      rRHS = rDOM_HeadToPotential(io, aqu%dom, vtx%rCPHead, vtx%cCPZ(1))
     else
-      rRHS = rAQU_HeadToPotential(io, aqu, vtx%rCPHead, vtx%cCPZ(1)) - vtx%rCheckPot
+      rRHS = rDOM_HeadToPotential(io, aqu%dom, vtx%rCPHead, vtx%cCPZ(1)) - vtx%rCheckPot
     end if
     return
   end function rLS1_ComputeRHS
@@ -1029,7 +1029,7 @@ contains
 
     vtx => ls1%Strings(itr%iElementString)%Vertices(itr%iElementVertex)
     vtx%rCheckPot = real(cValue, AE_REAL)
-    vtx%rCheckHead = rAQU_PotentialToHead(io, aqu, vtx%rCheckPot, vtx%cCPZ(1))
+    vtx%rCheckHead = rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot, vtx%cCPZ(1))
 
     return
   end subroutine LS1_SetIterator

@@ -2,6 +2,7 @@ add_executable(modaem
     modaem.F90
     # Utility modules
     u_constants.F90
+    u_domain.F90
     u_grid.F90
     u_io.F90
     u_math.F90

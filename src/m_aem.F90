@@ -29,6 +29,7 @@ module m_aem
   use u_constants
   use u_io
   use u_matrix
+  use u_domain
   use f_well
   use f_dipole
   use f_pond
@@ -135,6 +136,7 @@ module m_aem
     logical :: lDrawdown
 
     ! Pointers to other collection objects
+    type(DOM_COLLECTION), pointer :: dom
     type(AQU_COLLECTION), pointer :: aqu
     type(FWL_COLLECTION), pointer :: fwl
     type(FPD_COLLECTION), pointer :: fpd
@@ -203,6 +205,7 @@ contains
     aem%lSolutionPresent = .false.
 
     ! Create the module objects
+    nullify(aem%dom)
     nullify(aem%fwl)
     nullify(aem%fpd)
     nullify(aem%fdp)
@@ -618,7 +621,7 @@ contains
       end do
     end if
 
-    rH = rAQU_PotentialToHead(io, aem%aqu, &
+    rH = rDOM_PotentialToHead(io, aem%dom, &
                               real(cAEM_Potential(io, aem, cZArg) - &
                                    cFWL_Potential(io, aem%fwl, cZArg, pFWL%iIndex, 1)), &
                               cZArg)
@@ -719,7 +722,7 @@ contains
     real(kind=AE_REAL) :: rHead
     ! [ LOCALS ]
 
-    rHead = rAQU_PotentialToHead(io, aem%aqu, real(cAEM_Potential(io, aem, cZ, lNoCheck)), cZ)
+    rHead = rDOM_PotentialToHead(io, aem%dom, real(cAEM_Potential(io, aem, cZ, lNoCheck)), cZ)
 
     return
   end function rAEM_Head
@@ -748,7 +751,7 @@ contains
     real(kind=AE_REAL) :: rSatdThick
     ! [ LOCALS ]
 
-    rSatdThick = rAQU_SatdThickness(io, aem%aqu, cZ, real(cAEM_Potential(io, aem, cZ, lNoCheck)))
+    rSatdThick = rDOM_SatdThickness(io, aem%dom, cZ, real(cAEM_Potential(io, aem, cZ, lNoCheck)))
 
     return
   end function rAEM_SatdThick
@@ -885,7 +888,7 @@ contains
     ! [ LOCALS ]
 
     cV = cAEM_Discharge(io, aem, cZ, lNoCheck)
-    cV = cAQU_DischargeToVelocity(io, aem%aqu, cAEM_Discharge(io, aem, cZ, lNoCheck), &
+    cV = cDOM_DischargeToVelocity(io, aem%dom, cAEM_Discharge(io, aem, cZ, lNoCheck), &
          cZ, real(cAEM_Potential(io, aem, cZ, lNoCheck)))
 
     return
@@ -2006,9 +2009,9 @@ contains
       case (VALUE_FLOW)
         cValue = rAEM_Flow(io, aem, itr%cZ, .false.)
       case (VALUE_SATDTHICK)
-        cValue = rAQU_SatdThickness(io, aem%aqu, itr%cZ(1), real(cAEM_Potential(io, aem, itr%cZ(1), .false.)))
+        cValue = rDOM_SatdThickness(io, aem%dom, itr%cZ(1), real(cAEM_Potential(io, aem, itr%cZ(1), .false.)))
       case (VALUE_TRANSMISSIVITY)
-        cValue = rAQU_Transmissivity(io, aem%aqu, itr%cZ(1), real(cAEM_Potential(io, aem, itr%cZ(1), .false.)))
+        cValue = rDOM_Transmissivity(io, aem%dom, itr%cZ(1), real(cAEM_Potential(io, aem, itr%cZ(1), .false.)))
       case (VALUE_EXTRACTION)
         cValue = rAEM_Extraction(io, aem, .false.)
     end select
@@ -2075,6 +2078,7 @@ contains
     integer(kind=AE_INT) :: iretval
     integer(kind=AE_INT) :: iAS0Flag
     integer(kind=AE_INT) :: iNAS0
+    integer(kind=AE_INT) :: iNInho, iNStr
 
     ! Placeholders for function module test calls
     complex(kind=AE_REAL) :: cZ1, cZ2, cZC, cZE1, cZE2
@@ -2108,8 +2112,16 @@ contains
           ! Change the io%lDebug flag
           io%lDebug = lIO_GetLogical(io, "lDebug", def=.true.)
         case (iAQU)
-          ! Read the infinite aquifer properties and then enter the AQU element module
-          aem%aqu => AQU_Create(io)
+          ! Read the aquifer + domain parameters, create collections, then parse the AQU section
+          iNInho = iIO_GetInteger(io, 'iNInho', minimum=1)
+          iNStr = iIO_GetInteger(io, 'iNStr', minimum=0)
+          rBase = rIO_GetReal(io, 'rBase')
+          rThick = rIO_GetReal(io, 'rThick', minimum=rTINY)
+          rHydCond = rIO_GetReal(io, 'rHydCond', minimum=rZERO)
+          rPorosity = rIO_GetReal(io, 'rPorosity', minimum=rTINY)
+          rAvgHead = rIO_GetReal(io, 'rAvgHead', minimum=rBase)
+          aem%dom => DOM_Create(io, iNInho, rBase, rThick, rHydCond, rPorosity, rAvgHead)
+          aem%aqu => AQU_Create(io, aem%dom, iNStr)
           call AQU_Read(io, aem%aqu)
         case (iWL0)
           ! Enter the WL0 element module

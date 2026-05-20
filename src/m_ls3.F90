@@ -680,7 +680,7 @@ contains
                 end if
               else
                 ! ...if not check to see if it needs to be turned back on.
-                if (rAQU_PotentialToHead(io, aqu, vtx%rCheckPot, vtx%cCPZ(1)) > vtx%rCPHead) then
+                if (rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot, vtx%cCPZ(1)) > vtx%rCPHead) then
                   write (unit=sBuf, &
                          fmt="(""  Enabling drain element string  "", i8, "" segment "", i8)" &
                          ) str%iID, iVtx
@@ -694,7 +694,7 @@ contains
 
           ! First, force a matrix regen if any of the vertices is unconfined(darn shame)
           if (vtx%lEnabled .and. &
-              lAQU_IsConfined(io, aqu, vtx%cCPZ(1), vtx%rCheckPot) &
+              lDOM_IsConfined(io, aqu%dom, vtx%cCPZ(1), vtx%rCheckPot) &
             ) ls3%iRegenerate = 1
         end do
       end do
@@ -835,20 +835,20 @@ contains
 
             ! On the first iteration, use the CP head as a head estimate...
             if (iIteration == 1) then
-              vtx%rSolutionPot = rAQU_HeadToPotential(io, aqu, vtx%rCPHead, vtx%cCPZ(1))
+              vtx%rSolutionPot = rDOM_HeadToPotential(io, aqu%dom, vtx%rCPHead, vtx%cCPZ(1))
               vtx%rSolutionHead = vtx%rCPHead
             end if
 
-            if (lAQU_IsConfined(io, aqu, vtx%cCPZ(1), vtx%rSolutionPot)) then
-              rCorr = -rAQU_Transmissivity(io, aqu, vtx%cCPZ(1), vtx%rSolutionPot) / str%rConductance
+            if (lDOM_IsConfined(io, aqu%dom, vtx%cCPZ(1), vtx%rSolutionPot)) then
+              rCorr = -rDOM_Transmissivity(io, aqu%dom, vtx%cCPZ(1), vtx%rSolutionPot) / str%rConductance
             else
               if (iIteration == 1) then
-                rCorr = - rAQU_HydCond(io, aqu, vtx%cCPZ(1)) * &
-                        (vtx%rCPHead - rAQU_Base(io, aqu, vtx%cCPZ(1))) /  &
+                rCorr = - rDOM_HydCond(io, aqu%dom, vtx%cCPZ(1)) * &
+                        (vtx%rCPHead - rDOM_Base(io, aqu%dom, vtx%cCPZ(1))) /  &
                         str%rConductance
               else
-                rCorr = -rHALF * rAQU_HydCond(io, aqu, vtx%cCPZ(1)) * &
-                        (vtx%rSolutionHead + vtx%rCPHead - rTWO*rAQU_Base(io, aqu, vtx%cCPZ(1))) /  &
+                rCorr = -rHALF * rDOM_HydCond(io, aqu%dom, vtx%cCPZ(1)) * &
+                        (vtx%rSolutionHead + vtx%rCPHead - rTWO*rDOM_Base(io, aqu%dom, vtx%cCPZ(1))) /  &
                         str%rConductance
               end if
             end if
@@ -921,17 +921,17 @@ contains
 
     ! For LS3, compute the RHS by subtracting the previous result from the
     ! desired potential at the control-point
-    rRHS = rAQU_HeadToPotential(io, aqu, vtx%rCPHead, vtx%cCPZ(1)) - vtx%rCheckPot
+    rRHS = rDOM_HeadToPotential(io, aqu%dom, vtx%rCPHead, vtx%cCPZ(1)) - vtx%rCheckPot
 
     ! Need to add the resistance correction term
     if (lDirect) then
       rCorr = rZERO
     else
-      if (lAQU_IsConfined(io, aqu, vtx%cCPZ(1), vtx%rSolutionPot)) then
-        rCorr = vtx%rStrength * rAQU_Transmissivity(io, aqu, vtx%cCPZ(1), vtx%rSolutionPot) / str%rConductance
+      if (lDOM_IsConfined(io, aqu%dom, vtx%cCPZ(1), vtx%rSolutionPot)) then
+        rCorr = vtx%rStrength * rDOM_Transmissivity(io, aqu%dom, vtx%cCPZ(1), vtx%rSolutionPot) / str%rConductance
       else
-        rCorr = vtx%rStrength * rHALF * rAQU_HydCond(io, aqu, vtx%cCPZ(1)) * &
-                (vtx%rSolutionHead + vtx%rCPHead - rTWO*rAQU_Base(io, aqu, vtx%cCPZ(1))) / str%rConductance
+        rCorr = vtx%rStrength * rHALF * rDOM_HydCond(io, aqu%dom, vtx%cCPZ(1)) * &
+                (vtx%rSolutionHead + vtx%rCPHead - rTWO*rDOM_Base(io, aqu%dom, vtx%cCPZ(1))) / str%rConductance
       end if
     end if
     rRHS = rRHS + rCorr
@@ -1213,12 +1213,12 @@ contains
 
     vtx => ls3%Strings(itr%iElementString)%Vertices(itr%iElementVertex)
     vtx%rCheckPot = real(cValue, AE_REAL)
-    vtx%rCheckHead = rAQU_PotentialToHead(io, aqu, vtx%rCheckPot, vtx%cCPZ(1))
+    vtx%rCheckHead = rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot, vtx%cCPZ(1))
     if (lLinearize) then
       vtx%rSolutionPot = vtx%rCheckPot
       vtx%rSolutionHead = vtx%rCheckHead
       !print *, 'cp, chk', ls3%Strings(itr%iElementString)%iID, itr%iElementVertex, vtx%rCPHead, vtx%rCheckHead, vtx%cCPZ(1)
-      if (.not. lAQU_IsConfined(io, aqu, vtx%cCPZ(1), vtx%rCheckPot)) ls3%iRegenerate = 1
+      if (.not. lDOM_IsConfined(io, aqu%dom, vtx%cCPZ(1), vtx%rCheckPot)) ls3%iRegenerate = 1
       !print *,'ls3 update',itr%iElementString,itr%iElementVertex,vtx%rSolutionPot,vtx%rSolutionHead,vtx%rCPHead,vtx%lEnabled
     end if
 
@@ -1706,7 +1706,7 @@ contains
           call HTML_ColumnInteger((/iVtx, vtx%pFLS%iIndex/))
           call HTML_ColumnComplex((/cIO_WorldCoords(io, vtx%cZ)/))
           call HTML_ColumnReal((/vtx%rLength, vtx%rCPHead, vtx%rCPDepth, vtx%rStrength, &
-               rAQU_PotentialToHead(io, aqu, vtx%rCheckPot, vtx%cCPZ(1))/))
+               rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot, vtx%cCPZ(1))/))
           call HTML_ColumnLogical((/vtx%lEnabled/))
           call HTML_ColumnReal((/vtx%rStreamFlow/))
           call HTML_ColumnLogical((/vtx%lRouteEnabled/))

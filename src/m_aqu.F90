@@ -52,6 +52,7 @@ module m_aqu
   use u_io
   use u_matrix
   use u_polygon
+  use u_domain
 
   use f_dipole
 
@@ -60,10 +61,6 @@ module m_aqu
   implicit none
 
   public
-
-  private :: lAQU_PointInsideDomain, &
-             lAQU_LineIntersectsDomain, &
-             lAQU_DomainInsideDomain
 
   type, public :: AQU_VERTEX
     !! type AQU_VERTEX
@@ -90,42 +87,6 @@ module m_aqu
     complex(kind=AE_REAL), dimension(3) :: cCPZ
     complex(kind=AE_REAL), dimension(3) :: cCPZOpp
   end type AQU_VERTEX
-
-  type, public :: AQU_DOMAIN
-    !! type AQU_DOMAIN
-    !!
-    !! Type that holds information for one inhomogeneity domain
-    !!
-    !! Members:
-    !!   complex :: cZ(:)
-    !!     Vertices of the domain polygon
-    !!   integer :: iInsideDomain
-    !!     Number of the AQU_DOMAIN that this domain is inside
-    !!   integer :: iNPts
-    !!     The number of vertices actually in use
-    !!   integer :: iID
-    !!     The ID number for the domain
-    !!   real :: rBase
-    !!     Base elevation
-    !!   real :: rThickness
-    !!     Thickness of the aquifer
-    !!   real :: rHydCond
-    !!     Hydraulic conductivity
-    !!   real :: rPorosity
-    !!     Porosity
-    !!
-    complex(kind=AE_REAL), dimension(:), pointer :: cZ
-    integer(kind=AE_INT) :: iInsideDomain
-    integer(kind=AE_INT) :: iOutsideDomain
-    integer(kind=AE_INT) :: iNPts
-    integer(kind=AE_INT) :: iID
-    real(kind=AE_REAL) :: rBase
-    real(kind=AE_REAL) :: rThickness
-    real(kind=AE_REAL) :: rHydCond
-    real(kind=AE_REAL) :: rPorosity
-    real(kind=AE_REAL) :: rTopPot
-    real(kind=AE_REAL) :: rAvgHead
-  end type AQU_DOMAIN
 
   type, public :: AQU_STRING
     !! type AQU_STRING
@@ -242,15 +203,12 @@ module m_aqu
     real(kind=AE_REAL) :: rCheck
     type(AQU_BDYELEMENT), dimension(:), pointer :: BdyElements
     integer(kind=AE_INT) :: iNBdy
-    logical :: lPrecondition
-    ! Inhomogeneity domains and strings (dissolved from IN0_COLLECTION)
-    type(AQU_DOMAIN), dimension(:), pointer :: Domains
-    integer(kind=AE_INT) :: iNDom
+    ! Reference to the domain collection (owned by AEM_DOMAIN, assigned at creation)
+    type(DOM_COLLECTION), pointer :: dom
+    ! Inhomogeneity strings
     type(AQU_STRING), dimension(:), pointer :: Strings
     integer(kind=AE_INT) :: iNStr
-    integer(kind=AE_INT) :: iRegenerate
-    logical :: lInitialIteration
-    ! Inhomogeneity iterator fields (renamed from in0%iIterStr, etc.)
+    ! Inhomogeneity iterator fields
     integer(kind=AE_INT) :: iInhoIterStr
     integer(kind=AE_INT) :: iInhoIterVtx
     integer(kind=AE_INT) :: iInhoIterFlag
@@ -297,74 +255,48 @@ module m_aqu
   real(kind=AE_REAL) :: MOVEFACTOR = 1.0001_AE_REAL
 
 
+
 contains
 
   !! ELEMENT MODULE ROUTINES
   !! These routines allow AQU to behave as a ModAEM Element Module
 
 
-  function AQU_Create(io) result(aqu)
+  function AQU_Create(io, dom_coll, iNStr) result(aqu)
     !! function AQU_Create
     !!
-    !! Creates a new AQU_COLLECTION object for an infinite aquifer
+    !! Creates a new AQU_COLLECTION object and attaches it to an existing domain collection.
     !!
     !! Calling Sequence:
-    !!    aqu => AQU_Create(io)
+    !!    aqu => AQU_Create(io, dom_coll, iNStr)
     !!
     !! Arguments:
     !!   type(IO_STATUS), pointer :: io
-    !!     All parameters are expected in the buffers in the io object
+    !!   type(DOM_COLLECTION), pointer :: dom_coll
+    !!     The domain collection (owned by AEM_DOMAIN) to attach to this aquifer
+    !!   integer :: iNStr
+    !!     Number of inhomogeneity strings to pre-allocate
     !!
     ! [ ARGUMENTS ]
-    integer(kind=AE_INT) :: iNInho
-    integer(kind=AE_INT) :: iNStr
-    real(kind=AE_REAL) :: rBase
-    real(kind=AE_REAL) :: rThick
-    real(kind=AE_REAL) :: rHydCond
-    real(kind=AE_REAL) :: rPorosity
-    real(kind=AE_REAL) :: rAvgHead
     type(IO_STATUS), pointer :: io
+    type(DOM_COLLECTION), pointer :: dom_coll
+    integer(kind=AE_INT), intent(in) :: iNStr
 
     ! [ RETURN VALUE ]
     type(AQU_COLLECTION), pointer :: aqu
     ! [ LOCALS ]
     integer(kind=AE_INT) :: iStat
-    type(AQU_DOMAIN), pointer :: dom
 
     allocate(aqu, stat = iStat)
     call IO_Assert(io, (iStat == 0), "AQU_Create: allocation failed")
 
-    iNInho = iIO_GetInteger(io, 'iNInho', minimum = 1)
-    iNStr = iIO_GetInteger(io, 'iNStr', minimum = 0)
-    rBase = rIO_GetReal(io, 'rBase')
-    rThick = rIO_GetReal(io, 'rThick', minimum = rTINY)
-    rHydCond = rIO_getReal(io, 'rHydCond', minimum = rZERO)
-    rPorosity = rIO_getReal(io, 'rPorosity', minimum = rTINY)
-    rAvgHead = rIO_getReal(io, 'rAvgHead', minimum = rBase)
-
-    ! Initialize the inhomogeneity data structures (was IN0_Create)
-    allocate(aqu%Domains(iNInho), aqu%Strings(iNStr), stat = iStat)
+    ! Attach the domain collection and allocate string space
+    aqu%dom => dom_coll
+    allocate(aqu%Strings(iNStr), stat = iStat)
     call IO_Assert(io, (iStat == 0), "AQU_Create: allocation failed")
-    aqu%Domains%iID = -1
     aqu%Strings%iID = -1
 
-    aqu%iNDom = 1
     aqu%iNStr = 0
-    aqu%iRegenerate = 1
-    aqu%lInitialIteration = .true.
-    aqu%lPrecondition = .true.
-
-    ! Build the infinite aquifer domain
-    dom => aqu%Domains(1)
-    dom%rBase = rBase
-    dom%rThickness = rThick
-    dom%rHydCond = rHydCond
-    dom%rPorosity = rPorosity
-    dom%rAvgHead = rAvgHead
-    dom%iInsideDomain = 0
-    dom%iOutsideDomain = 0
-    dom%iNPts = 0
-    dom%iID = 0
 
     aqu%cRefPoint = cZERO
     aqu%rRefHead = rZERO
@@ -395,7 +327,7 @@ contains
     logical, intent(in) :: lPre
     type(IO_STATUS), pointer :: io
 
-    aqu%lPrecondition = lPre
+    aqu%dom%lPrecondition = lPre
 
     return
   end subroutine AQU_SetPrecondition
@@ -458,9 +390,9 @@ contains
     type(AQU_COLLECTION), pointer :: aqu
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: i, istat, iDom, iDom2, iStr, iVtx, iNChanges
+    integer(kind=AE_INT) :: i, istat, iDom, iStr, iVtx
     character(len=255) :: sBuf
-    type(AQU_DOMAIN), pointer :: dom, dom2, outside
+    type(DOM_DOMAIN), pointer :: dom
     type(AQU_STRING), pointer :: str
     type(AQU_VERTEX), pointer :: vtx
     complex(kind=AE_REAL), dimension(:), allocatable :: cTempZ
@@ -482,49 +414,17 @@ contains
       aqu%iNPerimeter = 0
     end if
 
-    ! Set up the inhomogeneity module stuff (was IN0_PreSolve)
-    ! Compute the necessary constants
-    do iDom = 1, aqu%iNDom
-      dom => aqu%Domains(iDom)
-      if (iDom > 1) then
-        call PGN_MakePositivelyOriented(dom%cZ(1:dom%iNPts))
-      end if
-    end do
-
-    ! Nest the domains, if necessary, using an iterative strategy
-    print *, 'Checking for nested inhomogeneities...'
-    ! Handle the potentials at bottom and top of all aquifers
-    aqu%Domains(:)%rTopPot = rHALF * aqu%Domains(:)%rHydCond * aqu%Domains(:)%rThickness**2
-    do
-      iNChanges = 0
-      do iDom = 2, aqu%iNDom
-        dom => aqu%Domains(iDom)
-        do iDom2 = 2, aqu%iNDom
-          dom2 => aqu%Domains(iDom2)
-          if (iDom /= iDom2) then
-            ! Set iDom's domain to be iDom2 if (1) iDom2 contains iDom's outside
-            ! domain and(2) iDom is inside iDom2
-            if (lAQU_DomainInsideDomain(io, aqu, iAQU_DomainIDIndex(io, aqu, dom%iOutsideDomain), iDom2) .and. &
-                lAQU_DomainInsideDomain(io, aqu, iDom2, iDom)) then
-              dom%iOutsideDomain = dom2%iID
-              iNChanges = iNChanges+1
-            end if
-          end if
-        end do
-
-        outside => AQU_FindDomainID(io, aqu, dom%iOutsideDomain)
-      end do
-      if (iNChanges == 0) exit
-    end do
+    ! Orient domains and resolve nesting topology via u_domain
+    call DOM_PreSolve(io, aqu%dom)
 
     ! If no strings were explicitly defined, create strings for the domains
     if (aqu%iNStr == 0) then
       print *, 'Copying AQU domains into strings...'
-      call IO_Assert(io, (size(aqu%Strings) >= aqu%iNDom-1), &
+      call IO_Assert(io, (size(aqu%Strings) >= aqu%dom%iNDom-1), &
            "AQU_PreSolve: Insufficient number of strings is available")
-      do iDom = 2, aqu%iNDom
+      do iDom = 2, aqu%dom%iNDom
         aqu%iNStr = aqu%iNStr+1
-        dom => aqu%Domains(iDom)
+        dom => aqu%dom%Domains(iDom)
         str => aqu%Strings(aqu%iNStr)
         allocate(str%Vertices(dom%iNPts), stat = iStat)
         call IO_Assert(io, (iStat == 0), &
@@ -547,7 +447,7 @@ contains
     ! Set the RightB and LeftB base elevations for all strings
     do iStr = 1, aqu%iNStr
       str => aqu%Strings(iStr)
-      dom => AQU_FindDomainID(io, aqu, str%iLeftID)
+      dom => DOM_FindDomainID(io, aqu%dom, str%iLeftID)
       str%rLeftB = dom%rBase
       if (dom%rAvgHead > (dom%rBase+dom%rThickness)) then
         rH = dom%rThickness
@@ -559,7 +459,7 @@ contains
         vtx%rLeftH = rH
         vtx%rLeftT = rH * dom%rHydCond
       end do
-      dom => AQU_FindDomainID(io, aqu, str%iRightID)
+      dom => DOM_FindDomainID(io, aqu%dom, str%iRightID)
       str%rRightB = dom%rBase
       if (dom%rAvgHead > (dom%rBase+dom%rThickness)) then
         rH = dom%rThickness
@@ -651,7 +551,7 @@ contains
         if (iIteration < 2) then
           iValue = 1
         else
-          iValue = aqu%iRegenerate
+          iValue = aqu%dom%iRegenerate
         end if
         if (iIteration < 2 .or. aqu%lFSRegen) then
           iValue = 1
@@ -1241,9 +1141,9 @@ contains
             select case (bdy%iBdyFlag)
               case (BDY_HEAD)
                 if (lDirect) then
-                  rRHS = rAQU_HeadToPotential(io, aqu, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2))
+                  rRHS = rDOM_HeadToPotential(io, aqu%dom, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2))
                 else
-                  rRHS = rAQU_HeadToPotential(io, aqu, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2)) - bdy%rCheckPot
+                  rRHS = rDOM_HeadToPotential(io, aqu%dom, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2)) - bdy%rCheckPot
                 end if
               case (BDY_FLUX)
                 if (lDirect) then
@@ -1252,14 +1152,14 @@ contains
                   rRHS = bdy%rSpecFlux - bdy%rCheckFlux
                 end if
               case (BDY_GHB)
-                rRHS = rAQU_HeadToPotential(io, aqu, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2)) - &
+                rRHS = rDOM_HeadToPotential(io, aqu%dom, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2)) - &
                        bdy%rCheckPot - bdy%rCheckFlux*bdy%rGhbDistance/bdy%rLength
               case (BDY_FREESURF)
                 if (bdy%lFSHeadSpec) then
                   if (lDirect) then
-                    rRHS = rAQU_HeadToPotential(io, aqu, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2))
+                    rRHS = rDOM_HeadToPotential(io, aqu%dom, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2))
                   else
-                    rRHS = rAQU_HeadToPotential(io, aqu, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2)) - bdy%rCheckPot
+                    rRHS = rDOM_HeadToPotential(io, aqu%dom, bdy%rSpecHead, rHALF*(bdy%cZ1+bdy%cZ2)) - bdy%rCheckPot
                   end if
                 else
                   if (lDirect) then
@@ -1272,9 +1172,9 @@ contains
           case (kAQUReference)
             if (aqu%lReference) then
               if (lDirect) then
-                rRHS = rAQU_HeadToPotential(io, aqu, aqu%rRefHead, aqu%cRefPoint)
+                rRHS = rDOM_HeadToPotential(io, aqu%dom, aqu%rRefHead, aqu%cRefPoint)
               else
-                rRHS = rAQU_HeadToPotential(io, aqu, aqu%rRefHead, aqu%cRefPoint) - aqu%rCheck
+                rRHS = rDOM_HeadToPotential(io, aqu%dom, aqu%rRefHead, aqu%cRefPoint) - aqu%rCheck
               end if
             else
               rRHS = rZERO
@@ -1449,7 +1349,7 @@ contains
     end do
 
     ! If we've done this once, it's not the initial iteration anymore
-    aqu%lInitialIteration = .false.
+    aqu%dom%lInitialIteration = .false.
 
     return
   end subroutine AQU_Update
@@ -1497,7 +1397,7 @@ contains
     ! [ RETURN VALUE ]
     type(ITERATOR_RESULT), pointer :: itr
     type(AQU_BDYELEMENT), pointer :: bdy
-    type(AQU_DOMAIN), pointer :: dom
+    type(DOM_DOMAIN), pointer :: dom
     integer(kind=AE_INT) :: iStat
 
     if (aqu%lDebug) then
@@ -1614,7 +1514,6 @@ contains
       itr%iValueSelector = VALUE_POTENTIAL
       allocate(itr%cZ(1))
       itr%cZ(1) = aqu%Strings(aqu%iInhoIterStr)%Vertices(aqu%iInhoIterVtx)%cCPZ(aqu%iInhoIterFlag)
-      dom => AQU_FindDomain(io, aqu, itr%cZ(1))
     end if
 
     return
@@ -1637,7 +1536,7 @@ contains
     type(AQU_BDYELEMENT), pointer :: bdy
     ! [ LOCALS ]
     complex(kind=AE_REAL) :: cUnit
-    type(AQU_DOMAIN), pointer :: left, right
+    type(DOM_DOMAIN), pointer :: left, right
     type(AQU_STRING), pointer :: str
     type(AQU_VERTEX), pointer :: vtx
     real(kind=AE_REAL) :: H1, H2, rHead
@@ -1670,7 +1569,7 @@ contains
       end if
 
       ! Clear the "regen" flag unless something interesting happens...
-      aqu%iRegenerate = 0
+      aqu%dom%iRegenerate = 0
 
       str => aqu%Strings(itr%iElementString)
       vtx => str%Vertices(itr%iElementVertex)
@@ -1678,14 +1577,14 @@ contains
         vtx%rCheckPot(itr%iElementFlag) = real(cValue, AE_REAL)
         ! Do I update coefficients?
         if (lLinearize) then
-          left => AQU_FindDomainID(io, aqu, str%iLeftID)
-          right => AQU_FindDomainID(io, aqu, str%iRightID)
-          rHead = rHALF * (rAQU_PotentialToHead(io, aqu, vtx%rCheckPot(itr%iElementFlag), vtx%cCPZ(itr%iElementFlag)) + &
-                  rAQU_PotentialToHead(io, aqu, vtx%rCheckPot(itr%iElementFlag), vtx%cCPZ(itr%iElementFlag)))
-          H1 = rAQU_DomainThickness(io, aqu, left, rHead)
-          H2 = rAQU_DomainThickness(io, aqu, right, rHead)
+          left => DOM_FindDomainID(io, aqu%dom, str%iLeftID)
+          right => DOM_FindDomainID(io, aqu%dom, str%iRightID)
+          rHead = rHALF * (rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot(itr%iElementFlag), vtx%cCPZ(itr%iElementFlag)) + &
+                  rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot(itr%iElementFlag), vtx%cCPZ(itr%iElementFlag)))
+          H1 = rDOM_DomainThickness(io, aqu%dom, left, rHead)
+          H2 = rDOM_DomainThickness(io, aqu%dom, right, rHead)
           if (H1 /= vtx%rLeftH(itr%iElementFlag) .or. H2 /= vtx%rRightH(itr%iElementFlag)) then
-            aqu%iRegenerate = 1
+            aqu%dom%iRegenerate = 1
             vtx%rLeftH(itr%iElementFlag) = H1
             vtx%rRightH(itr%iElementFlag) = H2
             vtx%rLeftT(itr%iElementFlag) = H1 * left%rHydCond
@@ -1755,7 +1654,7 @@ contains
     integer(kind=AE_INT) :: iParseMode
     integer(kind=AE_INT), parameter :: PARSE_NONE = 0
     integer(kind=AE_INT), parameter :: PARSE_BDY = 1
-    type(AQU_DOMAIN), pointer :: dom
+    type(DOM_DOMAIN), pointer :: dom
     character(len=132) :: sOption
 
     call IO_MessageText(io, "  Reading AQU module input")
@@ -1807,7 +1706,7 @@ contains
           cRefPoint = cIO_GetCoordinate(io, 'cRefPoint', extents=.true.)
           rRefHead = rIO_GetReal(io, 'rRefHead')
           cRefUniformFlow = cIO_GetComplex(io, 'cUniformFlow')
-          dom => AQU_FindDomain(io, aqu, cRefPoint)
+          dom => DOM_FindDomain(io, aqu%dom, cRefPoint)
           call IO_Assert(io, (rRefHead > dom%rBase), "AQU_Read: Base elevation below aquifer top")
           aqu%cRefPoint = cRefPoint
           aqu%rRefHead = rRefHead
@@ -1882,7 +1781,7 @@ contains
     real(kind=AE_REAL) :: rAvgHead
     complex(kind=AE_REAL) :: cZ
     logical :: lFlag
-    type(AQU_DOMAIN), pointer :: dom
+    type(DOM_DOMAIN), pointer :: dom
     type(AQU_STRING), pointer :: str
     type(AQU_VERTEX), pointer :: vtx
     character(len=32) :: sTag
@@ -1911,7 +1810,7 @@ contains
               call IO_Assert(io, (associated(dom%cZ)), "AQU_ReadInho: No DOM directive")
               call IO_Assert(io, (dom%iNPts < size(dom%cZ)), &
                    "AQU_ReadInho: Space exhausted")
-              write (unit=sTag, fmt=*) 'cZ dom', aqu%iNDom, dom%iNPts+1
+              write (unit=sTag, fmt=*) 'cZ dom', aqu%dom%iNDom, dom%iNPts+1
               cZ = cIO_GetCoordinate(io, sTag, extents=.true., check_points=dom%cZ)
               dom%iNPts = dom%iNPts+1
               dom%cZ(dom%iNPts) = cZ
@@ -1928,32 +1827,8 @@ contains
           return
         case (kOpDOM)
           ! Start a new domain
-          call IO_Assert(io, (associated(aqu%Domains)), &
-               "AQU_ReadInho: No domains have been allocated")
-          call IO_Assert(io, (aqu%iNDom < size(aqu%Domains)), &
-               "AQU_ReadInho: Space exhausted")
-          iMax = iIO_GetInteger(io, 'iMax', minimum = 3)
-          rBase = rIO_GetReal(io, 'rBase')
-          rThickness = rIO_GetReal(io, 'rThickness', minimum = rTINY)
-          rHydCond = rIO_GetReal(io, 'rHydCond', minimum = rTINY)
-          rPorosity = rIO_GetReal(io, 'rPorosity', minimum = rTINY)
-          rAvgHead = rIO_GetReal(io, 'rAvgHead', minimum = rBase)
-          iID = iIO_GetInteger(io, 'iID', forbidden=aqu%Domains%iID)
-
-          aqu%iNDom = aqu%iNDom+1
-          dom => aqu%Domains(aqu%iNDom)
-          dom%iNPts = 0
-          dom%rBase = rBase
-          dom%rThickness = rThickness
-          dom%rHydCond = rHydCond
-          dom%rPorosity = rPorosity
-          dom%rAvgHead = rAvgHead
-          dom%iID = iID
-          dom%iInsideDomain = iID
-          dom%iOutsideDomain = 0
-          allocate(dom%cZ(iMax), stat = iStat)
-          call IO_Assert(io, (iStat == 0), "AQU_ReadInho: Allocation failed")
-          dom%cZ = cZERO
+          call DOM_Read(io, aqu%dom)
+          dom => aqu%dom%Domains(aqu%dom%iNDom)
           iParseMode = PARSE_DOMAIN
         case (kOpSTR)
           ! Start a new string
@@ -1997,7 +1872,7 @@ contains
   subroutine AQU_NewDomain(io, aqu, cZ, iNPts, rBase, rThickness, rHydCond, rPorosity)
     !! subroutine AQU_NewDomain
     !!
-    !! Adds a new AQU_DOMAIN object to the AQU_COLLECTION (was IN0_New)
+    !! Adds a new DOM_DOMAIN object to the domain collection (delegates to DOM_NewDomain)
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
@@ -2008,38 +1883,8 @@ contains
     real(kind=AE_REAL), intent(in) :: rHydCond
     real(kind=AE_REAL), intent(in) :: rPorosity
     type(IO_STATUS), pointer :: io
-    ! [ LOCALS ]
-    integer(kind=AE_INT) :: iStat
-    integer(kind=AE_INT) :: iDom
-    type(AQU_DOMAIN), pointer :: dom
 
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(aqu)), &
-           "AQU_NewDomain: AQU_Create has not been called")
-    end if
-
-    call IO_Assert(io, (aqu%iNDom < size(aqu%Domains)), &
-         "AQU_NewDomain: Space exhausted")
-    call IO_Assert(io, (iNPts <= size(dom%cZ)), &
-         "AQU_NewDomain: Size of provided vertices is inconsistent")
-
-    aqu%iNDom = aqu%iNDom + 1
-    dom => aqu%Domains(aqu%iNDom)
-    allocate(dom%cZ(iNPts), stat = iStat)
-    call IO_Assert(io, (iStat == 0), "AQU_NewDomain: Allocation failed")
-    dom%cZ = cZ(1:iNPts)
-    dom%iNPts = iNPts
-    dom%rBase = rBase
-    dom%rThickness = rThickness
-    dom%rHydCond = rHydCond
-    dom%rPorosity = rPorosity
-
-    ! This version does not support nested inhomogeneity domains
-    ! Check to ensure that no nesting or overlapping of domains has occurred
-    do iDom = 2, aqu%iNDom-1
-      call IO_Assert(io, (.not. lAQU_DomainOverlapsDomain(io, aqu, iDom, aqu%iNDom)), &
-           "AQU_NewDomain: New domain overlaps another domain")
-    end do
+    call DOM_NewDomain(io, aqu%dom, cZ, iNPts, rBase, rThickness, rHydCond, rPorosity)
 
     return
   end subroutine AQU_NewDomain
@@ -2052,7 +1897,7 @@ contains
     integer(kind=AE_INT) :: nWL, nPD, nDP, nEQ, nUN, iBdy
     integer(kind=AE_INT) :: iDom, iStr, iVtx, i
     type(AQU_BDYELEMENT), pointer :: bdy
-    type(AQU_DOMAIN), pointer :: dom
+    type(DOM_DOMAIN), pointer :: dom
     type(AQU_STRING), pointer :: str
     type(AQU_VERTEX), pointer :: vtx
     real(kind=AE_REAL) :: rCheckHead
@@ -2100,7 +1945,7 @@ contains
       do iBdy = 1, aqu%iNBdy
         call HTML_StartRow()
         bdy => aqu%BdyElements(iBdy)
-        rCheckHead = rAQU_PotentialToHead(io, aqu, bdy%rCheckPot, rHALF*(bdy%cZ1+bdy%cZ2))
+        rCheckHead = rDOM_PotentialToHead(io, aqu%dom, bdy%rCheckPot, rHALF*(bdy%cZ1+bdy%cZ2))
         call HTML_ColumnInteger((/iBdy/))
         call HTML_ColumnComplex((/cIO_WorldCoords(io, bdy%cZ1), cIO_WorldCoords(io, bdy%cZ2)/))
         call HTML_ColumnInteger((/bdy%iBdyFlag/))
@@ -2138,11 +1983,11 @@ contains
     call HTML_Header('Module IN0 (Inhomogeneities)', 1)
     call HTML_Header('Inhomogeneity information', 2)
 
-    if (.not. associated(aqu%Domains)) then
+    if (.not. associated(aqu%dom%Domains)) then
       call HTML_Header('No domains allocated', 3)
     else
       call HTML_StartTable()
-      call HTML_AttrInteger('Number of domains', aqu%iNDom)
+      call HTML_AttrInteger('Number of domains', aqu%dom%iNDom)
       call HTML_AttrInteger('Number of strings', aqu%iNStr)
       call HTML_AttrInteger('Number of FWL functions', iAQU_GetInfo(io, aqu, SIZE_FWL, 0))
       call HTML_AttrInteger('Number of FPD functions', iAQU_GetInfo(io, aqu, SIZE_FPD, 0))
@@ -2151,10 +1996,10 @@ contains
       call HTML_AttrInteger('Number of unknowns', iAQU_GetInfo(io, aqu, SIZE_UNKNOWNS, 0))
       call HTML_EndTable()
 
-      do iDom = 1, aqu%iNDom
+      do iDom = 1, aqu%dom%iNDom
         call HTML_Header('Domain Information', 3)
         call HTML_StartTable()
-        dom => aqu%Domains(iDom)
+        dom => aqu%dom%Domains(iDom)
         call HTML_AttrInteger('Domain number ', iDom)
         call HTML_AttrInteger('ID', dom%iID)
         call HTML_AttrReal('Base elevation', dom%rBase)
@@ -2251,7 +2096,7 @@ contains
              cIO_WorldCoords(io, aqu%cRefPoint), &
              aqu%rSolConst, &
              aqu%rRefHead, &
-             rAQU_PotentialToHead(io, aqu, aqu%rCheck, aqu%cRefPoint)
+             rDOM_PotentialToHead(io, aqu%dom, aqu%rCheck, aqu%cRefPoint)
     end if
 
     if (aqu%iNBdy > 0) then
@@ -2270,7 +2115,7 @@ contains
                bdy%rSpecHead, &
                bdy%rSpecFlux, &
                bdy%rGhbDistance, &
-               rAQU_PotentialToHead(io, aqu, bdy%rCheckPot, rHALF*(bdy%cZ1+bdy%cZ2)), &
+               rDOM_PotentialToHead(io, aqu%dom, bdy%rCheckPot, rHALF*(bdy%cZ1+bdy%cZ2)), &
                rIO_WorldLength(io, bdy%rCheckFlux, bdy%cZ2-bdy%cZ1)
       end do
     end if
@@ -2712,180 +2557,6 @@ contains
   end function rAQU_ActiveArea
 
 
-  function rAQU_HeadToPotential(io, aqu, rHead, cZ) result(rPot)
-    !! real function rAQU_HeadToPotential
-    !!
-    !! Converts head to a discharge potential based on the aquifer properties
-    !! at cZ. Returns the(real) potential.
-    !!
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    real(kind=AE_REAL), intent(in) :: rHead
-    complex(kind=AE_REAL), intent(in) :: cZ
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    real(kind=AE_REAL) :: rPot
-    ! [ LOCALS ]
-    real(kind=AE_REAL) :: rHd
-    type(AQU_DOMAIN), pointer :: dom
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(aqu)), &
-           "rAQU_HeadToPotential: AQU_Create has not been called")
-    end if
-
-    dom => AQU_FindDomain(io, aqu, cZ)
-
-    rHd = rHead - dom%rBase
-    if (rHd > dom%rThickness) then
-      rPot = dom%rHydCond * dom%rThickness * rHd - rHALF * dom%rHydCond * dom%rThickness**2
-    else
-      rPot = rHALF * dom%rHydCond * rHd**2
-    end if
-
-    return
-  end function rAQU_HeadToPotential
-
-
-  function rAQU_PotentialToHead(io, aqu, rPot, cZ, lTest) result(rHead)
-    !! real function rAQU_PotentialToHead
-    !!
-    !! Converts potential to head based on the aquifer properties at cZ.
-    !!
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    real(kind=AE_REAL), intent(in) :: rPot
-    complex(kind=AE_REAL), intent(in) :: cZ
-    type(IO_STATUS), pointer :: io
-    logical, intent(in), optional :: lTest
-    ! [ RETURN VALUE ]
-    real(kind=AE_REAL) :: rHead
-    ! [ LOCALS ]
-    type(AQU_DOMAIN), pointer :: dom
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(aqu)), &
-           "rAQU_PotentialToHead: AQU_Create has not been called")
-    end if
-
-    dom => AQU_FindDomain(io, aqu, cZ)
-
-    if (present(lTest)) print *,"P->H", rPot, cZ, dom%iID, dom%rBase, dom%rHydCond, dom%rThickness, dom%rTopPot
-
-    if (rPot < rZERO) then
-      rHead = dom%rBase
-      if (present(lTest)) print *,"  P<B", rHead
-    else if (rPot > dom%rTopPot) then
-      rHead = (rPot + rHALF*dom%rHydCond*dom%rThickness**2) / (dom%rHydCond * dom%rThickness) + dom%rBase
-      if (present(lTest)) print *,"  CNF", rHead
-    else
-      rHead = sqrt(rTWO * rPot / dom%rHydCond) + dom%rBase
-      if (present(lTest)) print *,"  UNC", rHead
-    end if
-
-    return
-  end function rAQU_PotentialToHead
-
-
-  function cAQU_DischargeToVelocity(io, aqu, cDischarge, cZ, rPot) result(cVelocity)
-    !! function cAQU_DischargeToVelocity
-    !!
-    !! Converts Discharge to velocity, using the potential and the location cZ
-    !! to compute saturated thickness.
-    !!
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    real(kind=AE_REAL), intent(in) :: rPot
-    complex(kind=AE_REAL), intent(in) :: cDischarge
-    complex(kind=AE_REAL), intent(in) :: cZ
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    complex(kind=AE_REAL) :: cVelocity
-    ! [ LOCALS ]
-    real(kind=AE_REAL) :: rSatdThick
-    type(AQU_DOMAIN), pointer :: dom
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(aqu)), &
-           "cAQU_DischargeToVelocity: AQU_Create has not been called")
-    end if
-
-    dom => AQU_FindDomain(io, aqu, cZ)
-
-    if (rPot < rZERO) then
-      cVelocity = cZERO
-      return
-    else
-      ! Find the saturated thickness
-      if (rPot > dom%rTopPot) then
-        rSatdThick = dom%rThickness
-      else
-        rSatdThick = rAQU_PotentialToHead(io, aqu, rPot, cZ) - dom%rBase
-      end if
-
-      ! Compute the velocity
-      cVelocity = cDischarge / (rSatdThick * dom%rPorosity)
-    end if
-
-    return
-  end function cAQU_DischargeToVelocity
-
-
-  function lAQU_IsConfined(io, aqu, cZ, rPot) result(lConfined)
-    !! function lAQU_IsConfined
-    !!
-    !! Checks to see if the flow condition at some point is confined.
-    !!
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    complex(kind=AE_REAL), intent(in) :: cZ
-    real(kind=AE_REAL), intent(in) :: rPot
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    logical :: lConfined
-    ! [ LOCALS ]
-    real(kind=AE_REAL) :: rHead
-    type(AQU_DOMAIN), pointer :: dom
-
-    dom => AQU_FindDomain(io, aqu, cZ)
-
-    if (aqu%lPrecondition) then
-      rHead = dom%rAvgHead
-    else
-      rHead = rAQU_PotentialToHead(io, aqu, rPot, cZ)
-    end if
-
-    if ((rHead - dom%rBase) < dom%rThickness) then
-      lConfined = .false.
-    else
-      lConfined = .true.
-    end if
-
-    return
-  end function lAQU_IsConfined
-
-
-  function rAQU_Base(io, aqu, cZ) result(rBase)
-    !! function rAQU_Base
-    !!
-    !! Computes the base elevation at the point cZ.
-    !!
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    complex(kind=AE_REAL), intent(in) :: cZ
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    real(kind=AE_REAL) :: rBase
-    ! [ LOCALS ]
-    type(AQU_DOMAIN), pointer :: dom
-
-    dom => AQU_FindDomain(io, aqu, cZ)
-    rBase = dom%rBase
-
-    return
-  end function rAQU_Base
-
-
   function rAQU_InterfaceElevation(io, aqu, cZ, rPot) result(rIfcElev)
     !! real function rAQU_InterfaceElevation
     !!
@@ -2900,105 +2571,10 @@ contains
     real(kind=AE_REAL) :: rIfcElev
 
     call IO_MessageText(io, "Interface calculations are not yet available")
-    rIfcElev = rAQU_Base(io, aqu, cZ)
+    rIfcElev = rDOM_Base(io, aqu%dom, cZ)
 
     return
   end function rAQU_InterfaceElevation
-
-
-  function rAQU_SatdThickness(io, aqu, cZ, rPot) result(rH)
-    !! function rAQU_SatdThickness
-    !!
-    !! Computes the saturated thickness at point cZ where the potential is rPot.
-    !!
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    complex(kind=AE_REAL), intent(in) :: cZ
-    real(kind=AE_REAL), intent(in) :: rPot
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    real(kind=AE_REAL) :: rH
-    ! [ LOCALS ]
-    real(kind=AE_REAL) :: rHead
-    type(AQU_DOMAIN), pointer :: dom
-
-    dom => AQU_FindDomain(io, aqu, cZ)
-
-    if (aqu%lPrecondition) then
-      if (dom%rAvgHead > dom%rBase+dom%rThickness) then
-        rHead = dom%rAvgHead + dom%rBase
-      else
-        rHead = dom%rAvgHead
-      end if
-    else
-      rHead = rAQU_PotentialToHead(io, aqu, rPot, cZ)
-    end if
-
-    if ((rHead - dom%rBase) < dom%rThickness) then
-      rH = rHead - dom%rBase
-    else
-      rH = dom%rThickness
-    end if
-
-    return
-  end function rAQU_SatdThickness
-
-
-  function rAQU_DefaultPotential(io, aqu, cZ) result(rP)
-    !! function rAQU_DefaultPotential
-    !!
-    !! Returns the potential at the aquifer top cZ.
-    !!
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    complex(kind=AE_REAL), intent(in) :: cZ
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    real(kind=AE_REAL) :: rP
-    ! [ LOCALS ]
-    type(AQU_DOMAIN), pointer :: dom
-
-    dom => AQU_FindDomain(io, aqu, cZ)
-    rP = dom%rHydCond * dom%rAvgHead
-
-    return
-  end function rAQU_DefaultPotential
-
-
-  function rAQU_Transmissivity(io, aqu, cZ, rPot) result(rT)
-    !! function rAQU_Transmissivity
-    !!
-    !! Computes the transmissivity at the point cZ where the potential is rPot.
-    !!
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    complex(kind=AE_REAL), intent(in) :: cZ
-    real(kind=AE_REAL), intent(in) :: rPot
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    real(kind=AE_REAL) :: rT
-    ! [ LOCALS ]
-    real(kind=AE_REAL) :: rHead
-    type(AQU_DOMAIN), pointer :: dom
-
-    dom => AQU_FindDomain(io, aqu, cZ)
-
-    if (aqu%lPrecondition) then
-      rHead = dom%rAvgHead
-    else
-      rHead = rAQU_PotentialToHead(io, aqu, rPot, cZ)
-    end if
-
-    if ((rHead - dom%rBase) < rONE_TENTH*dom%rThickness) then
-      rT = rONE_TENTH * dom%rThickness
-    else if ((rHead - dom%rBase) < dom%rThickness) then
-      rT = dom%rHydCond * (rHead - dom%rBase)
-    else
-      rT = dom%rHydCond * dom%rThickness
-    end if
-
-    return
-  end function rAQU_Transmissivity
 
 
   function lAQU_CheckActive(io, aqu, cZ) result(lActive)
@@ -3022,27 +2598,6 @@ contains
   end function lAQU_CheckActive
 
 
-  function rAQU_HydCond(io, aqu, cZ) result(rHydCond)
-    !! function rAQU_HydCond
-    !!
-    !! Computes the hydraulic conductivity at the point cZ.
-    !!
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    complex(kind=AE_REAL), intent(in) :: cZ
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    real(kind=AE_REAL) :: rHydCond
-    ! [ LOCALS ]
-    type(AQU_DOMAIN), pointer :: dom
-
-    dom => AQU_FindDomain(io, aqu, cZ)
-    rHydCond = dom%rHydCond
-
-    return
-  end function rAQU_HydCond
-
-
   function rAQU_ARecip(io, aqu, iString) result(rARecip)
     !! function rAQU_ARecip
     !!
@@ -3057,56 +2612,23 @@ contains
     real(kind=AE_REAL) :: rARecip
     ! [ LOCALS ]
     type(AQU_STRING), pointer :: str
-    type(AQU_DOMAIN), pointer :: left, right
+    type(DOM_DOMAIN), pointer :: left, right
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(aqu)), &
            "rAQU_ARecip: AQU_Create has not been called")
-      call IO_Assert(io, (iString >= 1 .and. iString <= aqu%iNDom), &
+      call IO_Assert(io, (iString >= 1 .and. iString <= aqu%dom%iNDom), &
            "rAQU_ARecip: Bad domain index")
     end if
 
     str => aqu%Strings(iString)
-    left => AQU_FindDomainID(io, aqu, str%iLeftID)
-    right => AQU_FindDomainID(io, aqu, str%iRightID)
+    left => DOM_FindDomainID(io, aqu%dom, str%iLeftID)
+    right => DOM_FindDomainID(io, aqu%dom, str%iRightID)
 
     rARecip = right%rHydCond / (left%rHydCond - right%rHydCond)
 
     return
   end function rAQU_ARecip
-
-
-  function rAQU_DomainThickness(io, aqu, dom, rHead) result(rH)
-    !! function rAQU_DomainThickness
-    !!
-    !! Internal helper function.
-    !! Computes the saturated thickness in a domain when the head is 'rHead'.
-    !!
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    type(AQU_DOMAIN), pointer :: dom
-    real(kind=AE_REAL), intent(in) :: rHead
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    real(kind=AE_REAL) :: rH
-    ! [ LOCALS ]
-    real(kind=AE_REAL) :: rMyHead
-
-    if (aqu%lInitialIteration) then
-      rMyHead = dom%rAvgHead
-    else
-      rMyHead = rHead
-    end if
-
-    if (rMyHead < dom%rBase) then
-      rH = 1.0e-4_AE_REAL * aqu%Domains(1)%rThickness
-    else if ((rMyHead - dom%rBase) < dom%rThickness) then
-      rH = (rMyHead - dom%rBase)
-    else
-      rH = dom%rThickness
-    end if
-    return
-  end function rAQU_DomainThickness
 
 
   subroutine AQU_Save(io, aqu, mode)
@@ -3222,222 +2744,6 @@ contains
     return
   end subroutine AQU_Load
 
-
-  function AQU_FindDomain(io, aqu, cZ) result(dom)
-    !! Returns a pointer to the domain containing the point cZ
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    complex(kind=AE_REAL), intent(in) :: cZ
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    type(AQU_DOMAIN), pointer :: dom
-    ! [ LOCALS ]
-    integer(kind=AE_INT) :: iDom
-
-    ! Default to the infinite domain
-    dom => aqu%Domains(1)
-    do iDom = 2, aqu%iNDom
-      if (lAQU_PointInsideDomain(io, aqu, iDom, cZ)) then
-        dom => aqu%Domains(iDom)
-      end if
-    end do
-
-    return
-  end function AQU_FindDomain
-
-
-  function AQU_FindDomainID(io, aqu, iID) result(dom)
-    !! Returns a pointer to the domain with ID iID
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    integer(kind=AE_INT), intent(in) :: iID
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    type(AQU_DOMAIN), pointer :: dom
-    ! [ LOCALS ]
-    integer(kind=AE_INT) :: iDom
-
-    ! Default to the infinite domain
-    dom => aqu%Domains(1)
-    do iDom = 2, aqu%iNDom
-      if (aqu%Domains(iDom)%iID == iID) then
-        dom => aqu%Domains(iDom)
-      end if
-    end do
-
-    return
-  end function AQU_FindDomainID
-
-
-  function iAQU_DomainIDIndex(io, aqu, iID) result(iRes)
-    !! Returns the array index of the domain with ID iID
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    integer(kind=AE_INT), intent(in) :: iID
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    integer(kind=AE_INT) :: iRes
-    ! [ LOCALS ]
-    integer(kind=AE_INT) :: iDom
-
-    iRes = 1
-    do iDom = 1, aqu%iNDom
-      if (aqu%Domains(iDom)%iID == iID) then
-        iRes = iDom
-        return
-      end if
-    end do
-    call IO_Assert(io, .false., 'iAQU_DomainIDIndex: Could not find ID')
-
-    return
-  end function iAQU_DomainIDIndex
-
-
-  function lAQU_PointInsideDomain(io, aqu, iDomain, cZ) result(lInside)
-    !! Tests to see if the specified point is inside the Domain
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    integer(kind=AE_INT), intent(in) :: iDomain
-    complex(kind=AE_REAL), intent(in) :: cZ
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    logical :: lInside
-    ! [ LOCALS ]
-    integer(kind=AE_INT) :: i, ii
-    real(kind=AE_REAL) :: rSum
-    type(AQU_DOMAIN), pointer :: dom
-
-    dom => aqu%Domains(iDomain)
-    if (size(dom%cZ) == 0) then
-      lInside = .true.
-    else
-      if (any((cZ == dom%cZ(1:dom%iNPts)), 1)) then
-        lInside = .true.
-      else
-        rSum = rZERO
-        ii = dom%iNPts
-        do i = 1, dom%iNPts
-          rSum = rSum + aimag(log((cZ-dom%cZ(i)) / (cZ-dom%cZ(ii))))
-          ii = i
-        end do
-        lInside = (rSum > rONE)
-      end if
-    end if
-
-    return
-  end function lAQU_PointInsideDomain
-
-
-  function lAQU_LineIntersectsDomain(io, aqu, iDomain, cZ1, cZ2) result(lIntersects)
-    !! Tests to see if the line segment cZ1-cZ2 intersects the Domain
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    integer(kind=AE_INT), intent(in) :: iDomain
-    complex(kind=AE_REAL), intent(in) :: cZ1, cZ2
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    logical :: lIntersects
-    ! [ LOCALS ]
-    integer(kind=AE_INT) :: i, j
-    complex(kind=AE_REAL) :: cMapZ1, cMapZ2
-    real(kind=AE_REAL) :: rXInt
-    type(AQU_DOMAIN), pointer :: dom
-
-    dom => aqu%Domains(iDomain)
-    lIntersects = .false.
-    j = dom%iNPts
-    do i = 1, dom%iNPts
-      cMapZ1 = (dom%cZ(i) - rHALF * (cZ2+cZ1)) / (rHALF * (cZ2-cZ1))
-      cMapZ2 = (dom%cZ(j) - rHALF * (cZ2+cZ1)) / (rHALF * (cZ2-cZ1))
-      if ((aimag(cMapZ1) >= rZERO .and. aimag(cMapZ2) < rZERO) .or. &
-          (aimag(cMapZ2) >= rZERO .and. aimag(cMapZ1) < rZERO)) then
-        rXInt = real(cMapZ1) - aimag(cMapZ1) * ((real(cMapZ2)-real(cMapZ1)) / &
-                (aimag(cMapZ2)-aimag(cMapZ1)))
-        if (abs(rXInt) <= rONE) then
-          lIntersects = .true.
-          return
-        end if
-      end if
-      j = i
-    end do
-
-    return
-  end function lAQU_LineIntersectsDomain
-
-
-  function lAQU_DomainInsideDomain(io, aqu, iDomain, iDomain2) result(lInside)
-    !! Tests to see if Domain iDomain2 is completely inside Domain iDomain
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    integer(kind=AE_INT), intent(in) :: iDomain
-    integer(kind=AE_INT), intent(in) :: iDomain2
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    logical :: lInside
-    ! [ LOCALS ]
-    integer(kind=AE_INT) :: i, j
-    type(AQU_DOMAIN), pointer :: dom, dom2
-
-    dom => aqu%Domains(iDomain)
-    dom2 => aqu%Domains(iDomain2)
-    if (size(dom%cZ, 1) == 0) then
-      lInside = .true.
-    else
-      if (size(dom2%cZ) == 0) then
-        lInside = .false.
-      else
-        lInside = .true.
-        j = dom2%iNPts
-        do i = 1, dom2%iNPts
-          if (.not. lAQU_PointInsideDomain(io, aqu, iDomain, dom2%cZ(i)) .or. &
-              lAQU_LineIntersectsDomain(io, aqu, iDomain, dom2%cZ(i), dom2%cZ(j))) then
-            lInside = .false.
-            return
-          end if
-          j = i
-        end do
-      end if
-    end if
-
-    return
-  end function lAQU_DomainInsideDomain
-
-
-  function lAQU_DomainOverlapsDomain(io, aqu, iDomain, iDomain2) result(lOverlap)
-    !! Tests to see if Domain iDomain2 overlaps Domain iDomain
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    integer(kind=AE_INT), intent(in) :: iDomain
-    integer(kind=AE_INT), intent(in) :: iDomain2
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    logical :: lOverlap
-    ! [ LOCALS ]
-    integer(kind=AE_INT) :: i, j
-    type(AQU_DOMAIN), pointer :: dom, dom2
-
-    dom => aqu%Domains(iDomain)
-    dom2 => aqu%Domains(iDomain2)
-    if (size(dom%cZ, 1) == 0) then
-      lOverlap = .true.
-    else
-      if (size(dom2%cZ) == 0) then
-        lOverlap = .false.
-      else
-        lOverlap = .false.
-        j = size(dom2%cZ, 1)
-        do i = 1, size(dom2%cZ, 1)
-          if (lAQU_LineIntersectsDomain(io, aqu, iDomain, dom2%cZ(i), dom2%cZ(j))) then
-            lOverlap = .true.
-            return
-          end if
-          j = i
-        end do
-      end if
-    end if
-
-    return
-  end function lAQU_DomainOverlapsDomain
 
 
 end module m_aqu

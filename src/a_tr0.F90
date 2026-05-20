@@ -526,7 +526,7 @@ contains
             ! Here's where it gets interesting... Make a temporary file for the forward trace and trace into it.
             ! The forward trace happens at the aquifer bottom to ensure that all the water that _can_ make it
             ! to the collector get there.
-            rBottom = rAQU_Base(io, aem%aqu, cmplx(rX1, rY1, AE_REAL))
+            rBottom = rDOM_Base(io, aem%dom, cmplx(rX1, rY1, AE_REAL))
             rZ0 = rZ0Save
             call TR0_Trace(io, aem, rX1, rY1, rBottom, rThisT0, rThisC0, -iDir, iFlag, &
                            iElementType, iElementID, iElementVtx, iFwdLU)
@@ -601,8 +601,8 @@ contains
     lTimeout = .false.
 
     ! Is the particle in the aquifer?
-    rBase = rAQU_Base(io, aem%aqu, cZO)
-    rThickness = rAQU_SatdThickness(io, aem%aqu, cZO, real(cAEM_Potential(io, aem, cZO)))
+    rBase = rDOM_Base(io, aem%dom, cZO)
+    rThickness = rDOM_SatdThickness(io, aem%dom, cZO, real(cAEM_Potential(io, aem, cZO)))
     if (rZ0 > rBase + rThickness) then
       rZ = rBase + rThickness
     else if (rZ0 < rBase) then
@@ -769,8 +769,8 @@ contains
             iElementType = iEType
             iElementID = iEString
             iElementVtx = iEVertex
-            rZ = rAQU_SatdThickness(io, aem%aqu, cZN, real(cAEM_Potential(io, aem, cZN), AE_REAL)) + &
-                 rAQU_Base(io, aem%aqu, cZN)
+            rZ = rDOM_SatdThickness(io, aem%dom, cZN, real(cAEM_Potential(io, aem, cZN), AE_REAL)) + &
+                 rDOM_Base(io, aem%dom, cZN)
             exit
           end if
           ! Now, jump the element to the point after
@@ -785,8 +785,8 @@ contains
             iElementType = iEType
             iElementID = iEString
             iElementVtx = iEVertex
-            rZ = rAQU_SatdThickness(io, aem%aqu, cZN, real(cAEM_Potential(io, aem, cZN), AE_REAL)) + &
-                 rAQU_Base(io, aem%aqu, cZN)
+            rZ = rDOM_SatdThickness(io, aem%dom, cZN, real(cAEM_Potential(io, aem, cZN), AE_REAL)) + &
+                 rDOM_Base(io, aem%dom, cZN)
             exit
           end if
 #ifndef __GPL__
@@ -795,8 +795,8 @@ contains
           iElementType = iEType
           iElementID = iEString
           iElementVtx = iEVertex
-          rZ = rAQU_SatdThickness(io, aem%aqu, cZN, real(cAEM_Potential(io, aem, cZN), AE_REAL)) + &
-               rAQU_Base(io, aem%aqu, cZN)
+          rZ = rDOM_SatdThickness(io, aem%dom, cZN, real(cAEM_Potential(io, aem, cZN), AE_REAL)) + &
+               rDOM_Base(io, aem%dom, cZN)
           exit
 #endif
         else
@@ -924,20 +924,20 @@ contains
     if (rFN > rONE) then
       cZN = cZO + (cZN-cZO)*(rONE-rF)/(rFN-rF)
       iFlag = kTR0LeftTop
-      rZ = rAQU_SatdThickness(io, aem%aqu, cZN, real(cAEM_Potential(io, aem, cZN), AE_REAL)) + &
-           rAQU_Base(io, aem%aqu, cZN)
+      rZ = rDOM_SatdThickness(io, aem%dom, cZN, real(cAEM_Potential(io, aem, cZN), AE_REAL)) + &
+           rDOM_Base(io, aem%dom, cZN)
       rF = rONE
       lStop = .true.
     else if (rFN < rZERO) then
       cZN = cZO + (cZN-cZO)*(rZERO-rF)/(rFN-rF)
       iFlag = kTR0LeftTop
-      rZ = rAQU_Base(io, aem%aqu, cZN)
+      rZ = rDOM_Base(io, aem%dom, cZN)
       rF = rZERO
       lStop = .true.
     else
       rF = rFN
-      rZ = rF * rAQU_SatdThickness(io, aem%aqu, cZN, real(cAEM_Potential(io, aem, cZN), AE_REAL)) + &
-           rAQU_Base(io, aem%aqu, cZN)
+      rZ = rF * rDOM_SatdThickness(io, aem%dom, cZN, real(cAEM_Potential(io, aem, cZN), AE_REAL)) + &
+           rDOM_Base(io, aem%dom, cZN)
       lStop = .false.
     end if
 

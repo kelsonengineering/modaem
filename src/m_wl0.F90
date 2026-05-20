@@ -366,10 +366,10 @@ contains
       wel%pFWL => FWL_New(io, fwl, wel%cZ, wel%rDischarge, wel%rRadius, ELEM_WL0, iWel, -1, -1)
       if (wel%lPpWell) then
         wel%bwl => BWL_New(io, wel%cZ, wel%rRadius, wel%rScrBot, wel%rScrTop, &
-                           rAQU_Base(io, aqu, wel%cZ), &
-                           rAQU_Base(io, aqu, wel%cZ) + &
-                             rAQU_SatdThickness(io, aqu, wel%cZ, real(cAQU_Potential(io, aqu, wel%cZ))), &
-                           rAQU_HydCond(io, aqu, wel%cZ), &
+                           rDOM_Base(io, aqu%dom, wel%cZ), &
+                           rDOM_Base(io, aqu%dom, wel%cZ) + &
+                             rDOM_SatdThickness(io, aqu%dom, wel%cZ, real(cAQU_Potential(io, aqu, wel%cZ))), &
+                           rDOM_HydCond(io, aqu%dom, wel%cZ), &
                            wel%rKhKv)
       end if
     end do
@@ -470,8 +470,8 @@ contains
     do iwel = 1, wl0%iCount
       wel => wl0%Wells(iwel)
       if (wel%lPpWell) then
-        rAqTop = rAQU_Base(io, aqu, wel%cZ) + &
-                 rAQU_SatdThickness(io, aqu, wel%cZ, real(cAQU_Potential(io, aqu, wel%cZ)))
+        rAqTop = rDOM_Base(io, aqu%dom, wel%cZ) + &
+                 rDOM_SatdThickness(io, aqu%dom, wel%cZ, real(cAQU_Potential(io, aqu, wel%cZ)))
         call BWL_Solve(io, wel%bwl, rAqTop, lChange)
       end if
     end do
@@ -504,8 +504,8 @@ contains
       if (wel%lAdjustDischarge) then
         ! Is it a partially-penetrating well?
         if (wel%lPpWell) then
-          rAqTop = rAQU_Base(io, aqu, wel%cZ) + &
-                   rAQU_SatdThickness(io, aqu, wel%cZ, real(cAQU_Potential(io, aqu, wel%cZ)))
+          rAqTop = rDOM_Base(io, aqu%dom, wel%cZ) + &
+                   rDOM_SatdThickness(io, aqu%dom, wel%cZ, real(cAQU_Potential(io, aqu, wel%cZ)))
           call BWL_Solve(io, wel%bwl, rAqTop, lChange)
         end if
         ! Get the head at the well screen
@@ -738,12 +738,12 @@ contains
            "WL0_SetIterator: Iterator out of range")
     end if
     wel => wl0%Wells(itr%iElementString)
-    wel%rCheckHead = rAQU_PotentialToHead(io, aqu, real(cValue, AE_REAL), wel%cZ)
+    wel%rCheckHead = rDOM_PotentialToHead(io, aqu%dom, real(cValue, AE_REAL), wel%cZ)
     ! If we're not currently in a drawdown simulation, the "desired head option" needs an estimate
     ! of the drawdown for estimation purposes
     if (.not. (wel%lDdn .and. wl0%lDdnEnabled)) then
       cPotWithoutWell = cValue - cFWL_Potential(io, fwl, wel%cZ+wel%rRadius, wel%pFWL%iIndex, 1)
-      wel%rUnstressedHead = rAQU_PotentialToHead(io, aqu, real(cPotWithoutWell), wel%cZ)
+      wel%rUnstressedHead = rDOM_PotentialToHead(io, aqu%dom, real(cPotWithoutWell), wel%cZ)
     end if
 
     return
@@ -954,7 +954,7 @@ contains
              wt_head, &
              scr_head, &
              rDdn, &
-             wel%rCheckHead <= rAQU_Base(io, aqu, wel%cZ)
+             wel%rCheckHead <= rDOM_Base(io, aqu%dom, wel%cZ)
     end do
 
     return
