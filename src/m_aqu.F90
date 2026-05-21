@@ -250,24 +250,27 @@ contains
   !! These routines allow AQU to behave as a ModAEM Element Module
 
 
-  function AQU_Create(io, dom_coll, iNStr) result(aqu)
+  function AQU_Create(io, dom_coll, frf_coll, iNStr) result(aqu)
     !! function AQU_Create
     !!
-    !! Creates a new AQU_COLLECTION object and attaches it to an existing domain collection.
+    !! Creates a new AQU_COLLECTION object and attaches it to existing domain and reference collections.
     !!
     !! Calling Sequence:
-    !!    aqu => AQU_Create(io, dom_coll, iNStr)
+    !!    aqu => AQU_Create(io, dom_coll, frf_coll, iNStr)
     !!
     !! Arguments:
     !!   type(IO_STATUS), pointer :: io
     !!   type(DOM_COLLECTION), pointer :: dom_coll
     !!     The domain collection (owned by AEM_DOMAIN) to attach to this aquifer
+    !!   type(FRF_COLLECTION), pointer :: frf_coll
+    !!     The reference flow field collection (owned by AEM_DOMAIN) to attach to this aquifer
     !!   integer :: iNStr
     !!     Number of inhomogeneity strings to pre-allocate
     !!
     ! [ ARGUMENTS ]
     type(IO_STATUS), pointer :: io
     type(DOM_COLLECTION), pointer :: dom_coll
+    type(FRF_COLLECTION), pointer :: frf_coll
     integer(kind=AE_INT), intent(in) :: iNStr
 
     ! [ RETURN VALUE ]
@@ -278,15 +281,15 @@ contains
     allocate(aqu, stat = iStat)
     call IO_Assert(io, (iStat == 0), "AQU_Create: allocation failed")
 
-    ! Attach the domain collection and allocate string space
+    ! Attach the domain and reference flow field collections; allocate string space
     aqu%dom => dom_coll
+    aqu%frf => frf_coll
     allocate(aqu%Strings(iNStr), stat = iStat)
     call IO_Assert(io, (iStat == 0), "AQU_Create: allocation failed")
     aqu%Strings%iID = -1
 
     aqu%iNStr = 0
 
-    aqu%frf => FRF_Create(io)
     nullify(aqu%BdyElements)
     aqu%iNBdy = 0
     nullify(aqu%cPerimeter)

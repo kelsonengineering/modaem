@@ -30,6 +30,7 @@ module m_aem
   use u_io
   use u_matrix
   use u_domain
+  use f_reference
   use f_well
   use f_dipole
   use f_pond
@@ -137,6 +138,7 @@ module m_aem
 
     ! Pointers to other collection objects
     type(DOM_COLLECTION), pointer :: dom
+    type(FRF_COLLECTION), pointer :: frf
     type(AQU_COLLECTION), pointer :: aqu
     type(FWL_COLLECTION), pointer :: fwl
     type(FPD_COLLECTION), pointer :: fpd
@@ -206,6 +208,7 @@ contains
 
     ! Create the module objects
     nullify(aem%dom)
+    nullify(aem%frf)
     nullify(aem%fwl)
     nullify(aem%fpd)
     nullify(aem%fdp)
@@ -2121,7 +2124,8 @@ contains
           rPorosity = rIO_GetReal(io, 'rPorosity', minimum=rTINY)
           rAvgHead = rIO_GetReal(io, 'rAvgHead', minimum=rBase)
           aem%dom => DOM_Create(io, iNInho, rBase, rThick, rHydCond, rPorosity, rAvgHead)
-          aem%aqu => AQU_Create(io, aem%dom, iNStr)
+          aem%frf => FRF_Create(io)
+          aem%aqu => AQU_Create(io, aem%dom, aem%frf, iNStr)
           call AQU_Read(io, aem%aqu)
         case (iWL0)
           ! Enter the WL0 element module
