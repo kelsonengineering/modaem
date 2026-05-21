@@ -13,6 +13,7 @@ add_executable(modaem
     f_dipole.F90
     f_linesink.F90
     f_pond.F90
+    f_reference.F90
     f_well.F90
     # Interface modules
     i_areasink.F90

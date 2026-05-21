@@ -108,11 +108,13 @@ $(BUILDDIR)/f_linesink.o: $(SRCROOT)/f_linesink.F90 $(BUILDDIR)/u_constants.o $(
 	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) -c	$(SRCROOT)/f_linesink.F90 -o $@
 $(BUILDDIR)/f_pond.o: $(SRCROOT)/f_pond.F90 $(BUILDDIR)/u_constants.o $(BUILDDIR)/u_io.o $(BUILDDIR)/i_pond.o
 	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) -c	$(SRCROOT)/f_pond.F90 -o $@
+$(BUILDDIR)/f_reference.o: $(SRCROOT)/f_reference.F90 $(BUILDDIR)/u_constants.o $(BUILDDIR)/u_io.o
+	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) -c	$(SRCROOT)/f_reference.F90 -o $@
 $(BUILDDIR)/f_well.o: $(SRCROOT)/f_well.F90 $(BUILDDIR)/u_constants.o $(BUILDDIR)/u_io.o $(BUILDDIR)/i_well.o
 	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) -c	$(SRCROOT)/f_well.F90 -o $@
 
 # -- physical model layer --
-$(BUILDDIR)/m_aqu.o: $(SRCROOT)/m_aqu.F90 $(BUILDDIR)/u_constants.o $(BUILDDIR)/u_io.o $(BUILDDIR)/u_matrix.o $(BUILDDIR)/u_polygon.o $(BUILDDIR)/u_domain.o $(BUILDDIR)/f_dipole.o $(BUILDDIR)/i_linesink.o
+$(BUILDDIR)/m_aqu.o: $(SRCROOT)/m_aqu.F90 $(BUILDDIR)/u_constants.o $(BUILDDIR)/u_io.o $(BUILDDIR)/u_matrix.o $(BUILDDIR)/u_polygon.o $(BUILDDIR)/u_domain.o $(BUILDDIR)/f_reference.o $(BUILDDIR)/f_dipole.o $(BUILDDIR)/i_linesink.o
 	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) -c	$(SRCROOT)/m_aqu.F90 -o $@
 $(BUILDDIR)/m_as0.o: $(SRCROOT)/m_as0.F90 $(BUILDDIR)/u_constants.o $(BUILDDIR)/u_io.o $(BUILDDIR)/u_polygon.o $(BUILDDIR)/u_matrix.o $(BUILDDIR)/f_well.o $(BUILDDIR)/f_dipole.o $(BUILDDIR)/i_areasink.o $(BUILDDIR)/m_aqu.o
 	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) -c	$(SRCROOT)/m_as0.F90 -o $@
@@ -165,7 +167,7 @@ SRC = $(SRCROOT)/a_tr0.F90 $(SRCROOT)/m_as0.F90 $(SRCROOT)/m_wl1.F90 $(SRCROOT)/
       $(SRCROOT)/m_wl0.F90 $(SRCROOT)/a_stdio.F90 $(SRCROOT)/f_pond.F90 $(SRCROOT)/a_obs.F90 \
       $(SRCROOT)/m_cw0.F90 $(SRCROOT)/m_ls1.F90 $(SRCROOT)/i_areasink.F90 $(SRCROOT)/a_grid.F90 \
       $(SRCROOT)/m_aqu.F90 $(SRCROOT)/i_pond.F90 $(SRCROOT)/m_pd0.F90 \
-      $(SRCROOT)/f_dipole.F90 $(SRCROOT)/i_dipole.F90 $(SRCROOT)/i_well.F90 $(SRCROOT)/m_ext.F90 \
+      $(SRCROOT)/f_reference.F90 $(SRCROOT)/f_dipole.F90 $(SRCROOT)/i_dipole.F90 $(SRCROOT)/i_well.F90 $(SRCROOT)/m_ext.F90 \
       $(SRCROOT)/m_aem.F90 $(SRCROOT)/u_io.F90 $(SRCROOT)/m_hb0.F90 $(SRCROOT)/u_constants.F90 \
       $(SRCROOT)/i_linesink.F90 $(SRCROOT)/f_linesink.F90 $(SRCROOT)/f_well.F90 $(SRCROOT)/m_inq.F90 $(SRCROOT)/m_ls2.F90 \
       $(SRCROOT)/m_ls3.F90 $(SRCROOT)/f_bwl.F90 $(SRCROOT)/u_grid.F90
@@ -175,7 +177,7 @@ OBJ = $(BUILDDIR)/a_tr0.o $(BUILDDIR)/m_as0.o $(BUILDDIR)/m_wl1.o $(BUILDDIR)/m_
       $(BUILDDIR)/m_wl0.o $(BUILDDIR)/a_stdio.o $(BUILDDIR)/f_pond.o $(BUILDDIR)/a_obs.o \
       $(BUILDDIR)/m_cw0.o $(BUILDDIR)/m_ls1.o $(BUILDDIR)/i_areasink.o $(BUILDDIR)/a_grid.o \
       $(BUILDDIR)/m_aqu.o $(BUILDDIR)/i_pond.o $(BUILDDIR)/m_pd0.o \
-      $(BUILDDIR)/f_dipole.o $(BUILDDIR)/i_dipole.o $(BUILDDIR)/i_well.o $(BUILDDIR)/m_ext.o \
+      $(BUILDDIR)/f_reference.o $(BUILDDIR)/f_dipole.o $(BUILDDIR)/i_dipole.o $(BUILDDIR)/i_well.o $(BUILDDIR)/m_ext.o \
       $(BUILDDIR)/m_aem.o $(BUILDDIR)/u_io.o $(BUILDDIR)/m_hb0.o $(BUILDDIR)/u_constants.o \
       $(BUILDDIR)/i_linesink.o $(BUILDDIR)/f_linesink.o $(BUILDDIR)/f_well.o $(BUILDDIR)/m_inq.o $(BUILDDIR)/m_ls2.o \
       $(BUILDDIR)/u_grid.o $(BUILDDIR)/m_ls3.o $(BUILDDIR)/f_bwl.o $(BUILDDIR)/polypack.o

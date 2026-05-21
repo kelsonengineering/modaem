@@ -54,6 +54,7 @@ module m_aqu
   use u_polygon
   use u_domain
 
+  use f_reference
   use f_dipole
 
   use i_linesink
@@ -172,16 +173,8 @@ module m_aqu
     !! Type that holds information for a layer
     !!
     !! Members:
-    !!   complex :: cRefPoint
-    !!     Location of the reference point(if specified)
-    !!   real :: rRefHead
-    !!     Specified head at the reference point(if specified)
-    !!   complex :: cRefUniformFlow
-    !!     Infinite aquifer uniform flow discharge vector
-    !!   logical :: lReference
-    !!     .true. if a reference point has been specified
-    !!   real :: rSolConst
-    !!     The constant of integration
+    !!   type(FRF_COLLECTION), pointer :: frf
+    !!     The singleton reference flow field (constant of integration + uniform flow)
     !!   type(AQU_BDYELEMENT) :: Boundary(:)
     !!     Vector of vertices which make up the perimeter of the aquifer
     !!   integer :: iNBdy
@@ -195,12 +188,7 @@ module m_aqu
     !!   integer :: iNStr
     !!     Number of strings in use
     !!
-    complex(kind=AE_REAL) :: cRefPoint
-    real(kind=AE_REAL) :: rRefHead
-    complex(kind=AE_REAL) :: cRefUniformFlow
-    logical :: lReference
-    real(kind=AE_REAL) :: rSolConst
-    real(kind=AE_REAL) :: rCheck
+    type(FRF_COLLECTION), pointer :: frf
     type(AQU_BDYELEMENT), dimension(:), pointer :: BdyElements
     integer(kind=AE_INT) :: iNBdy
     ! Reference to the domain collection (owned by AEM_DOMAIN, assigned at creation)
@@ -298,17 +286,11 @@ contains
 
     aqu%iNStr = 0
 
-    aqu%cRefPoint = cZERO
-    aqu%rRefHead = rZERO
-    aqu%cRefUniformFlow = cZERO
-    aqu%lReference = .false.
+    aqu%frf => FRF_Create(io)
     nullify(aqu%BdyElements)
     aqu%iNBdy = 0
     nullify(aqu%cPerimeter)
     aqu%iNPerimeter = 0
-    ! The following are determined in AQU_Setup
-    aqu%rSolConst = rZERO
-    aqu%rCheck = rZERO
     ! First time up, no regen
     aqu%lFSRegen = .false.
     ! Boundary isn't set yet
@@ -358,14 +340,9 @@ contains
     complex(kind=AE_REAL), intent(in) :: cRefUniformFlow
     type(IO_STATUS), pointer :: io
 
-    if (aqu%lDebug) then
-      call IO_Assert(io, associated(aqu), "AQU_SetReference: No AQU_COLLECTION object")
-    end if
+    call IO_Assert(io, associated(aqu), "AQU_SetReference: No AQU_COLLECTION object")
 
-    aqu%cRefPoint = cRefPoint
-    aqu%rRefHead = rRefHead
-    aqu%cRefUniformFlow = cRefUniformFlow
-    aqu%lReference = .true.
+    call FRF_SetReference(io, aqu%frf, cRefPoint, rRefHead, cRefUniformFlow)
 
     return
   end subroutine AQU_SetReference
@@ -534,7 +511,7 @@ contains
           end if
         end do
         iValue = iValue + aqu%iNBdy
-        if (aqu%lReference .or. aqu%iNBdy == 0) iValue = iValue + 1
+        if (aqu%frf%lReference .or. aqu%iNBdy == 0) iValue = iValue + 1
       case (SIZE_UNKNOWNS)
         do iStr = 1, aqu%iNStr
           str => aqu%Strings(iStr)
@@ -545,7 +522,7 @@ contains
           end if
         end do
         iValue = iValue + aqu%iNBdy
-        if (aqu%lReference .or. aqu%iNBdy == 0) iValue = iValue + 1
+        if (aqu%frf%lReference .or. aqu%iNBdy == 0) iValue = iValue + 1
       case (INFO_REGENERATE)
         ! Force a regen on the first two iterations
         if (iIteration < 2) then
@@ -795,9 +772,9 @@ contains
 
     end if
     ! Build a matrix entry for the reference point(if any)
-    if (aqu%lReference) then
+    if (aqu%frf%lReference) then
       call MAT_CreateVariable(io, mat, ELEM_AQU, kAQUReference, 0, 0)
-      iEQ = MAT_CreateEquation(io, mat, (/aqu%cRefPoint/), EQN_HEAD, ELEM_AQU, kAQUReference, 0, 0, cZERO, rZERO)
+      iEQ = MAT_CreateEquation(io, mat, (/aqu%frf%cRefPoint/), EQN_HEAD, ELEM_AQU, kAQUReference, 0, 0, cZERO, rZERO)
     else if (aqu%iNBdy == 0) then
       call MAT_CreateVariable(io, mat, ELEM_AQU, kAQUReference, 0, 0)
       iEQ = MAT_CreateEquation(io, mat, (/cZERO/), EQN_CONTINUITY, ELEM_AQU, kAQUReference, 0, 0, cZERO, rZERO)
@@ -1084,7 +1061,7 @@ contains
     end if
 
     ! Set up the closure condition
-    if (aqu%lReference .or. aqu%iNBdy == 0) then
+    if (aqu%frf%lReference .or. aqu%iNBdy == 0) then
       select case (iEqType)
         case (EQN_HEAD)
           rARow(iCol) = rMultiplier * rONE
@@ -1170,11 +1147,11 @@ contains
                 end if
             end select
           case (kAQUReference)
-            if (aqu%lReference) then
+            if (aqu%frf%lReference) then
               if (lDirect) then
-                rRHS = rDOM_HeadToPotential(io, aqu%dom, aqu%rRefHead, aqu%cRefPoint)
+                rRHS = rDOM_HeadToPotential(io, aqu%dom, aqu%frf%rRefHead, aqu%frf%cRefPoint)
               else
-                rRHS = rDOM_HeadToPotential(io, aqu%dom, aqu%rRefHead, aqu%cRefPoint) - aqu%rCheck
+                rRHS = rDOM_HeadToPotential(io, aqu%dom, aqu%frf%rRefHead, aqu%frf%cRefPoint) - aqu%frf%rCheck
               end if
             else
               rRHS = rZERO
@@ -1245,9 +1222,9 @@ contains
         select case (iElementString)
           case (kAQUReference)
             if (lDirect) then
-              aqu%rSolConst = rValue
+              aqu%frf%rSolConst = rValue
             else
-              aqu%rSolConst = aqu%rSolConst + rValue
+              aqu%frf%rSolConst = aqu%frf%rSolConst + rValue
             end if
           case (kAQUBoundary)
             this => aqu%BdyElements(iElementVertex)
@@ -1408,7 +1385,7 @@ contains
     aqu%iIterPosition = aqu%iIterPosition+1
     if (aqu%iIterPosition == aqu%iNBdy+1) then
       ! Handle the reference information
-      if (aqu%lReference) then
+      if (aqu%frf%lReference) then
         allocate(itr, stat = iStat)
         call IO_Assert(io, (iStat == 0), "AQU_NextIterator: Space Exhausted")
         itr%iElementType = ELEM_AQU
@@ -1417,7 +1394,7 @@ contains
         itr%iElementFlag = 0
         itr%iValueSelector = VALUE_POTENTIAL
         allocate(itr%cZ(1))
-        itr%cZ(1) = aqu%cRefPoint
+        itr%cZ(1) = aqu%frf%cRefPoint
         else!if (aqu%iNBdy == 0) then
         allocate(itr, stat = iStat)
         call IO_Assert(io, (iStat == 0), "AQU_NextIterator: Space Exhausted")
@@ -1549,7 +1526,7 @@ contains
     if (itr%iElementType == ELEM_AQU) then
       if (itr%iElementString == 0) then
         ! Handle the reference point
-        aqu%rCheck = real(cValue, AE_REAL)
+        aqu%frf%rCheck = real(cValue, AE_REAL)
       else if (itr%iElementString == 1) then
         ! Handle the perimeter elements
         select case (itr%iValueSelector)
@@ -1708,10 +1685,7 @@ contains
           cRefUniformFlow = cIO_GetComplex(io, 'cUniformFlow')
           dom => DOM_FindDomain(io, aqu%dom, cRefPoint)
           call IO_Assert(io, (rRefHead > dom%rBase), "AQU_Read: Base elevation below aquifer top")
-          aqu%cRefPoint = cRefPoint
-          aqu%rRefHead = rRefHead
-          aqu%cRefUniformFlow = cRefUniformFlow
-          aqu%lReference = .true.
+          call FRF_SetReference(io, aqu%frf, cRefPoint, rRefHead, cRefUniformFlow)
         case (kOpBDY)
           ! Have we already specified boundary elements?
           call IO_Assert(io, (.not. associated(aqu%BdyElements)), &
@@ -1907,21 +1881,21 @@ contains
     call HTML_Header('Module AQU', 1)
     call HTML_Header('Basic aquifer information', 2)
 
-    if (aqu%lReference) then
+    if (aqu%frf%lReference) then
       call HTML_Header('Reference aquifer', 3)
       call HTML_StartTable()
-      call HTML_AttrComplex('Reference point', aqu%cRefPoint)
-      call HTML_AttrReal('Reference head', aqu%rRefHead)
-      call HTML_AttrComplex('Uniform flow', aqu%cRefUniformFlow)
-      call HTML_AttrReal('Solution constant', aqu%rSolConst)
+      call HTML_AttrComplex('Reference point', aqu%frf%cRefPoint)
+      call HTML_AttrReal('Reference head', aqu%frf%rRefHead)
+      call HTML_AttrComplex('Uniform flow', aqu%frf%cRefUniformFlow)
+      call HTML_AttrReal('Solution constant', aqu%frf%rSolConst)
       call HTML_EndTable()
     else
       call HTML_Header('No reference point(continuity of flow condition)', 3)
       call HTML_StartTable()
-      call HTML_AttrComplex('Reference point', cIO_WorldCoords(io, aqu%cRefPoint))
-      call HTML_AttrReal('Reference head', aqu%rRefHead)
-      call HTML_AttrComplex('Uniform flow', aqu%cRefUniformFlow)
-      call HTML_AttrReal('Solution constant', aqu%rSolConst)
+      call HTML_AttrComplex('Reference point', cIO_WorldCoords(io, aqu%frf%cRefPoint))
+      call HTML_AttrReal('Reference head', aqu%frf%rRefHead)
+      call HTML_AttrComplex('Uniform flow', aqu%frf%cRefUniformFlow)
+      call HTML_AttrReal('Solution constant', aqu%frf%rSolConst)
       call HTML_EndTable()
     end if
 
@@ -2086,17 +2060,17 @@ contains
            "AQU_Inquiry: AQU_Create has not been called")
     end if
 
-    if (aqu%lReference) then
+    if (aqu%frf%lReference) then
       write (unit=iLU, &
              fmt="(""#[REFERENCE]AQU, 0, 0, REF_X, REF_Y, CONST, SPEC_HEAD, MODEL_HEAD, ERROR"")")
       write (unit=iLU, &
              fmt="(""AQU"", 2("", "", i9), 5("", "", e16.8))" &
              ) 0, &
              0, &
-             cIO_WorldCoords(io, aqu%cRefPoint), &
-             aqu%rSolConst, &
-             aqu%rRefHead, &
-             rDOM_PotentialToHead(io, aqu%dom, aqu%rCheck, aqu%cRefPoint)
+             cIO_WorldCoords(io, aqu%frf%cRefPoint), &
+             aqu%frf%rSolConst, &
+             aqu%frf%rRefHead, &
+             rDOM_PotentialToHead(io, aqu%dom, aqu%frf%rCheck, aqu%frf%cRefPoint)
     end if
 
     if (aqu%iNBdy > 0) then
@@ -2181,11 +2155,7 @@ contains
 
     call IO_Assert(io, (associated(aqu)), "rAQU_Flow: No AQU_COLLECTION object")
 
-    if (aqu%lReference) then
-      cOmega = aqu%rSolConst - conjg(aqu%cRefUniformFlow) * cZ
-    else
-      cOmega = aqu%rSolConst
-    end if
+    cOmega = cFRF_Potential(io, aqu%frf, cZ)
 
     do iBdy = 1, aqu%iNBdy
       bdy => aqu%BdyElements(iBdy)
@@ -2216,11 +2186,7 @@ contains
 
     call IO_Assert(io, (associated(aqu)), "rAQU_Flow: No AQU_COLLECTION object")
 
-    if (aqu%lReference) then
-      cQ = aqu%cRefUniformFlow
-    else
-      cQ = cZERO
-    end if
+    cQ = cFRF_Discharge(io, aqu%frf, cZ)
 
     do iBdy = 1, aqu%iNBdy
       bdy => aqu%BdyElements(iBdy)
@@ -2252,14 +2218,9 @@ contains
 
     call IO_Assert(io, (associated(aqu)), "rAQU_Flow: No AQU_COLLECTION object")
 
-    ! The reference point(if any) and the uniform flow function satisfy
-    ! Laplace equation, so we need to only look at the ends of the path
-    if (aqu%lReference) then
-      rFlow = aimag(cAQU_Potential(io, aqu, cPathZ(size(cPathZ))) - &
-              cAQU_Potential(io, aqu, cPathZ(1)))
-    else
-      rFlow = rZERO
-    end if
+    ! The reference flow field satisfies Laplace's equation, so only endpoint
+    ! values of the potential are needed for its flow contribution.
+    rFlow = rFRF_Flow(io, aqu%frf, cPathZ)
 
     allocate(cBigZ(size(cPathZ)), stat = iStat)
     call IO_Assert(io, (iStat == 0), 'rAQU_Flow: Allocation failed')
@@ -2310,7 +2271,7 @@ contains
     integer(kind=AE_INT) :: iBdy
     type(AQU_BDYELEMENT), pointer :: bdy
 
-    call IO_Assert(io, (.not. aqu%lReference), "AQU_Extraction: Invalid for problems with uniform flow")
+    call IO_Assert(io, (.not. aqu%frf%lReference), "AQU_Extraction: Invalid for problems with uniform flow")
     rQ = sum(aqu%BdyElements(1:aqu%iNBdy)%rCheckFlux)
 
     return
@@ -2645,9 +2606,9 @@ contains
 
     ! Write the solution constant
     if (mode == IO_MODE_BINARY) then
-      write (unit=LU_SCRATCH) ELEM_AQU, 0, 1, 1, aqu%rSolConst
+      write (unit=LU_SCRATCH) ELEM_AQU, 0, 1, 1, aqu%frf%rSolConst
     else
-      write (unit=LU_SCRATCH, fmt=*) "AQU", 0, 1, 1, aqu%rSolConst
+      write (unit=LU_SCRATCH, fmt=*) "AQU", 0, 1, 1, aqu%frf%rSolConst
     end if
     ! Output records will be of the form ELEM_AQU, IBDY, 1, 1, SIGMA
     do ibdy = 1, aqu%iNBdy
@@ -2701,7 +2662,7 @@ contains
         call IO_Assert(io, istat == 0, "I/O error on precondition file")
         if (imodule == ELEM_AQU) then
           if (ibdy == 0) then
-            aqu%rSolConst = rstrength
+            aqu%frf%rSolConst = rstrength
           else
             call IO_Assert(io, ibdy > 0 .and. ibdy <= aqu%iNBdy, "AQU bdyl not found")
             bdy => aqu%BdyElements(ibdy)
@@ -2721,7 +2682,7 @@ contains
         call IO_Assert(io, istat == 0, "I/O error on precondition file")
         if (uppercase(trim(smodule)) == "AQU") then
           if (ibdy == 0) then
-            aqu%rSolConst = rstrength
+            aqu%frf%rSolConst = rstrength
           else
             call IO_Assert(io, ibdy > 0 .and. ibdy <= aqu%iNBdy, "AQU bdyl not found")
             bdy => aqu%BdyElements(ibdy)
