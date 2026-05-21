@@ -1608,8 +1608,8 @@ contains
     type(AQU_COLLECTION), pointer :: aqu
     type(IO_STATUS), pointer :: io
     ! Locals -- for Directive parsing
-    type(DIRECTIVE), dimension(6), parameter :: dirDirectives = &
-                       (/dirEND, dirREF, dirSWI, dirBDY, dirIN0, dirOPT/)
+    type(DIRECTIVE), dimension(5), parameter :: dirDirectives = &
+                       (/dirEND, dirREF, dirSWI, dirBDY, dirOPT/)
     ! Locals -- Input values
     integer(kind=AE_INT) :: iOpCode
     integer(kind=AE_INT) :: iStat
@@ -1708,8 +1708,6 @@ contains
             aqu%lNewBdy = .true.
             call IO_MessageText(io, "New boundary condition logic is enabled")
           end if
-        case (kOpIN0)
-          call AQU_ReadInho(io, aqu)
         case default
       end select
     end do
@@ -1719,152 +1717,69 @@ contains
   end subroutine AQU_Read
 
 
-  subroutine AQU_ReadInho(io, aqu)
-    !! subroutine AQU_ReadInho
+  subroutine AQU_BeginString(io, aqu, iMax, iLeftID, iRightID, lClosed, iID)
+    !! subroutine AQU_BeginString
     !!
-    !! Reads the inhomogeneity information (was IN0_Read)
-    !!
-    !! The format of the IN0 section appears as follows:
-    !!
-    !! IN0
-    !! DOM nvertices base thickness hyd-cond porosity
-    !!     (x, y)
-    !!     ...
-    !! END
-    !!
-    !! NOTE: It is assumed that the IN0 line was found by the caller
+    !! Creates a new inhomogeneity string entry in aqu%Strings.
+    !! Called by AEM_ReadInho after reading the STR directive header.
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
+    integer(kind=AE_INT), intent(in) :: iMax, iLeftID, iRightID, iID
+    logical, intent(in) :: lClosed
     type(IO_STATUS), pointer :: io
-    ! Locals -- for Directive parsing
-    type(DIRECTIVE), dimension(3), parameter :: dirDirectives = &
-                       (/dirEND, dirDOM, dirSTR/)
-    ! Locals -- Input values
-    integer(kind=AE_INT) :: iParseMode
-    integer(kind=AE_INT) :: iVtx
-    integer(kind=AE_INT) :: iOpCode
-    integer(kind=AE_INT) :: iStat
-    integer(kind=AE_INT) :: iMax
-    integer(kind=AE_INT) :: iID
-    integer(kind=AE_INT) :: iLeftID
-    integer(kind=AE_INT) :: iRightID
-    logical :: lClosed
-    real(kind=AE_REAL) :: rBase
-    real(kind=AE_REAL) :: rHydCond
-    real(kind=AE_REAL) :: rPorosity
-    real(kind=AE_REAL) :: rThickness
-    real(kind=AE_REAL) :: rRefHead
-    real(kind=AE_REAL) :: rAvgHead
-    complex(kind=AE_REAL) :: cZ
-    logical :: lFlag
-    type(DOM_DOMAIN), pointer :: dom
+    ! [ LOCALS ]
+    integer(kind=AE_INT) :: iStat, iVtx
     type(AQU_STRING), pointer :: str
     type(AQU_VERTEX), pointer :: vtx
-    character(len=32) :: sTag
-    ! [ CONSTANTS ]
-    integer(kind=AE_INT), parameter :: PARSE_NONE = 0
-    integer(kind=AE_INT), parameter :: PARSE_DOMAIN = 1
-    integer(kind=AE_INT), parameter :: PARSE_STRING = 2
 
-    iParseMode = PARSE_NONE
-    call IO_MessageText(io, "  Reading IN0 module input")
+    call IO_Assert(io, (associated(aqu%Strings)), "AQU_BeginString: No strings have been allocated")
+    call IO_Assert(io, (aqu%iNStr < size(aqu%Strings)), "AQU_BeginString: Space exhausted")
 
-    call IO_Assert(io, (associated(aqu)), "AQU_ReadInho: AQU_Create has not been called")
-
-    do
-      call IO_InputRecord(io, dirDirectives, iOpCode)
-      select case (iOpCode)
-        case (kOpError)
-          call IO_Assert(io, .false., "AQU_ReadInho: I/O Error")
-        case (kOpFileEOF)
-          call IO_Assert(io, .false., "AQU_ReadInho: Unexpected EOF")
-        case (kOpData)
-          select case (iParseMode)
-            case (PARSE_NONE)
-              call IO_Assert(io, .false., "AQU_ReadInho: Unexpected data record")
-            case (PARSE_DOMAIN)
-              call IO_Assert(io, (associated(dom%cZ)), "AQU_ReadInho: No DOM directive")
-              call IO_Assert(io, (dom%iNPts < size(dom%cZ)), &
-                   "AQU_ReadInho: Space exhausted")
-              write (unit=sTag, fmt=*) 'cZ dom', aqu%dom%iNDom, dom%iNPts+1
-              cZ = cIO_GetCoordinate(io, sTag, extents=.true., check_points=dom%cZ)
-              dom%iNPts = dom%iNPts+1
-              dom%cZ(dom%iNPts) = cZ
-            case (PARSE_STRING)
-              call IO_Assert(io, (associated(str%Vertices)), "AQU_ReadInho: No STR directive")
-              call IO_Assert(io, (str%iNPts < size(str%Vertices)), &
-                   "AQU_ReadInho: Space exhausted")
-              write (unit=sTag, fmt=*) 'cZ str', aqu%iNStr, str%iNPts+1
-              cZ = cIO_GetCoordinate(io, sTag, extents=.true., check_points=str%Vertices(:)%cZ)
-              str%iNPts = str%iNPts+1
-              str%Vertices(str%iNPts)%cZ = cZ
-          end select
-        case (kOpEND)
-          return
-        case (kOpDOM)
-          ! Start a new domain
-          call DOM_Read(io, aqu%dom)
-          dom => aqu%dom%Domains(aqu%dom%iNDom)
-          iParseMode = PARSE_DOMAIN
-        case (kOpSTR)
-          ! Start a new string
-          call IO_Assert(io, (associated(aqu%Strings)), &
-               "AQU_ReadInho: No strings have been allocated")
-          call IO_Assert(io, (aqu%iNStr < size(aqu%Strings)), &
-               "AQU_ReadInho: Space exhausted")
-          iMax = iIO_GetInteger(io, 'iMax')
-          iLeftID = iIO_GetInteger(io, 'iLeftID')
-          iRightID = iIO_GetInteger(io, 'iRightID')
-          lClosed = lIO_GetLogical(io, 'lClosed')
-          iID = iIO_GetInteger(io, 'iID', forbidden=aqu%Strings%iID)
-
-          aqu%iNStr = aqu%iNStr+1
-          str => aqu%Strings(aqu%iNStr)
-          str%iNPts = 0
-          str%iLeftID = iLeftID
-          str%iRightID = iRightID
-          str%lClosed = lClosed
-          str%iID = iID
-          allocate(str%Vertices(iMax), stat = iStat)
-          call IO_Assert(io, (iStat == 0), "AQU_ReadInho: Allocation failed")
-          do iVtx = 1, size(str%Vertices)
-            vtx => str%Vertices(iVtx)
-            vtx%cZ = cZERO
-            vtx%rStrength = rZERO
-            vtx%rCheckPot(:) = rZERO
-            nullify(vtx%pFDP)
-          end do
-          iParseMode = PARSE_STRING
-        case default
-      end select
+    aqu%iNStr = aqu%iNStr + 1
+    str => aqu%Strings(aqu%iNStr)
+    str%iNPts = 0
+    str%iLeftID = iLeftID
+    str%iRightID = iRightID
+    str%lClosed = lClosed
+    str%iID = iID
+    allocate(str%Vertices(iMax), stat=iStat)
+    call IO_Assert(io, (iStat == 0), "AQU_BeginString: Allocation failed")
+    do iVtx = 1, size(str%Vertices)
+      vtx => str%Vertices(iVtx)
+      vtx%cZ = cZERO
+      vtx%rStrength = rZERO
+      vtx%rCheckPot(:) = rZERO
+      nullify(vtx%pFDP)
     end do
 
-    call IO_MessageText(io, "Leaving IN0 module")
-
     return
-  end subroutine AQU_ReadInho
+  end subroutine AQU_BeginString
 
 
-  subroutine AQU_NewDomain(io, aqu, cZ, iNPts, rBase, rThickness, rHydCond, rPorosity)
-    !! subroutine AQU_NewDomain
+  subroutine AQU_AppendStringVertex(io, aqu, cZ)
+    !! subroutine AQU_AppendStringVertex
     !!
-    !! Adds a new DOM_DOMAIN object to the domain collection (delegates to DOM_NewDomain)
+    !! Appends one vertex coordinate to the current (last) inhomogeneity string.
+    !! Called by AEM_ReadInho for each data line following a STR directive.
     !!
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
-    complex(kind=AE_REAL), dimension(:) :: cZ
-    integer(kind=AE_INT), intent(in) :: iNPts
-    real(kind=AE_REAL), intent(in) :: rBase
-    real(kind=AE_REAL), intent(in) :: rThickness
-    real(kind=AE_REAL), intent(in) :: rHydCond
-    real(kind=AE_REAL), intent(in) :: rPorosity
+    complex(kind=AE_REAL), intent(in) :: cZ
     type(IO_STATUS), pointer :: io
+    ! [ LOCALS ]
+    type(AQU_STRING), pointer :: str
 
-    call DOM_NewDomain(io, aqu%dom, cZ, iNPts, rBase, rThickness, rHydCond, rPorosity)
+    call IO_Assert(io, (aqu%iNStr > 0), "AQU_AppendStringVertex: No string in progress")
+    str => aqu%Strings(aqu%iNStr)
+    call IO_Assert(io, (associated(str%Vertices)), "AQU_AppendStringVertex: No STR directive")
+    call IO_Assert(io, (str%iNPts < size(str%Vertices)), "AQU_AppendStringVertex: Space exhausted")
+
+    str%iNPts = str%iNPts + 1
+    str%Vertices(str%iNPts)%cZ = cZ
 
     return
-  end subroutine AQU_NewDomain
+  end subroutine AQU_AppendStringVertex
 
 
   subroutine AQU_Report(io, aqu)
