@@ -56,6 +56,7 @@ module m_aqu
 
   use f_reference
   use f_dipole
+  use f_linesink
 
   use i_linesink
 
@@ -164,6 +165,7 @@ module m_aqu
     complex(kind=AE_REAL) :: cFSZ2        ! Location of a "control point" at the second end
     integer(kind=AE_INT) :: iEqIndex
     real(kind=AE_REAL) :: rSaveSpecHead   ! Saves the user-specified head
+    type(FLS_LINESINK), pointer :: pFLS   ! Pointer into aem%fls for this element
   end type AQU_BDYELEMENT
 
 
@@ -495,6 +497,8 @@ contains
     ! First, count the inhomogeneity contributions (was iIN0_GetInfo)
     iValue = 0
     select case (iOption)
+      case (SIZE_FLS)
+        iValue = aqu%iNBdy
       case (SIZE_FDP)
         do iStr = 1, aqu%iNStr
           str => aqu%Strings(iStr)
@@ -544,7 +548,7 @@ contains
   end function iAQU_GetInfo
 
 
-  subroutine AQU_SetupFunctions(io, aqu, fdp)
+  subroutine AQU_SetupFunctions(io, aqu, fdp, fls)
     !! subroutine AQU_SetupFunctions
     !!
     !! This routine sets up the functions in f_well and f_dipole for the perimeter
@@ -556,20 +560,26 @@ contains
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
     type(FDP_COLLECTION), pointer :: fdp
+    type(FLS_COLLECTION), pointer :: fls
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iStat, iStr, iVtx
+    integer(kind=AE_INT) :: iStat, iStr, iVtx, iBdy
     real(kind=AE_REAL) :: rSum
     complex(kind=AE_REAL) :: cZ1, cZ2
     type(AQU_STRING), pointer :: str
     type(AQU_VERTEX), pointer :: vtx
+    type(AQU_BDYELEMENT), pointer :: bdy
 
     call IO_Assert(io, (associated(aqu)), "AQU_Setup: AQU_Create has not been called")
 
-    ! Set the internal values for the BDY elements
+    ! Set the internal values for the BDY elements and register each one in fls
     if (aqu%iNBdy > 0) then
       aqu%BdyElements(1:aqu%iNBdy)%cZC = rHALF * (aqu%BdyElements(1:aqu%iNBdy)%cZ2 + aqu%BdyElements(1:aqu%iNBdy)%cZ1)
       aqu%BdyElements(1:aqu%iNBdy)%cZL = rHALF * (aqu%BdyElements(1:aqu%iNBdy)%cZ2 - aqu%BdyElements(1:aqu%iNBdy)%cZ1)
+      do iBdy = 1, aqu%iNBdy
+        bdy => aqu%BdyElements(iBdy)
+        bdy%pFLS => FLS_New(io, fls, bdy%cZ1, bdy%cZ2, cZERO, ELEM_AQU, kAQUBoundary, iBdy, 0)
+      end do
     end if
 
     ! Set the confined potential (was IN0_SetupFunctions)
@@ -1236,6 +1246,8 @@ contains
             else
               this%rStrength = this%rStrength + rValue
             end if
+            if (associated(this%pFLS)) &
+              this%pFLS%cSigma = cmplx(this%rStrength, rZERO, AE_REAL)
         end select
       case (ELEM_IN0)
         ! Store inhomogeneity result (was IN0_StoreResult)
@@ -1727,9 +1739,22 @@ contains
           call IO_Assert(io, (iMax > 0), "AQU_Read: Illegal dimension")
           allocate(aqu%BdyElements(iMax), stat = iStat)
           call IO_Assert(io, (iStat == 0), "AQU_Read: Allocation failed")
-          aqu%BdyElements = AQU_BDYELEMENT(cZERO, cZERO, cZERO, cZERO, cZERO, cZERO, rZERO, &
-                            rZERO, rZERO, rZERO, rZERO, BDY_FLUX, rZERO, rZERO, .false., .false., .false., &
-                            cZERO, cZERO, 0, rZERO)
+          do iNBdy = 1, iMax
+            associate (b => aqu%BdyElements(iNBdy))
+              b%cZ1 = cZERO;  b%cZ2 = cZERO
+              b%cCPZ1 = cZERO; b%cCPZ2 = cZERO
+              b%cZC = cZERO;  b%cZL = cZERO
+              b%rSpecHead = rZERO; b%rSpecFlux = rZERO
+              b%rGhbDistance = rZERO; b%rLength = rZERO
+              b%rStrength = rZERO; b%iBdyFlag = BDY_FLUX
+              b%rCheckPot = rZERO; b%rCheckFlux = rZERO
+              b%lMoveCPZ1 = .false.; b%lMoveCPZ2 = .false.
+              b%lFSHeadSpec = .false.
+              b%cFSZ1 = cZERO; b%cFSZ2 = cZERO
+              b%iEqIndex = 0; b%rSaveSpecHead = rZERO
+              nullify(b%pFLS)
+            end associate
+          end do
           aqu%iNBdy = 0
           iParseMode = PARSE_BDY
         case (kOpOPT)

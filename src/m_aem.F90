@@ -960,6 +960,7 @@ contains
     iNFWL = iNFWL + iAQU_GetInfo(io, aem%aqu, SIZE_FWL, 0)
     iNFPD = iNFPD + iAQU_GetInfo(io, aem%aqu, SIZE_FPD, 0)
     iNFDP = iNFDP + iAQU_GetInfo(io, aem%aqu, SIZE_FDP, 0)
+    iNFLS = iNFLS + iAQU_GetInfo(io, aem%aqu, SIZE_FLS, 0)
     ! LS1 Module(head-specified linesinks)
     iNFWL = iNFWL + iLS1_GetInfo(io, aem%ls1, SIZE_FWL, 0)
     iNFPD = iNFPD + iLS1_GetInfo(io, aem%ls1, SIZE_FPD, 0)
@@ -1013,7 +1014,7 @@ contains
     ! If we made it here, allocation is complete. Now use the element module setup
     ! routines to set up the functions and matrix generator
     !******************************************************************************************
-    call AQU_SetupFunctions(io, aem%aqu, aem%fdp)
+    call AQU_SetupFunctions(io, aem%aqu, aem%fdp, aem%fls)
     call WL0_SetupFunctions(io, aem%wl0, aem%fwl, aem%aqu)
     call PD0_SetupFunctions(io, aem%pd0, aem%fpd)
     call LS0_SetupFunctions(io, aem%ls0, aem%fwl, aem%fdp)
