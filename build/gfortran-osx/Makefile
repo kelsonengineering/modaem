@@ -28,6 +28,8 @@ a_stdio.o: a_stdio.F90 u_constants.o u_io.o m_aem.o
 
 a_tr0.o: a_tr0.F90 u_constants.o u_io.o m_wl0.o m_ls0.o m_ls1.o m_hb0.o m_wl1.o m_aem.o
 
+f_areasink.o: f_areasink.F90 u_constants.o u_io.o u_polygon.o i_areasink.o
+
 f_dipole.o: f_dipole.F90 u_constants.o u_io.o i_dipole.o i_linesink.o
 
 f_pond.o: f_pond.F90 u_constants.o u_io.o i_pond.o
@@ -53,7 +55,7 @@ m_aem.o: m_aem.F90 u_constants.o u_io.o u_matrix.o u_domain.o f_well.o f_dipole.
 
 m_aqu.o: m_aqu.F90 u_constants.o u_io.o u_matrix.o u_polygon.o u_domain.o f_reference.o f_dipole.o i_linesink.o
 
-m_as0.o: m_as0.F90 u_constants.o u_io.o u_polygon.o u_matrix.o f_well.o f_dipole.o i_areasink.o m_aqu.o
+m_as0.o: m_as0.F90 u_constants.o u_io.o u_polygon.o u_matrix.o f_well.o f_dipole.o f_areasink.o i_areasink.o m_aqu.o
 
 m_ext.o: m_ext.F90 u_constants.o u_io.o m_wl0.o m_wl1.o m_ls0.o m_ls1.o m_hb0.o m_aem.o
 
@@ -101,7 +103,7 @@ INF = i_well.o i_linesink.o i_dipole.o i_pond.o i_areasink.o
 
 OBJ = a_tr0.o m_as0.o m_wl1.o m_ls0.o u_matrix.o u_polygon.o u_domain.o u_math.o modaem.o m_wl0.o a_stdio.o \
       f_pond.o a_obs.o m_ls1.o a_grid.o m_aqu.o m_pd0.o \
-      f_reference.o f_linesink.o f_dipole.o m_ext.o m_aem.o u_io.o m_hb0.o u_constants.o  \
+      f_reference.o f_linesink.o f_dipole.o f_areasink.o m_ext.o m_aem.o u_io.o m_hb0.o u_constants.o  \
       f_well.o m_inq.o m_ls2.o u_grid.o m_ls3.o m_cw0.o f_bwl.o polypack.o $(INF)
 
 clean: neat

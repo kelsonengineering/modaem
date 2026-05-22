@@ -674,4 +674,72 @@ contains
   end subroutine FLS_Report
 
 
+  function lFLS_CheckPoint(io, fls, cZ, rTol, cZFix, rStrength, iElementType, iElementString, &
+             iElementVertex, iElementFlag) result(lFound)
+    !! function lFLS_CheckPoint
+    !!
+    !! Returns .true. if cZ falls within rTol of a linesink tip in fls.
+    !! When .true., cZFix is set to a point slightly away from the tip along
+    !! the linesink, and the element bookkeeping fields are populated.
+    !!
+    ! [ ARGUMENTS ]
+    type(FLS_COLLECTION), pointer :: fls
+    complex(kind=AE_REAL), intent(in) :: cZ
+    real(kind=AE_REAL), intent(in) :: rTol
+    complex(kind=AE_REAL), intent(out) :: cZFix
+    real(kind=AE_REAL), intent(out) :: rStrength
+    integer(kind=AE_INT), intent(out) :: iElementType
+    integer(kind=AE_INT), intent(out) :: iElementString
+    integer(kind=AE_INT), intent(out) :: iElementVertex
+    integer(kind=AE_INT), intent(out) :: iElementFlag
+    type(IO_STATUS), pointer :: io
+    ! [ RETURN VALUE ]
+    logical :: lFound
+    ! [ LOCALS ]
+    integer(kind=AE_INT) :: i
+    complex(kind=AE_REAL) :: cMapZ
+    type(FLS_LINESINK), pointer :: ls
+    real(kind=AE_REAL), parameter :: rEND_FIX_POSITION = rTWO
+
+    lFound = .false.
+    cZFix = cZERO
+    rStrength = rZERO
+    iElementType = -1
+    iElementString = -1
+    iElementVertex = -1
+    iElementFlag = -1
+
+    if (.not. associated(fls)) return
+    if (fls%iCount == 0) return
+
+    do i = 1, fls%iCount
+      ls => fls%Linesinks(i)
+      cMapZ = (cZ - ls%cZC) / ls%cZL
+      if (abs(aimag(cMapZ)) < rTol) then
+        if (abs(real(cMapZ) - rONE) < rTol) then
+          lFound = .true.
+          cZFix = cmplx(rONE - rEND_FIX_POSITION*rTol, rZERO, AE_REAL) * ls%cZL + ls%cZC
+          rStrength = real(ls%cSigma)
+          iElementType = ls%iElementType
+          iElementString = ls%iElementString
+          iElementVertex = ls%iElementVertex
+          iElementFlag = ls%iElementFlag
+          return
+        else if (abs(real(cMapZ) + rONE) < rTol) then
+          lFound = .true.
+          cZFix = cmplx(-rONE + rEND_FIX_POSITION*rTol, rZERO, AE_REAL) * ls%cZL + ls%cZC
+          rStrength = real(ls%cSigma)
+          iElementType = ls%iElementType
+          iElementString = ls%iElementString
+          iElementVertex = ls%iElementVertex
+          iElementFlag = ls%iElementFlag
+          return
+        end if
+      end if
+    end do
+
+    return
+  end function lFLS_CheckPoint
+
+
 end module f_linesink
