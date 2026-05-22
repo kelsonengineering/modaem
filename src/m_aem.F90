@@ -2035,18 +2035,17 @@ contains
     integer(kind=AE_INT), parameter :: iEND = 1000, iDBG = 1001, &
                             iAQU = 2001, iWL0 = 2002, iPD0 = 2003, iWL1 = 2004, &
                             iLS0 = 2005, iLS1 = 2006, iLS2 = 2007, iLS3 = 2008, &
-                            iHB0 = 2009, iAS0 = 20010, iOPT = 2011, iIN0 = 2012, &
+                            iHB0 = 2009, iAS0 = 20010, iOPT = 2011, &
 #ifndef __GPL__
                             iCW0 = 5001, &
 #endif
                             iRLX = 3001
 #ifndef __GPL__
-    type(DIRECTIVE), dimension(16), parameter :: dirDirectives = (/ &
+    type(DIRECTIVE), dimension(15), parameter :: dirDirectives = (/ &
                        DIRECTIVE(iCW0, 'CW0'), &
                        DIRECTIVE(iEND, 'END'), &
                        DIRECTIVE(iDBG, 'DBG'), &
                        DIRECTIVE(iAQU, 'AQU'), &
-                       DIRECTIVE(iIN0, 'IN0'), &
                        DIRECTIVE(iWL0, 'WL0'), &
                        DIRECTIVE(iPD0, 'PD0'), &
                        DIRECTIVE(iWL1, 'WL1'), &
@@ -2059,11 +2058,10 @@ contains
                        DIRECTIVE(iOPT, 'OPT'), &
                        DIRECTIVE(iRLX, 'RLX')/)
 #else
-    type(DIRECTIVE), dimension(15), parameter :: dirDirectives = (/ &
+    type(DIRECTIVE), dimension(14), parameter :: dirDirectives = (/ &
                        DIRECTIVE(iEND, 'END'), &
                        DIRECTIVE(iDBG, 'DBG'), &
                        DIRECTIVE(iAQU, 'AQU'), &
-                       DIRECTIVE(iIN0, 'IN0'), &
                        DIRECTIVE(iWL0, 'WL0'), &
                        DIRECTIVE(iPD0, 'PD0'), &
                        DIRECTIVE(iWL1, 'WL1'), &
@@ -2129,10 +2127,6 @@ contains
           aem%frf => FRF_Create(io)
           aem%aqu => AQU_Create(io, aem%dom, aem%frf, iNStr)
           call AQU_Read(io, aem%aqu)
-        case (iIN0)
-          ! Read the inhomogeneity section: domain polygons and dipole strings
-          call IO_Assert(io, associated(aem%aqu), "AEM_Read: IN0 requires AQU to be defined first")
-          call AEM_ReadInho(io, aem)
         case (iWL0)
           ! Enter the WL0 element module
           call WL0_Alloc(io, aem%wl0)
@@ -2195,104 +2189,6 @@ contains
 
     return
   end subroutine AEM_Read
-
-
-  subroutine AEM_ReadInho(io, aem)
-    !! subroutine AEM_ReadInho
-    !!
-    !! Reads the IN0 inhomogeneity section at the AEM level.
-    !!
-    !! DOM directives create new polygonal aquifer domains (via u_domain).
-    !! STR directives create new inhomogeneity dipole strings (via m_aqu).
-    !!
-    !! The format of the IN0 section is:
-    !!
-    !! IN0
-    !! DOM nvertices base thickness hyd-cond porosity avg-head id
-    !!     (x, y)
-    !!     ...
-    !! STR nvertices leftID rightID closed id
-    !!     (x, y)
-    !!     ...
-    !! END
-    !!
-    ! [ ARGUMENTS ]
-    type(AEM_DOMAIN), pointer :: aem
-    type(IO_STATUS), pointer :: io
-    ! [ LOCALS ]
-    type(DIRECTIVE), dimension(3), parameter :: dirDirectives = &
-                       (/dirEND, dirDOM, dirSTR/)
-    integer(kind=AE_INT) :: iOpCode
-    integer(kind=AE_INT) :: iParseMode
-    integer(kind=AE_INT) :: iMax, iID, iLeftID, iRightID
-    logical :: lClosed
-    complex(kind=AE_REAL) :: cZ
-    type(DOM_DOMAIN), pointer :: dom
-    character(len=32) :: sTag
-    integer(kind=AE_INT), parameter :: PARSE_NONE = 0
-    integer(kind=AE_INT), parameter :: PARSE_DOMAIN = 1
-    integer(kind=AE_INT), parameter :: PARSE_STRING = 2
-
-    call IO_MessageText(io, "  Reading IN0 section")
-    call IO_Assert(io, associated(aem%dom), "AEM_ReadInho: No DOM_COLLECTION (AQU not yet read)")
-    call IO_Assert(io, associated(aem%aqu), "AEM_ReadInho: No AQU_COLLECTION (AQU not yet read)")
-
-    iParseMode = PARSE_NONE
-
-    do
-      call IO_InputRecord(io, dirDirectives, iOpCode)
-      select case (iOpCode)
-        case (kOpError)
-          call IO_Assert(io, .false., "AEM_ReadInho: I/O Error")
-        case (kOpFileEOF)
-          call IO_Assert(io, .false., "AEM_ReadInho: Unexpected EOF")
-        case (kOpData)
-          select case (iParseMode)
-            case (PARSE_NONE)
-              call IO_Assert(io, .false., "AEM_ReadInho: Unexpected data record")
-            case (PARSE_DOMAIN)
-              dom => aem%dom%Domains(aem%dom%iNDom)
-              call IO_Assert(io, (associated(dom%cZ)), "AEM_ReadInho: No DOM directive")
-              call IO_Assert(io, (dom%iNPts < size(dom%cZ)), "AEM_ReadInho: Space exhausted")
-              write (unit=sTag, fmt=*) 'cZ dom', aem%dom%iNDom, dom%iNPts+1
-              if (dom%iNPts > 0) then
-                cZ = cIO_GetCoordinate(io, sTag, extents=.true., check_points=dom%cZ(1:dom%iNPts))
-              else
-                cZ = cIO_GetCoordinate(io, sTag, extents=.true.)
-              end if
-              dom%iNPts = dom%iNPts + 1
-              dom%cZ(dom%iNPts) = cZ
-            case (PARSE_STRING)
-              write (unit=sTag, fmt=*) 'cZ str', aem%aqu%iNStr, aem%aqu%Strings(aem%aqu%iNStr)%iNPts+1
-              associate (str => aem%aqu%Strings(aem%aqu%iNStr))
-                if (str%iNPts > 0) then
-                  cZ = cIO_GetCoordinate(io, sTag, extents=.true., &
-                       check_points=str%Vertices(1:str%iNPts)%cZ)
-                else
-                  cZ = cIO_GetCoordinate(io, sTag, extents=.true.)
-                end if
-              end associate
-              call AQU_AppendStringVertex(io, aem%aqu, cZ)
-          end select
-        case (kOpEND)
-          call IO_MessageText(io, "  Leaving IN0 section")
-          return
-        case (kOpDOM)
-          call DOM_Read(io, aem%dom)
-          iParseMode = PARSE_DOMAIN
-        case (kOpSTR)
-          iMax = iIO_GetInteger(io, 'iMax')
-          iLeftID = iIO_GetInteger(io, 'iLeftID')
-          iRightID = iIO_GetInteger(io, 'iRightID')
-          lClosed = lIO_GetLogical(io, 'lClosed')
-          iID = iIO_GetInteger(io, 'iID', forbidden=aem%aqu%Strings%iID)
-          call AQU_BeginString(io, aem%aqu, iMax, iLeftID, iRightID, lClosed, iID)
-          iParseMode = PARSE_STRING
-        case default
-      end select
-    end do
-
-  end subroutine AEM_ReadInho
 
 
   subroutine AEM_Report(io, aem)

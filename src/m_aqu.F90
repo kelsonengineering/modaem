@@ -1608,8 +1608,8 @@ contains
     type(AQU_COLLECTION), pointer :: aqu
     type(IO_STATUS), pointer :: io
     ! Locals -- for Directive parsing
-    type(DIRECTIVE), dimension(5), parameter :: dirDirectives = &
-                       (/dirEND, dirREF, dirSWI, dirBDY, dirOPT/)
+    type(DIRECTIVE), dimension(7), parameter :: dirDirectives = &
+                       (/dirEND, dirREF, dirSWI, dirBDY, dirOPT, dirDOM, dirSTR/)
     ! Locals -- Input values
     integer(kind=AE_INT) :: iOpCode
     integer(kind=AE_INT) :: iStat
@@ -1629,13 +1629,18 @@ contains
     integer(kind=AE_INT) :: iBdyFlag
     integer(kind=AE_INT) :: iNBdy
     integer(kind=AE_INT) :: iNIsl
+    integer(kind=AE_INT) :: iID, iLeftID, iRightID
+    logical :: lClosed
     type(AQU_BDYELEMENT), pointer :: vtx
     ! State variables for the parser
     integer(kind=AE_INT) :: iParseMode
     integer(kind=AE_INT), parameter :: PARSE_NONE = 0
     integer(kind=AE_INT), parameter :: PARSE_BDY = 1
+    integer(kind=AE_INT), parameter :: PARSE_DOM = 2
+    integer(kind=AE_INT), parameter :: PARSE_STR = 3
     type(DOM_DOMAIN), pointer :: dom
     character(len=132) :: sOption
+    character(len=32) :: sTag
 
     call IO_MessageText(io, "  Reading AQU module input")
     call IO_Assert(io, (associated(aqu)), "AQU_Read: AQU_Create has not been called")
@@ -1677,6 +1682,31 @@ contains
               vtx%rSpecFlux = rSpecFlux
               vtx%rGhbDistance = rGhbDistance
               vtx%iBdyFlag = iBdyFlag
+            case (PARSE_DOM)
+              dom => aqu%dom%Domains(aqu%dom%iNDom)
+              call IO_Assert(io, (associated(dom%cZ)), "AQU_Read: No DOM directive")
+              call IO_Assert(io, (dom%iNPts < size(dom%cZ)), "AQU_Read: DOM space exhausted")
+              write (unit=sTag, fmt=*) 'cZ dom', aqu%dom%iNDom, dom%iNPts+1
+              if (dom%iNPts > 0) then
+                cZ = cIO_GetCoordinate(io, sTag, extents=.true., check_points=dom%cZ(1:dom%iNPts))
+              else
+                cZ = cIO_GetCoordinate(io, sTag, extents=.true.)
+              end if
+              dom%iNPts = dom%iNPts + 1
+              dom%cZ(dom%iNPts) = cZ
+            case (PARSE_STR)
+              write (unit=sTag, fmt=*) 'cZ str', aqu%iNStr, aqu%Strings(aqu%iNStr)%iNPts+1
+              associate (str => aqu%Strings(aqu%iNStr))
+                if (str%iNPts > 0) then
+                  cZ = cIO_GetCoordinate(io, sTag, extents=.true., &
+                       check_points=str%Vertices(1:str%iNPts)%cZ)
+                else
+                  cZ = cIO_GetCoordinate(io, sTag, extents=.true.)
+                end if
+              end associate
+              call AQU_AppendStringVertex(io, aqu, cZ)
+            case default
+              call IO_Assert(io, .false., "AQU_Read: Unexpected data record")
           end select
         case (kOpEND)
           ! EOD mark was found. Exit the file parser.
@@ -1708,6 +1738,19 @@ contains
             aqu%lNewBdy = .true.
             call IO_MessageText(io, "New boundary condition logic is enabled")
           end if
+        case (kOpDOM)
+          call IO_Assert(io, associated(aqu%dom), "AQU_Read: No DOM_COLLECTION (AQU not yet created)")
+          call DOM_Read(io, aqu%dom)
+          iParseMode = PARSE_DOM
+        case (kOpSTR)
+          call IO_Assert(io, associated(aqu%dom), "AQU_Read: No DOM_COLLECTION (AQU not yet created)")
+          iMax = iIO_GetInteger(io, 'iMax')
+          iLeftID = iIO_GetInteger(io, 'iLeftID')
+          iRightID = iIO_GetInteger(io, 'iRightID')
+          lClosed = lIO_GetLogical(io, 'lClosed')
+          iID = iIO_GetInteger(io, 'iID', forbidden=aqu%Strings%iID)
+          call AQU_BeginString(io, aqu, iMax, iLeftID, iRightID, lClosed, iID)
+          iParseMode = PARSE_STR
         case default
       end select
     end do
@@ -1941,7 +1984,11 @@ contains
           call HTML_StartRow()
           call HTML_ColumnInteger((/iVtx/))
           call HTML_ColumnComplex((/cIO_WorldCoords(io, vtx%cZ)/))
-          call HTML_ColumnInteger((/vtx%pFDP%iIndex/))
+          if (associated(vtx%pFDP)) then
+            call HTML_ColumnInteger((/vtx%pFDP%iIndex/))
+          else
+            call HTML_ColumnText((/'--'/))
+          end if
           call HTML_ColumnReal(vtx%rStrength(1:2), 'e13.6')
           call HTML_ColumnReal(rError, 'e13.6')
           call HTML_EndRow()
