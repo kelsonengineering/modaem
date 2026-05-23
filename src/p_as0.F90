@@ -1,4 +1,4 @@
-module m_as0
+module p_as0
 
   ! ModAEM 1.8
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
@@ -48,7 +48,7 @@ module m_as0
   use f_dipole
   use f_areasink
   use i_areasink
-  use m_aqu
+  use p_aqu
 
   implicit none
 
@@ -903,4 +903,4 @@ contains
     return
   end function rAS0_Extraction
 
-end module m_as0
+end module p_as0

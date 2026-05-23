@@ -1,4 +1,4 @@
-module m_cw0
+module p_cw0
 
   ! ModAEM 1.8
   ! Copyright(c) 2003-2008 WHPA Inc. and Vic Kelson
@@ -28,7 +28,7 @@ module m_cw0
   use f_well
   use f_dipole
   use u_matrix
-  use m_aqu
+  use p_aqu
 
   implicit none
 
@@ -2027,4 +2027,4 @@ contains
       return
     end subroutine CW0_Load
 
-  end module m_cw0
+  end module p_cw0

@@ -1,4 +1,4 @@
-module m_hb0
+module p_hb0
 
   ! ModAEM 1.8
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
@@ -1437,4 +1437,4 @@ contains
     return
   end subroutine HB0_Load
 
-end module m_hb0
+end module p_hb0

@@ -1,4 +1,4 @@
-module m_ls1
+module p_ls1
 
   ! ModAEM 1.8
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
@@ -45,7 +45,7 @@ module m_ls1
   use f_well
   use f_dipole
   use u_matrix
-  use m_aqu
+  use p_aqu
 
   implicit none
 
@@ -1349,4 +1349,4 @@ contains
     return
   end subroutine LS1_Load
 
-end module m_ls1
+end module p_ls1

@@ -1,4 +1,4 @@
-module m_wl1
+module p_wl1
 
   ! ModAEM 1.8
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
@@ -37,7 +37,7 @@ module m_wl1
   use f_well
   use f_bwl
   use u_matrix
-  use m_aqu
+  use p_aqu
 
   implicit none
 
@@ -1187,4 +1187,4 @@ contains
     return
   end subroutine WL1_Load
 
-end module m_wl1
+end module p_wl1

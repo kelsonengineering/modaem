@@ -1,4 +1,4 @@
-module m_wl0
+module p_wl0
 
   ! ModAEM 1.8
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
@@ -38,7 +38,7 @@ module m_wl0
   use u_io
   use f_well
   use f_bwl
-  use m_aqu
+  use p_aqu
   use u_math
 
   implicit none
@@ -1030,4 +1030,4 @@ contains
     return
   end subroutine WL0_Report
 
-end module m_wl0
+end module p_wl0

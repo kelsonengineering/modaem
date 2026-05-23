@@ -1,4 +1,4 @@
-module m_ls3
+module p_ls3
 
   ! ModAEM 1.8
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
@@ -46,7 +46,7 @@ module m_ls3
   use u_io
   use f_linesink
   use u_matrix
-  use m_aqu
+  use p_aqu
 
   implicit none
 
@@ -1805,4 +1805,4 @@ contains
     return
   end subroutine LS3_Load
 
-end module m_ls3
+end module p_ls3

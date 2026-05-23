@@ -1,4 +1,4 @@
-module m_ls0
+module p_ls0
 
   ! ModAEM 1.8
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
@@ -45,7 +45,7 @@ module m_ls0
   use u_matrix
   use f_well
   use f_dipole
-  use m_aqu
+  use p_aqu
 
   implicit none
 
@@ -839,4 +839,4 @@ contains
     return
   end subroutine LS0_Report
 
-end module m_ls0
+end module p_ls0

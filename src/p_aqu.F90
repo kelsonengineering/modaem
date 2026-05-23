@@ -1,4 +1,4 @@
-module m_aqu
+module p_aqu
 
   ! ModAEM 1.9
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
@@ -2697,4 +2697,4 @@ contains
 
 
 
-end module m_aqu
+end module p_aqu

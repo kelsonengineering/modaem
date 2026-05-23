@@ -1,4 +1,4 @@
-module m_pd0
+module p_pd0
 
   ! ModAEM 1.8
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
@@ -582,5 +582,5 @@ contains
     return
   end subroutine PD0_Report
 
-end module m_pd0
+end module p_pd0
 
