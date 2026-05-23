@@ -38,6 +38,7 @@ module p_wl0
   use u_io
   use f_well
   use f_bwl
+  use f_aem
   use p_aqu
   use u_math
 
@@ -103,8 +104,6 @@ module p_wl0
     !!
     type(WL0_WELL), dimension(:), pointer :: Wells
     integer(kind=AE_INT) :: iCount
-    ! Iterator information
-    integer(kind=AE_INT) :: iIterWell
     ! True if the drawdown simulation is active
     logical :: lDdnEnabled
   end type WL0_COLLECTION
@@ -629,125 +628,32 @@ contains
   end subroutine WL0_FindWellPointer
 
 
-  subroutine WL0_ResetIterator(io, wl0)
-    !! subroutine WL0_ResetIterator
-    !!
-    !! Resets the module's iterator prior to traversing for check data
-    !!
-    !! Calling Sequence:
-    !!    call WL0_ResetIterator(wl0)
-    !!
-    !! Arguments:
-    !!   (in)    type(WL0_COLLECTION), pointer :: wl0
-    !!             WL0_COLLECTION to be used
-    !!   (in)    type(IO_STATUS), pointer :: wl0
-    !!             Tracks error conditions
-    !!
-    ! [ ARGUMENTS ]
+  subroutine WL0_ComputeCheck(io, wl0, aem, aqu)
+    !! Updates check head for all WL0 wells.
     type(WL0_COLLECTION), pointer :: wl0
-    type(IO_STATUS), pointer :: io
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(wl0)), &
-           "WL0_ResetIterator: WL0_Create has not been called")
-    end if
-
-    wl0%iIterWell = 0
-
-    return
-  end subroutine WL0_ResetIterator
-
-
-  function WL0_NextIterator(io, wl0) result(itr)
-    !! function WL0_NextIterator
-    !!
-    !! Advances the module's iterator one step
-    !!
-    !! Calling Sequence:
-    !!    call WL0_NextIterator(wl0)
-    !!
-    !! Arguments:
-    !!   (in)    type(WL0_COLLECTION), pointer :: wl0
-    !!             WL0_COLLECTION to be used
-    !!   (in)    type(IO_STATUS), pointer :: wl0
-    !!             Tracks error conditions
-    !!
-    !! Return Value:
-    !!   type(ITERATOR_RESULT), pointer :: itr
-    !!     Pointer to the information for data retrieval
-    !!
-    ! [ ARGUMENTS ]
-    type(WL0_COLLECTION), pointer :: wl0
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    type(ITERATOR_RESULT), pointer :: itr
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(wl0)), &
-           "WL0_NextIterator: WL0_Create has not been called")
-    end if
-
-    wl0%iIterWell = wl0%iIterWell + 1
-    if (wl0%iIterWell > wl0%iCount) then
-      nullify(itr)
-    else
-      allocate(itr)
-      itr%iValueSelector = VALUE_POTENTIAL
-      itr%iElementString = wl0%iIterWell
-      allocate(itr%cZ(1))
-      itr%cZ(1) = wl0%Wells(wl0%iIterWell)%cZ
-    end if
-
-    return
-  end function WL0_NextIterator
-
-
-  subroutine WL0_SetIterator(io, wl0, aqu, fwl, itr, cValue)
-    !! function WL0_SetIterator
-    !!
-    !! Advances the module's iterator one step
-    !!
-    !! Calling Sequence:
-    !!    call WL0_SetIterator(wl0)
-    !!
-    !! Arguments:
-    !!   (in)    type(WL0_COLLECTION), pointer :: wl0
-    !!             WL0_COLLECTION to be used
-    !!   type(ITERATOR_RESULT), pointer :: itr
-    !!     Pointer to the information for data retrieval
-    !!   (in)    complex :: cValue
-    !!             The value retrieved from the color
-    !!   (in)    type(IO_STATUS), pointer :: wl0
-    !!             Tracks error conditions
-    !!
-    ! [ ARGUMENTS ]
-    type(WL0_COLLECTION), pointer :: wl0
+    type(AEM_DOMAIN), pointer :: aem
     type(AQU_COLLECTION), pointer :: aqu
-    type(FWL_COLLECTION), pointer :: fwl
-    type(ITERATOR_RESULT), pointer :: itr
-    complex(kind=AE_REAL), intent(in) :: cValue
     type(IO_STATUS), pointer :: io
-    ! [ LOCALS ]
     type(WL0_WELL), pointer :: wel
-    complex(kind=AE_REAL) :: cPotWithoutWell
+    complex(kind=AE_REAL) :: cPot
+    integer(kind=AE_INT) :: iWel
 
     if (io%lDebug) then
-      call IO_Assert(io, (associated(wl0)), &
-           "WL0_NextIterator: WL0_Create has not been called")
-      call IO_Assert(io, (wl0%iIterWell <= wl0%iCount), &
-           "WL0_SetIterator: Iterator out of range")
-    end if
-    wel => wl0%Wells(itr%iElementString)
-    wel%rCheckHead = rDOM_PotentialToHead(io, aqu%dom, real(cValue, AE_REAL), wel%cZ)
-    ! If we're not currently in a drawdown simulation, the "desired head option" needs an estimate
-    ! of the drawdown for estimation purposes
-    if (.not. (wel%lDdn .and. wl0%lDdnEnabled)) then
-      cPotWithoutWell = cValue - cFWL_Potential(io, fwl, wel%cZ+wel%rRadius, wel%pFWL%iIndex, 1)
-      wel%rUnstressedHead = rDOM_PotentialToHead(io, aqu%dom, real(cPotWithoutWell), wel%cZ)
+      call IO_Assert(io, (associated(wl0)), "WL0_ComputeCheck: WL0_Create has not been called")
     end if
 
+    do iWel = 1, wl0%iCount
+      wel => wl0%Wells(iWel)
+      cPot = cAEM_Potential(io, aem, wel%cZ, .false.)
+      wel%rCheckHead = rDOM_PotentialToHead(io, aqu%dom, real(cPot, AE_REAL), wel%cZ)
+      if (.not. (wel%lDdn .and. wl0%lDdnEnabled)) then
+        wel%rUnstressedHead = rDOM_PotentialToHead(io, aqu%dom, &
+            real(cPot - cFWL_Potential(io, aem%fwl, wel%cZ+wel%rRadius, wel%pFWL%iIndex, 1), AE_REAL), wel%cZ)
+      end if
+    end do
+
     return
-  end subroutine WL0_SetIterator
+  end subroutine WL0_ComputeCheck
 
 
   subroutine WL0_GetHeadAtWell(io, wel, wt_head, scr_head)

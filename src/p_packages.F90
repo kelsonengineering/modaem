@@ -668,96 +668,20 @@ contains
 
 
   subroutine PKG_ComputeCheck(io, pkg, lLinearize)
-    !! Updates check information for all equations via element iterators.
+    !! Updates check information for all element packages.
     type(PKG_DOMAIN), pointer :: pkg
     logical, intent(in) :: lLinearize
     type(IO_STATUS), pointer :: io
-    type(ITERATOR_RESULT), pointer :: itr
 
-    call AQU_ResetIterator(io, pkg%aqu)
-    do
-      itr => AQU_NextIterator(io, pkg%aqu)
-      if (.not. associated(itr)) exit
-      call AQU_SetIterator(io, pkg%aqu, pkg%aem%fdp, itr, &
-           AEM_CheckValue(io, pkg%aem, itr), lLinearize)
-      deallocate(itr%cZ)
-      deallocate(itr)
-    end do
-
-    call WL0_ResetIterator(io, pkg%wl0)
-    do
-      itr => WL0_NextIterator(io, pkg%wl0)
-      if (.not. associated(itr)) exit
-      call WL0_SetIterator(io, pkg%wl0, pkg%aqu, pkg%aem%fwl, itr, &
-           AEM_CheckValue(io, pkg%aem, itr))
-      deallocate(itr%cZ)
-      deallocate(itr)
-    end do
-
-    call WL1_ResetIterator(io, pkg%wl1)
-    do
-      itr => WL1_NextIterator(io, pkg%wl1)
-      if (.not. associated(itr)) exit
-      call WL1_SetIterator(io, pkg%wl1, pkg%aqu, itr, AEM_CheckValue(io, pkg%aem, itr))
-      deallocate(itr%cZ)
-      deallocate(itr)
-    end do
-
-    call LS0_ResetIterator(io, pkg%ls0)
-    do
-      itr => LS0_NextIterator(io, pkg%ls0)
-      if (.not. associated(itr)) exit
-      call LS0_SetIterator(io, pkg%ls0, pkg%aqu, itr, AEM_CheckValue(io, pkg%aem, itr))
-      deallocate(itr%cZ)
-      deallocate(itr)
-    end do
-
-    call LS1_ResetIterator(io, pkg%ls1)
-    do
-      itr => LS1_NextIterator(io, pkg%ls1)
-      if (.not. associated(itr)) exit
-      call LS1_SetIterator(io, pkg%ls1, pkg%aqu, itr, AEM_CheckValue(io, pkg%aem, itr))
-      deallocate(itr%cZ)
-      deallocate(itr)
-    end do
-
-    call LS2_ResetIterator(io, pkg%ls2)
-    do
-      itr => LS2_NextIterator(io, pkg%ls2)
-      if (.not. associated(itr)) exit
-      call LS2_SetIterator(io, pkg%ls2, pkg%aqu, itr, &
-           AEM_CheckValue(io, pkg%aem, itr), lLinearize)
-      deallocate(itr%cZ)
-      deallocate(itr)
-    end do
-
-    call LS3_ResetIterator(io, pkg%ls3)
-    do
-      itr => LS3_NextIterator(io, pkg%ls3)
-      if (.not. associated(itr)) exit
-      call LS3_SetIterator(io, pkg%ls3, pkg%aqu, itr, &
-           AEM_CheckValue(io, pkg%aem, itr), lLinearize)
-      deallocate(itr%cZ)
-      deallocate(itr)
-    end do
-
-    call HB0_ResetIterator(io, pkg%hb0)
-    do
-      itr => HB0_NextIterator(io, pkg%hb0)
-      if (.not. associated(itr)) exit
-      call HB0_SetIterator(io, pkg%hb0, itr, AEM_CheckValue(io, pkg%aem, itr))
-      deallocate(itr%cZ)
-      deallocate(itr)
-    end do
-
-    call CW0_ResetIterator(io, pkg%cw0)
-    do
-      itr => CW0_NextIterator(io, pkg%cw0)
-      if (.not. associated(itr)) exit
-      call CW0_SetIterator(io, pkg%cw0, itr, AEM_CheckValue(io, pkg%aem, itr))
-      deallocate(itr%cZ)
-      deallocate(itr)
-    end do
+    call AQU_ComputeCheck(io, pkg%aqu, pkg%aem, lLinearize)
+    call WL0_ComputeCheck(io, pkg%wl0, pkg%aem, pkg%aqu)
+    call WL1_ComputeCheck(io, pkg%wl1, pkg%aem, pkg%aqu)
+    call LS0_ComputeCheck(io, pkg%ls0, pkg%aem)
+    call LS1_ComputeCheck(io, pkg%ls1, pkg%aem, pkg%aqu)
+    call LS2_ComputeCheck(io, pkg%ls2, pkg%aem, pkg%aqu, lLinearize)
+    call LS3_ComputeCheck(io, pkg%ls3, pkg%aem, pkg%aqu, lLinearize)
+    call HB0_ComputeCheck(io, pkg%hb0, pkg%aem)
+    call CW0_ComputeCheck(io, pkg%cw0, pkg%aem)
 
     return
   end subroutine PKG_ComputeCheck

@@ -57,6 +57,7 @@ module p_aqu
   use f_reference
   use f_dipole
   use f_linesink
+  use f_aem
 
   use i_linesink
 
@@ -198,21 +199,6 @@ module p_aqu
     ! Inhomogeneity strings
     type(AQU_STRING), dimension(:), pointer :: Strings
     integer(kind=AE_INT) :: iNStr
-    ! Inhomogeneity iterator fields
-    integer(kind=AE_INT) :: iInhoIterStr
-    integer(kind=AE_INT) :: iInhoIterVtx
-    integer(kind=AE_INT) :: iInhoIterFlag
-    ! Iterator information(aquifers with reference conditions)
-    ! Position = -1          - > reset
-    ! Position = 0           - > reference potential
-    ! 0 < Position < iNBdy   - > boundary element
-    ! Position > iNBdy       - > inhomogeneity element
-    ! Iterator information(aquifers without reference conditions)
-    ! Position = 0           - > reset
-    ! 0 < Position < iNBdy   - > boundary element
-    ! Position > iNBdy       - > inhomogeneity element
-    integer(kind=AE_INT) :: iIterPosition
-    integer(kind=AE_INT) :: iIterFlag
     ! Perimeter of the aquifer
     complex(kind=AE_REAL), dimension(:), pointer :: cPerimeter
     integer(kind=AE_INT) :: iNPerimeter
@@ -1347,252 +1333,78 @@ contains
   end subroutine AQU_Update
 
 
-  subroutine AQU_ResetIterator(io, aqu)
-    !! subroutine AQU_ResetIterator
-    !!
-    !! Resets the module's iterator prior to traversing for check data
-    !!
-    ! [ ARGUMENTS ]
+  subroutine AQU_ComputeCheck(io, aqu, aem, lLinearize)
+    !! Updates check potentials, fluxes, and linearization for all AQU elements.
     type(AQU_COLLECTION), pointer :: aqu
-    type(IO_STATUS), pointer :: io
-
-    if (aqu%lDebug) then
-      call IO_Assert(io, (associated(aqu)), &
-           "AQU_ResetIterator: AQU_Create has not been called")
-    end if
-
-    aqu%iIterPosition = 0
-    aqu%iIterFlag = VALUE_POTENTIAL
-
-    ! Reset inhomogeneity iterator (was IN0_ResetIterator)
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(aqu)), &
-           "AQU_ResetIterator: AQU_Create has not been called")
-    end if
-
-    aqu%iInhoIterStr = 1
-    aqu%iInhoIterVtx = 0
-    aqu%iInhoIterFlag = kAQU_Center
-
-    return
-  end subroutine AQU_ResetIterator
-
-
-  function AQU_NextIterator(io, aqu) result(itr)
-    !! function AQU_NextIterator
-    !!
-    !! Advances the module's iterator one step
-    !!
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    type(ITERATOR_RESULT), pointer :: itr
-    type(AQU_BDYELEMENT), pointer :: bdy
-    type(DOM_DOMAIN), pointer :: dom
-    integer(kind=AE_INT) :: iStat
-
-    if (aqu%lDebug) then
-      call IO_Assert(io, (associated(aqu)), &
-           "AQU_NextIterator: AQU_Create has not been called")
-    end if
-
-    aqu%iIterPosition = aqu%iIterPosition+1
-    if (aqu%iIterPosition == aqu%iNBdy+1) then
-      ! Handle the reference information
-      if (aqu%frf%lReference) then
-        allocate(itr, stat = iStat)
-        call IO_Assert(io, (iStat == 0), "AQU_NextIterator: Space Exhausted")
-        itr%iElementType = ELEM_AQU
-        itr%iElementString = 0
-        itr%iElementVertex = 0
-        itr%iElementFlag = 0
-        itr%iValueSelector = VALUE_POTENTIAL
-        allocate(itr%cZ(1))
-        itr%cZ(1) = aqu%frf%cRefPoint
-        else!if (aqu%iNBdy == 0) then
-        allocate(itr, stat = iStat)
-        call IO_Assert(io, (iStat == 0), "AQU_NextIterator: Space Exhausted")
-        itr%iElementType = ELEM_AQU
-        itr%iElementString = 0
-        itr%iElementVertex = 0
-        itr%iElementFlag = 0
-        itr%iValueSelector = VALUE_EXTRACTION
-        allocate(itr%cZ(0))
-      end if
-      ! Prepare for the boundary elements(see below)
-    else if (aqu%iNBdy > 0 .and. aqu%iIterPosition <= aqu%iNBdy) then
-      ! Handle the perimeter elements
-      bdy => aqu%BdyElements(aqu%iIterPosition)
-      select case (aqu%iIterFlag)
-        case (VALUE_POTENTIAL)
-          ! Head condition
-          allocate(itr, stat = iStat)
-          call IO_Assert(io, (iStat == 0), "AQU_NextIterator: Space Exhausted")
-          itr%iElementType = ELEM_AQU
-          itr%iElementString = 1
-          itr%iElementVertex = aqu%iIterPosition
-          itr%iValueSelector = VALUE_POTENTIAL
-          allocate(itr%cZ(1))
-          itr%cZ(1) = rHALF * (bdy%cCPZ1+bdy%cCPZ2)
-          aqu%iIterFlag = VALUE_FLOW
-          ! Do not advance until the flow is extracted(see below)
-          aqu%iIterPosition = aqu%iIterPosition-1
-        case (VALUE_FLOW)
-          ! Flux condition
-          allocate(itr, stat = iStat)
-          call IO_Assert(io, (iStat == 0), "AQU_NextIterator: Space Exhausted")
-          itr%iElementType = ELEM_AQU
-          itr%iElementString = 1
-          itr%iElementVertex = aqu%iIterPosition
-          itr%iValueSelector = VALUE_FLOW
-          allocate(itr%cZ(2))
-          itr%cZ = (/bdy%cCPZ1, bdy%cCPZ2/)
-          aqu%iIterFlag = VALUE_POTENTIAL
-      end select
-    else
-      ! Handle inhomogeneity iterator (was IN0_NextIterator)
-      if (io%lDebug) then
-        call IO_Assert(io, (associated(aqu)), &
-             "AQU_NextIterator: AQU_Create has not been called")
-      end if
-
-      if (aqu%iInhoIterStr > aqu%iNStr) then
-        nullify(itr)
-        return
-      end if
-
-      ! Update the iterator
-      if (aqu%iInhoIterFlag == kAQU_Vertex2) then
-        ! Our last iterator step hit the end of an open string...
-        aqu%iInhoIterStr = aqu%iInhoIterStr+1
-        aqu%iInhoIterVtx = 1
-        aqu%iInhoIterFlag = kAQU_Vertex
-        if (aqu%iInhoIterStr > aqu%iNStr) then
-          nullify(itr)
-          return
-        end if
-      else if (aqu%iInhoIterFlag == kAQU_Center) then
-        ! We're at a center interval -- what next?
-        if (aqu%Strings(aqu%iInhoIterStr)%lClosed .and. &
-            aqu%iInhoIterVtx+1 > aqu%Strings(aqu%iInhoIterStr)%iNPts) then
-          ! Aha -- end of the buffer. Handle that.
-          aqu%iInhoIterFlag = kAQU_Vertex
-          aqu%iInhoIterStr = aqu%iInhoIterStr+1
-          aqu%iInhoIterVtx = 1
-          if (aqu%iInhoIterStr > aqu%iNStr) then
-            nullify(itr)
-            return
-          end if
-        else if (.not. aqu%Strings(aqu%iInhoIterStr)%lClosed .and. &
-               aqu%iInhoIterVtx+1 > aqu%Strings(aqu%iInhoIterStr)%iNPts-1) then
-          ! Open string -- Move on to the last vertex
-          aqu%iInhoIterFlag = kAQU_Vertex2
-        else
-          ! Not at the end of the string -- move to the next vertex
-          aqu%iInhoIterVtx = aqu%iInhoIterVtx + 1
-          aqu%iInhoIterFlag = kAQU_Vertex
-        end if
-      else
-        ! We were at a "first" vertex end -- move to the center of the same segment
-        aqu%iInhoIterFlag = kAQU_Center
-      end if
-
-      allocate(itr)
-      itr%iElementType = ELEM_IN0
-      itr%iElementString = aqu%iInhoIterStr
-      itr%iElementVertex = aqu%iInhoIterVtx
-      itr%iElementFlag = aqu%iInhoIterFlag
-      itr%iValueSelector = VALUE_POTENTIAL
-      allocate(itr%cZ(1))
-      itr%cZ(1) = aqu%Strings(aqu%iInhoIterStr)%Vertices(aqu%iInhoIterVtx)%cCPZ(aqu%iInhoIterFlag)
-    end if
-
-    return
-  end function AQU_NextIterator
-
-
-  subroutine AQU_SetIterator(io, aqu, fdp, itr, cValue, lLinearize)
-    !! subroutine AQU_SetIterator
-    !!
-    !! Sets iterator check values
-    !!
-    ! [ ARGUMENTS ]
-    type(AQU_COLLECTION), pointer :: aqu
-    type(FDP_COLLECTION), pointer :: fdp
-    type(ITERATOR_RESULT), pointer :: itr
-    complex(kind=AE_REAL), intent(in) :: cValue
+    type(AEM_DOMAIN), pointer :: aem
     logical, intent(in) :: lLinearize
     type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
     type(AQU_BDYELEMENT), pointer :: bdy
-    ! [ LOCALS ]
-    complex(kind=AE_REAL) :: cUnit
-    type(DOM_DOMAIN), pointer :: left, right
     type(AQU_STRING), pointer :: str
     type(AQU_VERTEX), pointer :: vtx
+    type(DOM_DOMAIN), pointer :: left, right
+    complex(kind=AE_REAL), dimension(2) :: cZFlow
     real(kind=AE_REAL) :: H1, H2, rHead
+    integer(kind=AE_INT) :: iBdy, iStr, iVtx, iFlag, iMaxFlag, iNVtx
 
-    if (aqu%lDebug) then
-      call IO_Assert(io, (associated(aqu)), &
-           "AQU_SetIterator: AQU_Create has not been called")
+    if (io%lDebug) then
+      call IO_Assert(io, (associated(aqu)), "AQU_ComputeCheck: AQU_Create has not been called")
     end if
 
-    if (itr%iElementType == ELEM_AQU) then
-      if (itr%iElementString == 0) then
-        ! Handle the reference point
-        aqu%frf%rCheck = real(cValue, AE_REAL)
-      else if (itr%iElementString == 1) then
-        ! Handle the perimeter elements
-        select case (itr%iValueSelector)
-          case (VALUE_POTENTIAL)
-            bdy => aqu%BdyElements(itr%iElementVertex)
-            bdy%rCheckPot = real(cValue, AE_REAL)
-          case (VALUE_FLOW)
-            bdy => aqu%BdyElements(itr%iElementVertex)
-            bdy%rCheckFlux = real(cValue, AE_REAL)
-        end select
-      end if
-    else if (itr%iElementType == ELEM_IN0) then
-      ! Handle inhomogeneity iterator setting (was IN0_SetIterator)
-      if (io%lDebug) then
-        call IO_Assert(io, (aqu%iInhoIterStr <= aqu%iNStr), &
-             "AQU_SetIterator: Iterator out of range")
-      end if
+    if (aqu%frf%lReference) then
+      aqu%frf%rCheck = real(cAEM_Potential(io, aem, aqu%frf%cRefPoint, .false.), AE_REAL)
+    else
+      aqu%frf%rCheck = rAEM_Extraction(io, aem, .false.)
+    end if
 
-      ! Clear the "regen" flag unless something interesting happens...
-      aqu%dom%iRegenerate = 0
+    do iBdy = 1, aqu%iNBdy
+      bdy => aqu%BdyElements(iBdy)
+      bdy%rCheckPot = real(cAEM_Potential(io, aem, rHALF*(bdy%cCPZ1+bdy%cCPZ2), .false.), AE_REAL)
+      cZFlow = (/bdy%cCPZ1, bdy%cCPZ2/)
+      bdy%rCheckFlux = rAEM_Flow(io, aem, cZFlow, .false.)
+    end do
 
-      str => aqu%Strings(itr%iElementString)
-      vtx => str%Vertices(itr%iElementVertex)
-      if (itr%iValueSelector == VALUE_POTENTIAL) then
-        vtx%rCheckPot(itr%iElementFlag) = real(cValue, AE_REAL)
-        ! Do I update coefficients?
-        if (lLinearize) then
-          left => DOM_FindDomainID(io, aqu%dom, str%iLeftID)
-          right => DOM_FindDomainID(io, aqu%dom, str%iRightID)
-          rHead = rHALF * (rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot(itr%iElementFlag), vtx%cCPZ(itr%iElementFlag)) + &
-                  rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot(itr%iElementFlag), vtx%cCPZ(itr%iElementFlag)))
-          H1 = rDOM_DomainThickness(io, aqu%dom, left, rHead)
-          H2 = rDOM_DomainThickness(io, aqu%dom, right, rHead)
-          if (H1 /= vtx%rLeftH(itr%iElementFlag) .or. H2 /= vtx%rRightH(itr%iElementFlag)) then
-            aqu%dom%iRegenerate = 1
-            vtx%rLeftH(itr%iElementFlag) = H1
-            vtx%rRightH(itr%iElementFlag) = H2
-            vtx%rLeftT(itr%iElementFlag) = H1 * left%rHydCond
-            vtx%rRightT(itr%iElementFlag) = H2 * right%rHydCond
+    do iStr = 1, aqu%iNStr
+      str => aqu%Strings(iStr)
+      if (str%lClosed) then
+        iNVtx = str%iNPts
+      else
+        iNVtx = str%iNPts - 1
+      end if
+      do iVtx = 1, iNVtx
+        vtx => str%Vertices(iVtx)
+        iMaxFlag = kAQU_Center
+        if (.not. str%lClosed .and. iVtx == str%iNPts - 1) iMaxFlag = kAQU_Vertex2
+        do iFlag = kAQU_Vertex, iMaxFlag
+          vtx%rCheckPot(iFlag) = real(cAEM_Potential(io, aem, vtx%cCPZ(iFlag), .false.), AE_REAL)
+          aqu%dom%iRegenerate = 0
+          if (lLinearize) then
+            left => DOM_FindDomainID(io, aqu%dom, str%iLeftID)
+            right => DOM_FindDomainID(io, aqu%dom, str%iRightID)
+            rHead = rHALF * (rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot(iFlag), vtx%cCPZ(iFlag)) + &
+                    rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot(iFlag), vtx%cCPZ(iFlag)))
+            H1 = rDOM_DomainThickness(io, aqu%dom, left, rHead)
+            H2 = rDOM_DomainThickness(io, aqu%dom, right, rHead)
+            if (H1 /= vtx%rLeftH(iFlag) .or. H2 /= vtx%rRightH(iFlag)) then
+              aqu%dom%iRegenerate = 1
+              vtx%rLeftH(iFlag) = H1
+              vtx%rRightH(iFlag) = H2
+              vtx%rLeftT(iFlag) = H1 * left%rHydCond
+              vtx%rRightT(iFlag) = H2 * right%rHydCond
+            end if
           end if
-        end if
-        vtx%rError(itr%iElementFlag) = - (vtx%rLeftT(itr%iElementFlag) - &
-            vtx%rRightT(itr%iElementFlag)) * vtx%rCheckPot(itr%iElementFlag) - &
-            vtx%rRightT(itr%iElementFlag) * rFDP_PotentialJump(io, vtx%pFDP, vtx%cCPZ(itr%iElementFlag)) + &
-            vtx%rLeftT(itr%iElementFlag) * vtx%rRightT(itr%iElementFlag) * &
-            (str%rLeftB-str%rRightB + rHALF*(vtx%rLeftH(itr%iElementFlag)-vtx%rRightH(itr%iElementFlag)))
-      end if
-    end if
+          vtx%rError(iFlag) = -(vtx%rLeftT(iFlag) - vtx%rRightT(iFlag)) * vtx%rCheckPot(iFlag) - &
+              vtx%rRightT(iFlag) * rFDP_PotentialJump(io, vtx%pFDP, vtx%cCPZ(iFlag)) + &
+              vtx%rLeftT(iFlag) * vtx%rRightT(iFlag) * &
+              (str%rLeftB - str%rRightB + rHALF*(vtx%rLeftH(iFlag) - vtx%rRightH(iFlag)))
+        end do
+      end do
+    end do
 
     return
-  end subroutine AQU_SetIterator
+  end subroutine AQU_ComputeCheck
+
+
 
 
   subroutine AQU_Read(io, aqu)

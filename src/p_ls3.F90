@@ -45,6 +45,7 @@ module p_ls3
   use u_constants
   use u_io
   use f_linesink
+  use f_aem
   use u_matrix
   use p_aqu
 
@@ -150,9 +151,6 @@ module p_ls3
     type(LS3_STRING), dimension(:), pointer :: Strings
     integer(kind=AE_INT) :: iCount
     integer(kind=AE_INT) :: iRegenerate
-    ! Iterator Information
-    integer(kind=AE_INT) :: iIterStr
-    integer(kind=AE_INT) :: iIterVtx
   end type LS3_COLLECTION
 
   ! Module flags for matrix generator routines
@@ -1088,142 +1086,35 @@ contains
   end subroutine LS3_FindStringPointer
 
 
-  subroutine LS3_ResetIterator(io, ls3)
-    !! subroutine LS3_ResetIterator
-    !!
-    !! Resets the module's iterator prior to traversing for check data
-    !!
-    !! Calling Sequence:
-    !!    call LS3_ResetIterator(ls3)
-    !!
-    !! Arguments:
-    !!   (in)    type(LS3_COLLECTION), pointer :: ls3
-    !!             LS3_COLLECTION to be used
-    !!   (in)    type(IO_STATUS), pointer :: ls3
-    !!             Tracks error conditions
-    !!
-    ! [ ARGUMENTS ]
+  subroutine LS3_ComputeCheck(io, ls3, aem, aqu, lLinearize)
+    !! Updates check potential, head, and confinement linearization for all LS3 segments.
     type(LS3_COLLECTION), pointer :: ls3
-    type(IO_STATUS), pointer :: io
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(ls3)), &
-           "LS3_ResetIterator: LS3_Create has not been called")
-    end if
-
-    ls3%iIterStr = 1
-    ls3%iIterVtx = 0
-
-    return
-  end subroutine LS3_ResetIterator
-
-
-  function LS3_NextIterator(io, ls3) result(itr)
-    !! function LS3_NextIterator
-    !!
-    !! Advances the module's iterator one step
-    !!
-    !! Calling Sequence:
-    !!    call LS3_NextIterator(ls3)
-    !!
-    !! Arguments:
-    !!   (in)    type(LS3_COLLECTION), pointer :: ls3
-    !!             LS3_COLLECTION to be used
-    !!   (in)    type(IO_STATUS), pointer :: ls3
-    !!             Tracks error conditions
-    !!
-    !! Return Value:
-    !!   type(ITERATOR_RESULT), pointer :: itr
-    !!     Pointer to the information for data retrieval
-    !!
-    ! [ ARGUMENTS ]
-    type(LS3_COLLECTION), pointer :: ls3
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    type(ITERATOR_RESULT), pointer :: itr
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(ls3)), &
-           "LS3_NextIterator: LS3_Create has not been called")
-    end if
-
-    if (ls3%iIterStr > ls3%iCount) then
-      nullify(itr)
-      return
-    end if
-
-    ls3%iIterVtx = ls3%iIterVtx + 1
-    if (ls3%iIterVtx > ls3%Strings(ls3%iIterStr)%iCount-1) then
-      ls3%iIterStr = ls3%iIterStr+1
-      ls3%iIterVtx = 1
-      if (ls3%iIterStr > ls3%iCount) then
-        nullify(itr)
-        return
-      end if
-    end if
-
-    allocate(itr)
-    itr%iElementType = ELEM_LS3
-    itr%iElementString = ls3%iIterStr
-    itr%iElementVertex = ls3%iIterVtx
-    itr%iValueSelector = VALUE_POTENTIAL
-    allocate(itr%cZ(1))
-    itr%cZ(1) = ls3%Strings(ls3%iIterStr)%Vertices(ls3%iIterVtx)%cCPZ(1)
-
-    return
-  end function LS3_NextIterator
-
-
-  subroutine LS3_SetIterator(io, ls3, aqu, itr, cValue, lLinearize)
-    !! subroutine LS3_SetIterator
-    !!
-    !! Stores the solved element strength at the iterator's current position
-    !!
-    !! Calling Sequence:
-    !!    call LS3_SetIterator(io, ls3, aqu, itr, cValue, lLinearize)
-    !!
-    !! Arguments:
-    !!   (in)    type(LS3_COLLECTION), pointer :: ls3
-    !!             LS3_COLLECTION to be used
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION providing aquifer properties
-    !!   (in)    type(ITERATOR_RESULT), pointer :: itr
-    !!             Identifies the element position to be updated
-    !!   (in)    complex :: cValue
-    !!             The solved strength value to store
-    !!   (in)    logical :: lLinearize
-    !!             If .true., apply linearization when updating the strength
-    !!
-    ! [ ARGUMENTS ]
-    type(LS3_COLLECTION), pointer :: ls3
+    type(AEM_DOMAIN), pointer :: aem
     type(AQU_COLLECTION), pointer :: aqu
-    complex(kind=AE_REAL), intent(in) :: cValue
     logical, intent(in) :: lLinearize
     type(IO_STATUS), pointer :: io
     type(LS3_VERTEX), pointer :: vtx
-    ! [ RETURN VALUE ]
-    type(ITERATOR_RESULT), pointer :: itr
+    integer(kind=AE_INT) :: iStr, iVtx
 
     if (io%lDebug) then
-      call IO_Assert(io, (associated(ls3)), &
-           "LS3_NextIterator: LS3_Create has not been called")
-      call IO_Assert(io, (ls3%iIterStr <= ls3%iCount), &
-           "LS3_SetIterator: Iterator out of range")
+      call IO_Assert(io, (associated(ls3)), "LS3_ComputeCheck: LS3_Create has not been called")
     end if
 
-    vtx => ls3%Strings(itr%iElementString)%Vertices(itr%iElementVertex)
-    vtx%rCheckPot = real(cValue, AE_REAL)
-    vtx%rCheckHead = rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot, vtx%cCPZ(1))
-    if (lLinearize) then
-      vtx%rSolutionPot = vtx%rCheckPot
-      vtx%rSolutionHead = vtx%rCheckHead
-      !print *, 'cp, chk', ls3%Strings(itr%iElementString)%iID, itr%iElementVertex, vtx%rCPHead, vtx%rCheckHead, vtx%cCPZ(1)
-      if (.not. lDOM_IsConfined(io, aqu%dom, vtx%cCPZ(1), vtx%rCheckPot)) ls3%iRegenerate = 1
-      !print *,'ls3 update',itr%iElementString,itr%iElementVertex,vtx%rSolutionPot,vtx%rSolutionHead,vtx%rCPHead,vtx%lEnabled
-    end if
+    do iStr = 1, ls3%iCount
+      do iVtx = 1, ls3%Strings(iStr)%iCount - 1
+        vtx => ls3%Strings(iStr)%Vertices(iVtx)
+        vtx%rCheckPot = real(cAEM_Potential(io, aem, vtx%cCPZ(1), .false.), AE_REAL)
+        vtx%rCheckHead = rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot, vtx%cCPZ(1))
+        if (lLinearize) then
+          vtx%rSolutionPot = vtx%rCheckPot
+          vtx%rSolutionHead = vtx%rCheckHead
+          if (.not. lDOM_IsConfined(io, aqu%dom, vtx%cCPZ(1), vtx%rCheckPot)) ls3%iRegenerate = 1
+        end if
+      end do
+    end do
 
     return
-  end subroutine LS3_SetIterator
+  end subroutine LS3_ComputeCheck
 
 
   function iLS3_DoRouting(io, ls3, aqu, iCurrentIteration, lSwitch, lReportFlows) result(iChanges)

@@ -54,31 +54,31 @@ f_aem.o: f_aem.F90 u_constants.o u_io.o u_matrix.o u_domain.o f_reference.o f_we
 
 p_packages.o: p_packages.F90 u_constants.o u_io.o u_matrix.o u_domain.o f_aem.o p_aqu.o p_wl0.o p_wl1.o p_pd0.o p_ls0.o p_ls1.o p_ls2.o p_ls3.o p_hb0.o p_as0.o p_cw0.o
 
-p_aqu.o: p_aqu.F90 u_constants.o u_io.o u_matrix.o u_polygon.o u_domain.o f_reference.o f_dipole.o f_linesink.o i_linesink.o
+p_aqu.o: p_aqu.F90 u_constants.o u_io.o u_matrix.o u_polygon.o u_domain.o f_reference.o f_dipole.o f_linesink.o f_aem.o i_linesink.o
 
 p_as0.o: p_as0.F90 u_constants.o u_io.o u_polygon.o u_matrix.o f_well.o f_dipole.o f_areasink.o i_areasink.o p_aqu.o
 
 a_ext.o: a_ext.F90 u_constants.o u_io.o p_wl0.o p_wl1.o p_ls0.o p_ls1.o p_hb0.o f_aem.o
 
-p_hb0.o: p_hb0.F90 u_constants.o u_io.o u_matrix.o f_dipole.o
+p_hb0.o: p_hb0.F90 u_constants.o u_io.o u_matrix.o f_dipole.o f_aem.o
 
 a_inq.o: a_inq.F90 u_constants.o u_io.o f_aem.o p_packages.o
 
-p_ls0.o: p_ls0.F90 u_constants.o u_io.o u_matrix.o f_well.o f_dipole.o p_aqu.o
+p_ls0.o: p_ls0.F90 u_constants.o u_io.o u_matrix.o f_well.o f_dipole.o f_aem.o p_aqu.o
 
-p_ls1.o: p_ls1.F90 u_constants.o u_io.o f_well.o f_dipole.o u_matrix.o p_aqu.o
+p_ls1.o: p_ls1.F90 u_constants.o u_io.o f_well.o f_dipole.o f_aem.o u_matrix.o p_aqu.o
 
-p_ls2.o: p_ls2.F90 u_constants.o u_io.o f_well.o f_dipole.o u_matrix.o p_aqu.o
+p_ls2.o: p_ls2.F90 u_constants.o u_io.o f_well.o f_dipole.o f_aem.o u_matrix.o p_aqu.o
 
-p_ls3.o: p_ls3.F90 u_constants.o u_io.o f_well.o f_dipole.o u_matrix.o p_aqu.o
+p_ls3.o: p_ls3.F90 u_constants.o u_io.o f_well.o f_dipole.o f_aem.o u_matrix.o p_aqu.o
 
-p_cw0.o: p_cw0.F90 u_constants.o u_io.o f_well.o f_dipole.o u_matrix.o p_aqu.o
+p_cw0.o: p_cw0.F90 u_constants.o u_io.o f_well.o f_dipole.o f_aem.o u_matrix.o p_aqu.o
 
 p_pd0.o: p_pd0.F90 u_constants.o u_io.o f_pond.o
 
-p_wl0.o: p_wl0.F90 u_constants.o u_io.o f_well.o f_bwl.o p_aqu.o 
+p_wl0.o: p_wl0.F90 u_constants.o u_io.o f_well.o f_bwl.o f_aem.o p_aqu.o
 
-p_wl1.o: p_wl1.F90 u_constants.o u_io.o f_well.o u_matrix.o p_aqu.o
+p_wl1.o: p_wl1.F90 u_constants.o u_io.o f_well.o f_bwl.o f_aem.o u_matrix.o p_aqu.o
 
 modaem.o: modaem.F90 u_constants.o u_io.o f_aem.o p_packages.o a_inq.o a_ext.o a_grid.o a_tr0.o a_stdio.o a_obs.o
 
@@ -96,7 +96,8 @@ u_domain.o: u_domain.F90 u_constants.o u_io.o u_polygon.o
 
 u_polygon.o: u_polygon.F90 u_constants.o polypack.o
 
-polypack.o: dependencies/polypack/polypack.f
+polypack.o: ../../src/dependencies/polypack/polypack.f
+	$(FC) -c $(FFLAGS) -o $@ $<
 
 test.o: test.F90 $(INF)
 

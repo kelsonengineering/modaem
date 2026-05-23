@@ -341,19 +341,6 @@ module u_constants
   integer(kind=AE_INT), public, parameter :: SIZE_UNKNOWNS = 4
   integer(kind=AE_INT), public, parameter :: SIZE_EQUATIONS = 5
   integer(kind=AE_INT), public, parameter :: INFO_REGENERATE = 6
-  ! Date retrieval selectors
-  integer(kind=AE_INT), public, parameter :: VALUE_NEXT = -1
-  integer(kind=AE_INT), public, parameter :: VALUE_HEAD = 0
-  integer(kind=AE_INT), public, parameter :: VALUE_FLOW = 1
-  integer(kind=AE_INT), public, parameter :: VALUE_VELOCITY = 2
-  integer(kind=AE_INT), public, parameter :: VALUE_DISCHARGE = 3
-  integer(kind=AE_INT), public, parameter :: VALUE_RECHARGE = 4
-  integer(kind=AE_INT), public, parameter :: VALUE_POTENTIALDIFF = 5
-  integer(kind=AE_INT), public, parameter :: VALUE_TOTALFLOW = 6
-  integer(kind=AE_INT), public, parameter :: VALUE_POTENTIAL = 7
-  integer(kind=AE_INT), public, parameter :: VALUE_SATDTHICK = 8
-  integer(kind=AE_INT), public, parameter :: VALUE_TRANSMISSIVITY = 9
-  integer(kind=AE_INT), public, parameter :: VALUE_EXTRACTION = 10
   ! Boundary element flags
   integer(kind=AE_INT), public, parameter :: BDY_HEAD = 0
   integer(kind=AE_INT), public, parameter :: BDY_FLUX = 1
@@ -400,23 +387,6 @@ module u_constants
   ! Regeneration flags
   integer(kind=AE_INT), public, parameter :: REGENERATE_NO = 0
   integer(kind=AE_INT), public, parameter :: REGENERATE_YES = 1
-
-  ! Types and constants for check iterators
-  ! The iterator system is implemented in every element module that has unknown
-  ! strengths.  The iterator is stored internally inside the module and is
-  ! managed using the XXX_ResetIterator(), XXX_GetIterator(), and XXX_SetIterator()
-  ! methods.  In module AEM, the ITERATOR_RESULT class provides a mechanism
-  ! for inquiries in AEM_Check()
-
-  type, public :: ITERATOR_RESULT
-    integer(kind=AE_INT) :: iValueSelector
-    integer(kind=AE_INT) :: iElementType
-    integer(kind=AE_INT) :: iElementString
-    integer(kind=AE_INT) :: iElementVertex
-    integer(kind=AE_INT) :: iElementFlag
-    complex(kind=AE_REAL), dimension(:), pointer :: cZ
-  end type ITERATOR_RESULT
-
 
 contains
 

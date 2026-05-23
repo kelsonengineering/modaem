@@ -36,6 +36,7 @@ module p_wl1
   use u_io
   use f_well
   use f_bwl
+  use f_aem
   use u_matrix
   use p_aqu
 
@@ -100,8 +101,6 @@ module p_wl1
     !!
     type(WL1_WELL), dimension(:), pointer :: Wells
     integer(kind=AE_INT) :: iCount
-    ! Iterator information
-    integer(kind=AE_INT) :: iIterWell
     ! Debug flag
     logical :: lDebug
   end type WL1_COLLECTION
@@ -777,127 +776,34 @@ contains
   end subroutine WL1_Update
 
 
-  subroutine WL1_ResetIterator(io, wl1)
-    !! subroutine WL1_ResetIterator
-    !!
-    !! Resets the module's iterator prior to traversing for check data
-    !!
-    !! Calling Sequence:
-    !!    call WL1_ResetIterator(wl1)
-    !!
-    !! Arguments:
-    !!   (in)    type(WL1_COLLECTION), pointer :: wl1
-    !!             WL1_COLLECTION to be used
-    !!   (in)    type(IO_STATUS), pointer :: wl1
-    !!             Tracks error conditions
-    !!
-    ! [ ARGUMENTS ]
+  subroutine WL1_ComputeCheck(io, wl1, aem, aqu)
+    !! Updates check potential and head for all WL1 wells.
     type(WL1_COLLECTION), pointer :: wl1
-    type(IO_STATUS), pointer :: io
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(wl1)), &
-           "WL1_ResetIterator: WL1_Create has not been called")
-    end if
-
-    wl1%iIterWell = 0
-
-    return
-  end subroutine WL1_ResetIterator
-
-
-  function WL1_NextIterator(io, wl1) result(itr)
-    !! function WL1_NextIterator
-    !!
-    !! Advances the module's iterator one step
-    !!
-    !! Calling Sequence:
-    !!    call WL1_NextIterator(wl1)
-    !!
-    !! Arguments:
-    !!   (in)    type(WL1_COLLECTION), pointer :: wl1
-    !!             WL1_COLLECTION to be used
-    !!   (in)    type(IO_STATUS), pointer :: wl1
-    !!             Tracks error conditions
-    !!
-    !! Return Value:
-    !!   type(ITERATOR_RESULT), pointer :: itr
-    !!     Pointer to the information for data retrieval
-    !!
-    ! [ ARGUMENTS ]
-    type(WL1_COLLECTION), pointer :: wl1
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    type(ITERATOR_RESULT), pointer :: itr
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(wl1)), &
-           "WL1_NextIterator: WL1_Create has not been called")
-    end if
-
-    wl1%iIterWell = wl1%iIterWell + 1
-    if (wl1%iIterWell > wl1%iCount) then
-      nullify(itr)
-    else
-      allocate(itr)
-      itr%iValueSelector = VALUE_POTENTIAL
-      itr%iElementString = wl1%iIterWell
-      allocate(itr%cZ(1))
-      itr%cZ(1) = wl1%Wells(wl1%iIterWell)%cZHead
-    end if
-
-    return
-  end function WL1_NextIterator
-
-
-  subroutine WL1_SetIterator(io, wl1, aqu, itr, cValue)
-    !! function WL1_SetIterator
-    !!
-    !! Advances the module's iterator one step
-    !!
-    !! Calling Sequence:
-    !!    call WL1_SetIterator(wl1)
-    !!
-    !! Arguments:
-    !!   (in)    type(WL1_COLLECTION), pointer :: wl1
-    !!             WL1_COLLECTION to be used
-    !!   type(ITERATOR_RESULT), pointer :: itr
-    !!     Pointer to the information for data retrieval
-    !!   (in)    complex :: cValue
-    !!             The value retrieved from the color
-    !!   (in)    type(IO_STATUS), pointer :: wl1
-    !!             Tracks error conditions
-    !!
-    ! [ ARGUMENTS ]
-    type(WL1_COLLECTION), pointer :: wl1
+    type(AEM_DOMAIN), pointer :: aem
     type(AQU_COLLECTION), pointer :: aqu
-    type(ITERATOR_RESULT), pointer :: itr
-    complex(kind=AE_REAL), intent(in) :: cValue
-    real(kind=AE_REAL) :: rPot
-    type(WL1_WELL), pointer :: wel
     type(IO_STATUS), pointer :: io
+    type(WL1_WELL), pointer :: wel
+    real(kind=AE_REAL) :: rPot
+    integer(kind=AE_INT) :: iWel
 
     if (io%lDebug) then
-      call IO_Assert(io, (associated(wl1)), &
-           "WL1_NextIterator: WL1_Create has not been called")
-      call IO_Assert(io, (wl1%iIterWell <= wl1%iCount), &
-           "WL1_SetIterator: Iterator out of range")
+      call IO_Assert(io, (associated(wl1)), "WL1_ComputeCheck: WL1_Create has not been called")
     end if
 
-    rPot = real(cValue, AE_REAL)
-    wel => wl1%Wells(itr%iElementString)
-    wel%rCheckPot = rPot
-    wel%rDFHead = rDOM_PotentialToHead(io, aqu%dom, rPot, wel%cZHead)
-    if ( wel%lPpWell ) then
-        wel%rError = wel%rDFHead - &
-                     wel%rStrength * wel%bwl%rInfl(wel%bwl%iLayer) - &
-                     wel%rHead
-    else
+    do iWel = 1, wl1%iCount
+      wel => wl1%Wells(iWel)
+      rPot = real(cAEM_Potential(io, aem, wel%cZHead, .false.), AE_REAL)
+      wel%rCheckPot = rPot
+      wel%rDFHead = rDOM_PotentialToHead(io, aqu%dom, rPot, wel%cZHead)
+      if (wel%lPpWell) then
+        wel%rError = wel%rDFHead - wel%rStrength * wel%bwl%rInfl(wel%bwl%iLayer) - wel%rHead
+      else
         wel%rError = wel%rDFHead - wel%rHead
-    end if
+      end if
+    end do
 
     return
-  end subroutine WL1_SetIterator
+  end subroutine WL1_ComputeCheck
 
 
   subroutine WL1_Read(io, wl1)

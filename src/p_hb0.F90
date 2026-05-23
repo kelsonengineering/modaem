@@ -40,6 +40,7 @@ module p_hb0
   use u_io
   use u_matrix
   use f_dipole
+  use f_aem
 
   implicit none
 
@@ -101,10 +102,6 @@ module p_hb0
     !!
     type(HB0_STRING), dimension(:), pointer :: Strings
     integer(kind=AE_INT) :: iNStr
-    ! Iterator information
-    integer(kind=AE_INT) :: iIterStr
-    integer(kind=AE_INT) :: iIterVtx
-    integer(kind=AE_INT) :: iIterFlag
   end type HB0_COLLECTION
 
   ! Matrix generator element flags
@@ -795,63 +792,6 @@ contains
   end function rHB0_ComputeRHS
 
 
-  subroutine HB0_ComputeCheck(io, hb0,iElementString, iElementVertex, iElementFlag, cCPZ, rFlow)
-    !! function rHB0_ComputeCheck
-    !!
-    !! Returns the check value for the specified domain and vertex
-    !!
-    !! Calling Sequence:
-    !!    rCheck = rHB0_ComputeCheck(io, hb0,iElementString, iElementVertex, rFlow)
-    !!
-    !! Arguments:
-    !!   (in)    type(HB0_COLLECTION), pointer :: hb0
-    !!             HB0_COLLECTION object to be used
-    !!   (in)    complex, dimension(:) :: cCPZ
-    !!             Control point(s) to be used in coefficient calculations
-    !!   (in)    integer :: iElementString
-    !!             The domain number to be examined
-    !!   (in)    integer :: iElementVertex
-    !!             The vertex number to be examined
-    !!   (in)    integer :: iElementFlag
-    !!             The equation flag for the equation
-    !!   (in)    real :: rFlow
-    !!             The modeled integrated flow for the vertex
-    !!   (in)    type(IO_status), pointer :: io
-    !!             pointer toIO_STATUS structure
-    !!
-    ! [ ARGUMENTS ]
-    type(HB0_COLLECTION), pointer :: hb0
-    integer(kind=AE_INT), intent(in) :: iElementString
-    integer(kind=AE_INT), intent(in) :: iElementVertex
-    integer(kind=AE_INT), intent(in) :: iElementFlag
-    complex(kind=AE_REAL), dimension(:), intent(in) :: cCPZ
-    real(kind=AE_REAL), intent(in) :: rFlow
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    ! [ LOCALS ]
-    type(HB0_STRING), pointer :: str
-    type(HB0_VERTEX), pointer :: vtx
-    integer(kind=AE_INT) :: idp
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(hb0)), &
-           "HB0_ComputeCheck: HB0_Create has not been called")
-      call IO_Assert(io, (iElementString > 0 .and. iElementString <= hb0%iNStr), &
-           "HB0_ComputeCheck: Illegal string number")
-    end if
-    str => hb0%Strings(iElementString)
-
-    vtx => str%Vertices(iElementVertex)
-    if (iElementFlag == kHB0_Vertex) then
-      vtx%rCheck(1) = rFlow
-    else if (iElementFlag == kHB0_Center) then
-      vtx%rCheck(2) = rFlow
-    end if
-
-    return
-  end subroutine HB0_ComputeCheck
-
-
   subroutine HB0_StoreResult(io, hb0,rValue, iElementType, iElementString, iElementVertex, iElementFlag, lDirect)
     !! subroutine HB0_StoreResult
     !!
@@ -975,160 +915,32 @@ contains
   end subroutine HB0_Update
 
 
-  subroutine HB0_ResetIterator(io, hb0)
-    !! subroutine HB0_ResetIterator
-    !!
-    !! Resets the module's iterator prior to traversing for check data
-    !!
-    !! Calling Sequence:
-    !!    call HB0_ResetIterator(hb0)
-    !!
-    !! Arguments:
-    !!   (in)    type(HB0_COLLECTION), pointer :: hb0
-    !!             HB0_COLLECTION to be used
-    !!   (in)    type(IO_STATUS), pointer :: hb0
-    !!             Tracks error conditions
-    !!
-    ! [ ARGUMENTS ]
+  subroutine HB0_ComputeCheck(io, hb0, aem)
+    !! Updates check flows for all HB0 head-boundary segments.
     type(HB0_COLLECTION), pointer :: hb0
+    type(AEM_DOMAIN), pointer :: aem
     type(IO_STATUS), pointer :: io
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(hb0)), &
-           "HB0_ResetIterator: HB0_Create has not been called")
-    end if
-
-    hb0%iIterStr = 1
-    hb0%iIterVtx = 0
-    hb0%iIterFlag = kHB0_Center
-
-    return
-  end subroutine HB0_ResetIterator
-
-
-  function HB0_NextIterator(io, hb0) result(itr)
-    !! function HB0_NextIterator
-    !!
-    !! Advances the module's iterator one step
-    !!
-    !! Calling Sequence:
-    !!    call HB0_NextIterator(hb0)
-    !!
-    !! Arguments:
-    !!   (in)    type(HB0_COLLECTION), pointer :: hb0
-    !!             HB0_COLLECTION to be used
-    !!   (in)    type(IO_STATUS), pointer :: hb0
-    !!             Tracks error conditions
-    !!
-    !! Return Value:
-    !!   type(ITERATOR_RESULT), pointer :: itr
-    !!     Pointer to the information for data retrieval
-    !!
-    ! [ ARGUMENTS ]
-    type(HB0_COLLECTION), pointer :: hb0
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    type(ITERATOR_RESULT), pointer :: itr
     type(HB0_STRING), pointer :: str
     type(HB0_VERTEX), pointer :: vtx
-    integer(kind=AE_INT) :: iStat
+    integer(kind=AE_INT) :: iStr, iVtx
 
     if (io%lDebug) then
-      call IO_Assert(io, (associated(hb0)), &
-           "HB0_NextIterator: HB0_Create has not been called")
+      call IO_Assert(io, (associated(hb0)), "HB0_ComputeCheck: HB0_Create has not been called")
     end if
 
-    if (hb0%iIterStr > hb0%iNStr) then
-      nullify(itr)
-      return
-    end if
-
-    ! Do I increment the vertex?
-    if (hb0%iIterFlag == kHB0_Center) then
-      hb0%iIterFlag = kHB0_Vertex
-      hb0%iIterVtx = hb0%iIterVtx + 1
-      ! Is that the end of the string?
-      if (hb0%iIterVtx > hb0%Strings(hb0%iIterStr)%iNPts) then
-        hb0%iIterStr = hb0%iIterStr+1
-        hb0%iIterVtx = 1
-        if (hb0%iIterStr > hb0%iNStr) then
-          nullify(itr)
-          return
+    do iStr = 1, hb0%iNStr
+      str => hb0%Strings(iStr)
+      do iVtx = 1, str%iNPts
+        vtx => str%Vertices(iVtx)
+        vtx%rCheck(kHB0_Vertex) = rAEM_Flow(io, aem, vtx%cVertexCPZ, .false.)
+        if (iVtx < str%iNPts) then
+          vtx%rCheck(kHB0_Center) = rAEM_Flow(io, aem, vtx%cCenterCPZ, .false.)
         end if
-      end if
-      ! Handle the case of the end of the  string...
-    else if (hb0%iIterVtx == hb0%Strings(hb0%iIterStr)%iNPts) then
-      hb0%iIterStr = hb0%iIterStr+1
-      hb0%iIterVtx = 1
-      if (hb0%iIterStr > hb0%iNStr) then
-        nullify(itr)
-        return
-      end if
-      ! Otherwise, we just change from vertex to center...
-    else
-      hb0%iIterFlag = kHB0_Center
-    end if
-
-    str => hb0%Strings(hb0%iIterStr)
-    vtx => str%Vertices(hb0%iIterVtx)
-    allocate(itr)
-    itr%iElementType = ELEM_HB0
-    itr%iElementString = hb0%iIterStr
-    itr%iElementVertex = hb0%iIterVtx
-    itr%iElementFlag = hb0%iIterFlag
-    itr%iValueSelector = VALUE_FLOW
-    if (hb0%iIterFlag == kHB0_Vertex) then
-      allocate(itr%cZ(size(vtx%cVertexCPZ)), stat = iStat)
-      call IO_Assert(io, (iStat == 0), "HB0_NextIterator: Space exhausted")
-      itr%cZ = vtx%cVertexCPZ
-    else
-      allocate(itr%cZ(size(vtx%cCenterCPZ)), stat = iStat)
-      call IO_Assert(io, (iStat == 0), "HB0_NextIterator: Space exhausted")
-      itr%cZ = vtx%cCenterCPZ
-    end if
+      end do
+    end do
 
     return
-  end function HB0_NextIterator
-
-
-  subroutine HB0_SetIterator(io, hb0,itr, cValue)
-    !! function HB0_SetIterator
-    !!
-    !! Advances the module's iterator one step
-    !!
-    !! Calling Sequence:
-    !!    call HB0_SetIterator(hb0)
-    !!
-    !! Arguments:
-    !!   (in)    type(HB0_COLLECTION), pointer :: hb0
-    !!             HB0_COLLECTION to be used
-    !!   (in0    type(ITERATOR_RESULT), pointer :: itr
-    !!             Pointer to the information for data retrieval
-    !!   (in)    complex :: cValue
-    !!             The value retrieved from the color
-    !!   (in)    type(IO_STATUS), pointer :: hb0
-    !!             Tracks error conditions
-    !!
-    !! Return Value:
-    !!
-    ! [ ARGUMENTS ]
-    type(HB0_COLLECTION), pointer :: hb0
-    type(ITERATOR_RESULT), pointer :: itr
-    complex(kind=AE_REAL), intent(in) :: cValue
-    type(IO_STATUS), pointer :: io
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(hb0)), &
-           "HB0_NextIterator: HB0_Create has not been called")
-      call IO_Assert(io, (hb0%iIterStr <= hb0%iNStr), &
-           "HB0_SetIterator: Iterator out of range")
-    end if
-
-    hb0%Strings(itr%iElementString)%Vertices(itr%iElementVertex)%rCheck(itr%iElementFlag) = &
-                                                                                            real(cValue, AE_REAL)
-
-    return
-  end subroutine HB0_SetIterator
+  end subroutine HB0_ComputeCheck
 
 
   subroutine HB0_Read(io, hb0)

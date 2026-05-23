@@ -27,6 +27,7 @@ module p_cw0
   use u_io
   use f_well
   use f_dipole
+  use f_aem
   use u_matrix
   use p_aqu
 
@@ -148,10 +149,6 @@ module p_cw0
     type(CW0_WELL), dimension(:), pointer :: Wells
     integer(kind=AE_INT) :: iCount
     integer(kind=AE_INT) :: iRegenerate
-    ! Iterator Information
-    integer(kind=AE_INT) :: iIterWell
-    integer(kind=AE_INT) :: iIterRad
-    integer(kind=AE_INT) :: iIterVtx
   end type CW0_COLLECTION
 
 
@@ -1013,79 +1010,6 @@ contains
     end subroutine CW0_StoreResult
 
 
-    subroutine CW0_ComputeCheck(io, cw0, aqu, iEqType, iElementString, iElementVertex, iElementFlag, rHead)
-      !! function rCW0_ComputeCheck
-      !!
-      !! Returns the check value for the specified domain and vertex at the point cZ
-      !!
-      !! Calling Sequence:
-      !!    call CW0_ComputeCheck(in0, iElementString, iElementVertex, iElementFlag, rHead)
-      !!
-      !! Arguments:
-      !!   (in)    type(CW0_COLLECTION), pointer :: cw0
-      !!             CW0_COLLECTION object to be used
-      !!   (in)    integer :: iElementString
-      !!             The radial collector index
-      !!   (in)    integer :: iElementVertex
-      !!             The vertex index
-      !!   (in)    integer :: iElementFlag
-      !!             The flag value
-      !!   (in)    integer :: iEqType
-      !!             The equation type(EQ_POTENTIALDIFF or EQ_TOTALFLOW)
-      !!   (in)    real :: rHead1
-      !!             Head at this segment's control point
-      !!   (in)    real :: rHead2
-      !!             Head at the next segment's control point
-      !!   (in)    type(IO_STATUS) :: io
-      !!             Tracking for IO module
-      !!
-      !!
-      ! [ ARGUMENTS ]
-      type(CW0_COLLECTION), pointer :: cw0
-      type(AQU_COLLECTION), pointer :: aqu
-      integer(kind=AE_INT), intent(in) :: iEqType
-      integer(kind=AE_INT), intent(in) :: iElementString
-      integer(kind=AE_INT), intent(in) :: iElementVertex
-      integer(kind=AE_INT), intent(in) :: iElementFlag
-      real(kind=AE_REAL), intent(in) :: rHead
-      type(IO_STATUS), pointer :: io
-      ! [ LOCALS ]
-      type(CW0_WELL), pointer :: wel
-      type(CW0_RADIAL), pointer :: rad
-      type(CW0_VERTEX), pointer :: this, next
-
-      if (io%lDebug) then
-        call IO_Assert(io, (associated(cw0)), &
-             "CW0_ComputeCheck: CW0_Create has not been called")
-        call IO_Assert(io, (iElementString >= 1 .and. iElementString <= cw0%iCount), &
-             "CW0_ComputeCheck: Bad element string ID")
-      end if
-      wel => cw0%Wells(iElementString)
-
-      if (io%lDebug) then
-        call IO_Assert(io, (iElementVertex >= 1 .and. iElementVertex <= wel%iNRad), &
-             "CW0_ComputeCheck: Bad radial ID")
-      end if
-      rad => wel%Radials(iElementVertex)
-
-      if (io%lDebug) then
-        call IO_Assert(io, (iElementFlag >= 1 .and. iElementFlag <= wel%iResolution), &
-             "CW0_ComputeCheck: Bad segment ID")
-      end if
-
-      ! Note: this code only stores the modeled head at the segment; CW0_ComputeRHS computes the
-      ! actual delta-potential information at the beginning of the next iteration
-      this => rad%Vertices(iElementFlag)
-      this%rCheck = rHead
-
-      if (iEqType == EQN_TOTALFLOW) then
-        wel%rCheck = rCW0_ComputeTotalFlow(io, cw0, iElementString)
-      end if
-
-      return
-    end subroutine CW0_ComputeCheck
-
-
     function rCW0_ComputeTotalFlow(io, cw0, iElementString) result(rCheck)
       !! function rCW0_ComputeTotalFlow
       !!
@@ -1463,144 +1387,33 @@ contains
     end function lCW0_CheckProximity
 
 
-    subroutine CW0_ResetIterator(io, cw0)
-      !! subroutine CW0_ResetIterator
-      !!
-      !! Resets the module's iterator prior to traversing for check data
-      !!
-      !! Calling Sequence:
-      !!    call CW0_ResetIterator(cw0)
-      !!
-      !! Arguments:
-      !!   (in)    type(CW0_COLLECTION), pointer :: cw0
-      !!             CW0_COLLECTION to be used
-      !!   (in)    type(IO_STATUS), pointer :: cw0
-      !!             Tracks error conditions
-      !!
-      ! [ ARGUMENTS ]
+    subroutine CW0_ComputeCheck(io, cw0, aem)
+      !! Updates check potential for all CW0 collector-well arm vertices.
       type(CW0_COLLECTION), pointer :: cw0
+      type(AEM_DOMAIN), pointer :: aem
       type(IO_STATUS), pointer :: io
-
-      if (io%lDebug) then
-        call IO_Assert(io, (associated(cw0)), &
-             "CW0_ResetIterator: CW0_Create has not been called")
-      end if
-
-      cw0%iIterWell = 1
-      cw0%iIterRad = 1
-      cw0%iIterVtx = 0
-
-      return
-    end subroutine CW0_ResetIterator
-
-
-    function CW0_NextIterator(io, cw0) result(itr)
-      !! function CW0_NextIterator
-      !!
-      !! Advances the module's iterator one step
-      !!
-      !! Calling Sequence:
-      !!    call CW0_NextIterator(cw0)
-      !!
-      !! Arguments:
-      !!   (in)    type(CW0_COLLECTION), pointer :: cw0
-      !!             CW0_COLLECTION to be used
-      !!   (in)    type(IO_STATUS), pointer :: cw0
-      !!             Tracks error conditions
-      !!
-      !! Return Value:
-      !!   type(ITERATOR_RESULT), pointer :: itr
-      !!     Pointer to the information for data retrieval
-      !!
-      ! [ ARGUMENTS ]
-      type(CW0_COLLECTION), pointer :: cw0
-      type(IO_STATUS), pointer :: io
-      ! [ RETURN VALUE ]
-      type(ITERATOR_RESULT), pointer :: itr
       type(CW0_WELL), pointer :: wel
       type(CW0_RADIAL), pointer :: rad
       type(CW0_VERTEX), pointer :: vtx
+      integer(kind=AE_INT) :: iWel, iRad, iVtx
 
       if (io%lDebug) then
-        call IO_Assert(io, (associated(cw0)), &
-             "CW0_NextIterator: CW0_Create has not been called")
+        call IO_Assert(io, (associated(cw0)), "CW0_ComputeCheck: CW0_Create has not been called")
       end if
 
-      if (cw0%iIterWell > cw0%iCount) then
-        nullify(itr)
-        return
-      end if
-
-      wel => cw0%Wells(cw0%iIterWell)
-      rad => wel%Radials(cw0%iIterRad)
-      cw0%iIterVtx = cw0%iIterVtx + 1
-      if (cw0%iIterVtx > wel%iResolution) then
-        cw0%iIterRad = cw0%iIterRad + 1
-        cw0%iIterVtx = 1
-        if (cw0%iIterRad > wel%iNRad) then
-          cw0%iIterWell = cw0%iIterWell + 1
-          cw0%iIterRad = 1
-          cw0%iIterVtx = 1
-          if (cw0%iIterWell > cw0%iCount) then
-            nullify(itr)
-            return
-          end if
-          wel => cw0%Wells(cw0%iIterWell)
-        end if
-        rad => wel%Radials(cw0%iIterRad)
-      end if
-      vtx => rad%Vertices(cw0%iIterVtx)
-
-      allocate(itr)
-
-      itr%iElementType = ELEM_CW0
-      itr%iElementString = cw0%iIterWell
-      itr%iElementVertex = cw0%iIterRad
-      itr%iElementFlag = cw0%iIterVtx
-      itr%iValueSelector = VALUE_POTENTIAL
-      allocate(itr%cZ(1))
-      itr%cZ(1) = vtx%cCPZ
+      do iWel = 1, cw0%iCount
+        wel => cw0%Wells(iWel)
+        do iRad = 1, wel%iNRad
+          rad => wel%Radials(iRad)
+          do iVtx = 1, wel%iResolution
+            vtx => rad%Vertices(iVtx)
+            vtx%rCheck = real(cAEM_Potential(io, aem, vtx%cCPZ, .false.), AE_REAL)
+          end do
+        end do
+      end do
 
       return
-    end function CW0_NextIterator
-
-
-    subroutine CW0_SetIterator(io, cw0, itr, cValue)
-      !! function CW0_SetIterator
-      !!
-      !! Advances the module's iterator one step
-      !!
-      !! Calling Sequence:
-      !!    call CW0_SetIterator(cw0)
-      !!
-      !! Arguments:
-      !!   (in)    type(CW0_COLLECTION), pointer :: cw0
-      !!             CW0_COLLECTION to be used
-      !!   (in)    type(ITERATOR_RESULT), pointer :: itr
-      !!             Pointer to the information for data retrieval
-      !!   (in)    complex :: cValue
-      !!             The value retrieved from the color
-      !!   (in)    type(IO_STATUS), pointer :: cw0
-      !!             Tracks error conditions
-      !!
-      !! Return Value:
-      !!
-      ! [ ARGUMENTS ]
-      type(CW0_COLLECTION), pointer :: cw0
-      type(ITERATOR_RESULT), pointer :: itr
-      complex(kind=AE_REAL), intent(in) :: cValue
-      type(IO_STATUS), pointer :: io
-      ! [ LOCALS ]
-
-      if (io%lDebug) then
-        call IO_Assert(io, (associated(cw0)), &
-             "CW0_NextIterator: CW0_Create has not been called")
-      end if
-
-      cw0%Wells(itr%iElementString)%Radials(itr%iElementVertex)%Vertices(itr%iElementFlag)%rCheck = real(cValue, AE_REAL)
-
-      return
-    end subroutine CW0_SetIterator
+    end subroutine CW0_ComputeCheck
 
 
     subroutine CW0_FindWell(io, cw0, iWellID, cZWell, rDischarge, lFound)

@@ -49,6 +49,7 @@ module p_ls2
   use u_io
   use f_well
   use f_dipole
+  use f_aem
   use u_matrix
   use p_aqu
 
@@ -161,9 +162,6 @@ module p_ls2
     type(LS2_STRING), dimension(:), pointer :: Strings
     integer(kind=AE_INT) :: iNStr
     integer(kind=AE_INT) :: iRegenerate
-    ! Iterator Information
-    integer(kind=AE_INT) :: iIterStr
-    integer(kind=AE_INT) :: iIterVtx
   end type LS2_COLLECTION
 
   ! Module flags for matrix generator routines
@@ -1139,142 +1137,35 @@ contains
   end subroutine LS2_FindStringPointer
 
 
-  subroutine LS2_ResetIterator(io, ls2)
-    !! subroutine LS2_ResetIterator
-    !!
-    !! Resets the module's iterator prior to traversing for check data
-    !!
-    !! Calling Sequence:
-    !!    call LS2_ResetIterator(ls2)
-    !!
-    !! Arguments:
-    !!   (in)    type(LS2_COLLECTION), pointer :: ls2
-    !!             LS2_COLLECTION to be used
-    !!   (in)    type(IO_STATUS), pointer :: ls2
-    !!             Tracks error conditions
-    !!
-    ! [ ARGUMENTS ]
+  subroutine LS2_ComputeCheck(io, ls2, aem, aqu, lLinearize)
+    !! Updates check potential, head, and confinement linearization for all LS2 segments.
     type(LS2_COLLECTION), pointer :: ls2
-    type(IO_STATUS), pointer :: io
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(ls2)), &
-           "LS2_ResetIterator: LS2_Create has not been called")
-    end if
-
-    ls2%iIterStr = 1
-    ls2%iIterVtx = 0
-
-    return
-  end subroutine LS2_ResetIterator
-
-
-  function LS2_NextIterator(io, ls2) result(itr)
-    !! function LS2_NextIterator
-    !!
-    !! Advances the module's iterator one step
-    !!
-    !! Calling Sequence:
-    !!    call LS2_NextIterator(ls2)
-    !!
-    !! Arguments:
-    !!   (in)    type(LS2_COLLECTION), pointer :: ls2
-    !!             LS2_COLLECTION to be used
-    !!   (in)    type(IO_STATUS), pointer :: ls2
-    !!             Tracks error conditions
-    !!
-    !! Return Value:
-    !!   type(ITERATOR_RESULT), pointer :: itr
-    !!     Pointer to the information for data retrieval
-    !!
-    ! [ ARGUMENTS ]
-    type(LS2_COLLECTION), pointer :: ls2
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    type(ITERATOR_RESULT), pointer :: itr
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(ls2)), &
-           "LS2_NextIterator: LS2_Create has not been called")
-    end if
-
-    if (ls2%iIterStr > ls2%iNStr) then
-      nullify(itr)
-      return
-    end if
-
-    ls2%iIterVtx = ls2%iIterVtx + 1
-    if (ls2%iIterVtx > ls2%Strings(ls2%iIterStr)%iNPts-1) then
-      ls2%iIterStr = ls2%iIterStr+1
-      ls2%iIterVtx = 1
-      if (ls2%iIterStr > ls2%iNStr) then
-        nullify(itr)
-        return
-      end if
-    end if
-
-    allocate(itr)
-    itr%iElementType = ELEM_LS2
-    itr%iElementString = ls2%iIterStr
-    itr%iElementVertex = ls2%iIterVtx
-    itr%iValueSelector = VALUE_POTENTIAL
-    allocate(itr%cZ(1))
-    itr%cZ(1) = ls2%Strings(ls2%iIterStr)%Vertices(ls2%iIterVtx)%cCPZ(1)
-
-    return
-  end function LS2_NextIterator
-
-
-  subroutine LS2_SetIterator(io, ls2, aqu, itr, cValue, lLinearize)
-    !! subroutine LS2_SetIterator
-    !!
-    !! Stores the solved element strength at the iterator's current position
-    !!
-    !! Calling Sequence:
-    !!    call LS2_SetIterator(io, ls2, aqu, itr, cValue, lLinearize)
-    !!
-    !! Arguments:
-    !!   (in)    type(LS2_COLLECTION), pointer :: ls2
-    !!             LS2_COLLECTION to be used
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION providing aquifer properties
-    !!   (in)    type(ITERATOR_RESULT), pointer :: itr
-    !!             Identifies the element position to be updated
-    !!   (in)    complex :: cValue
-    !!             The solved strength value to store
-    !!   (in)    logical :: lLinearize
-    !!             If .true., apply linearization when updating the strength
-    !!
-    ! [ ARGUMENTS ]
-    type(LS2_COLLECTION), pointer :: ls2
+    type(AEM_DOMAIN), pointer :: aem
     type(AQU_COLLECTION), pointer :: aqu
-    complex(kind=AE_REAL), intent(in) :: cValue
     logical, intent(in) :: lLinearize
     type(IO_STATUS), pointer :: io
     type(LS2_VERTEX), pointer :: vtx
-    ! [ RETURN VALUE ]
-    type(ITERATOR_RESULT), pointer :: itr
+    integer(kind=AE_INT) :: iStr, iVtx
 
     if (io%lDebug) then
-      call IO_Assert(io, (associated(ls2)), &
-           "LS2_NextIterator: LS2_Create has not been called")
-      call IO_Assert(io, (ls2%iIterStr <= ls2%iNStr), &
-           "LS2_SetIterator: Iterator out of range")
+      call IO_Assert(io, (associated(ls2)), "LS2_ComputeCheck: LS2_Create has not been called")
     end if
 
-    vtx => ls2%Strings(itr%iElementString)%Vertices(itr%iElementVertex)
-    vtx%rCheckPot = real(cValue, AE_REAL)
-    vtx%rCheckHead = rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot, vtx%cCPZ(1))
-    if (lLinearize) then
-      vtx%rSolutionPot = vtx%rCheckPot
-      vtx%rSolutionHead = vtx%rCheckHead
-      !print *, 'cp, chk', ls2%Strings(itr%iElementString)%iID, itr%iElementVertex, vtx%rCPHead, vtx%rCheckHead, vtx%cCPZ(1)
-      if (.not. lDOM_IsConfined(io, aqu%dom, vtx%cCPZ(1), vtx%rCheckPot)) ls2%iRegenerate = 1
-      !print *,'ls2 update',itr%iElementString,itr%iElementVertex,vtx%rSolutionPot,vtx%rSolutionHead,vtx%rCPHead,vtx%lEnabled
-    end if
+    do iStr = 1, ls2%iNStr
+      do iVtx = 1, ls2%Strings(iStr)%iNPts - 1
+        vtx => ls2%Strings(iStr)%Vertices(iVtx)
+        vtx%rCheckPot = real(cAEM_Potential(io, aem, vtx%cCPZ(1), .false.), AE_REAL)
+        vtx%rCheckHead = rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot, vtx%cCPZ(1))
+        if (lLinearize) then
+          vtx%rSolutionPot = vtx%rCheckPot
+          vtx%rSolutionHead = vtx%rCheckHead
+          if (.not. lDOM_IsConfined(io, aqu%dom, vtx%cCPZ(1), vtx%rCheckPot)) ls2%iRegenerate = 1
+        end if
+      end do
+    end do
 
     return
-  end subroutine LS2_SetIterator
+  end subroutine LS2_ComputeCheck
 
 
   function iLS2_DoRouting(io, ls2, aqu, iCurrentIteration, lSwitch, lReportFlows) result(iChanges)

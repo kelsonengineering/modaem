@@ -44,6 +44,7 @@ module p_ls1
   use u_io
   use f_well
   use f_dipole
+  use f_aem
   use u_matrix
   use p_aqu
 
@@ -117,9 +118,6 @@ module p_ls1
     !!
     type(LS1_STRING), dimension(:), pointer :: Strings
     integer(kind=AE_INT) :: iNStr
-    ! Iterator Information
-    integer(kind=AE_INT) :: iIterStr
-    integer(kind=AE_INT) :: iIterVtx
   end type LS1_COLLECTION
 
   ! Module flags for matrix generator routines
@@ -908,131 +906,29 @@ contains
   end subroutine LS1_FindStringPointer
 
 
-  subroutine LS1_ResetIterator(io, ls1)
-    !! subroutine LS1_ResetIterator
-    !!
-    !! Resets the module's iterator prior to traversing for check data
-    !!
-    !! Calling Sequence:
-    !!    call LS1_ResetIterator(ls1)
-    !!
-    !! Arguments:
-    !!   (in)    type(LS1_COLLECTION), pointer :: ls1
-    !!             LS1_COLLECTION to be used
-    !!   (in)    type(IO_STATUS), pointer :: ls1
-    !!             Tracks error conditions
-    !!
-    ! [ ARGUMENTS ]
+  subroutine LS1_ComputeCheck(io, ls1, aem, aqu)
+    !! Updates check potential and head for all LS1 linesink segments.
     type(LS1_COLLECTION), pointer :: ls1
-    type(IO_STATUS), pointer :: io
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(ls1)), &
-           "LS1_ResetIterator: LS1_Create has not been called")
-    end if
-
-    ls1%iIterStr = 1
-    ls1%iIterVtx = 0
-
-    return
-  end subroutine LS1_ResetIterator
-
-
-  function LS1_NextIterator(io, ls1) result(itr)
-    !! function LS1_NextIterator
-    !!
-    !! Advances the module's iterator one step
-    !!
-    !! Calling Sequence:
-    !!    call LS1_NextIterator(ls1)
-    !!
-    !! Arguments:
-    !!   (in)    type(LS1_COLLECTION), pointer :: ls1
-    !!             LS1_COLLECTION to be used
-    !!   (in)    type(IO_STATUS), pointer :: ls1
-    !!             Tracks error conditions
-    !!
-    !! Return Value:
-    !!   type(ITERATOR_RESULT), pointer :: itr
-    !!     Pointer to the information for data retrieval
-    !!
-    ! [ ARGUMENTS ]
-    type(LS1_COLLECTION), pointer :: ls1
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    type(ITERATOR_RESULT), pointer :: itr
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(ls1)), &
-           "LS1_NextIterator: LS1_Create has not been called")
-    end if
-
-    if (ls1%iIterStr > ls1%iNStr) then
-      nullify(itr)
-      return
-    end if
-
-    ls1%iIterVtx = ls1%iIterVtx + 1
-    if (ls1%iIterVtx > ls1%Strings(ls1%iIterStr)%iNPts-1) then
-      ls1%iIterStr = ls1%iIterStr+1
-      ls1%iIterVtx = 1
-      if (ls1%iIterStr > ls1%iNStr) then
-        nullify(itr)
-        return
-      end if
-    end if
-
-    allocate(itr)
-    itr%iElementType = ELEM_AQU
-    itr%iElementString = ls1%iIterStr
-    itr%iElementVertex = ls1%iIterVtx
-    itr%iValueSelector = VALUE_POTENTIAL
-    allocate(itr%cZ(1))
-    itr%cZ(1) = ls1%Strings(ls1%iIterStr)%Vertices(ls1%iIterVtx)%cCPZ(1)
-
-    return
-  end function LS1_NextIterator
-
-
-  subroutine LS1_SetIterator(io, ls1, aqu, itr, cValue)
-    !! subroutine LS1_SetIterator
-    !!
-    !! Stores the solved element strength at the iterator's current position
-    !!
-    !! Calling Sequence:
-    !!    call LS1_SetIterator(io, ls1, aqu, itr, cValue)
-    !!
-    !! Arguments:
-    !!   (in)    type(LS1_COLLECTION), pointer :: ls1
-    !!             LS1_COLLECTION to be used
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION providing aquifer properties
-    !!   (in)    type(ITERATOR_RESULT), pointer :: itr
-    !!             Identifies the element position to be updated
-    !!   (in)    complex :: cValue
-    !!             The solved strength value to store
-    !!
-    ! [ ARGUMENTS ]
-    type(LS1_COLLECTION), pointer :: ls1
+    type(AEM_DOMAIN), pointer :: aem
     type(AQU_COLLECTION), pointer :: aqu
-    type(ITERATOR_RESULT), pointer :: itr
-    complex(kind=AE_REAL), intent(in) :: cValue
     type(IO_STATUS), pointer :: io
     type(LS1_VERTEX), pointer :: vtx
+    integer(kind=AE_INT) :: iStr, iVtx
 
     if (io%lDebug) then
-      call IO_Assert(io, (associated(ls1)), &
-           "LS1_NextIterator: LS1_Create has not been called")
-      call IO_Assert(io, (ls1%iIterStr <= ls1%iNStr), &
-           "LS1_SetIterator: Iterator out of range")
+      call IO_Assert(io, (associated(ls1)), "LS1_ComputeCheck: LS1_Create has not been called")
     end if
 
-    vtx => ls1%Strings(itr%iElementString)%Vertices(itr%iElementVertex)
-    vtx%rCheckPot = real(cValue, AE_REAL)
-    vtx%rCheckHead = rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot, vtx%cCPZ(1))
+    do iStr = 1, ls1%iNStr
+      do iVtx = 1, ls1%Strings(iStr)%iNPts - 1
+        vtx => ls1%Strings(iStr)%Vertices(iVtx)
+        vtx%rCheckPot = real(cAEM_Potential(io, aem, vtx%cCPZ(1), .false.), AE_REAL)
+        vtx%rCheckHead = rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot, vtx%cCPZ(1))
+      end do
+    end do
 
     return
-  end subroutine LS1_SetIterator
+  end subroutine LS1_ComputeCheck
 
 
   subroutine LS1_Read(io, ls1)

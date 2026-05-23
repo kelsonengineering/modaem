@@ -45,6 +45,7 @@ module p_ls0
   use u_matrix
   use f_well
   use f_dipole
+  use f_aem
   use p_aqu
 
   implicit none
@@ -107,9 +108,6 @@ module p_ls0
     !!
     type(LS0_STRING), dimension(:), pointer :: Strings
     integer(kind=AE_INT) :: iNStr
-    ! Iterator Information
-    integer(kind=AE_INT) :: iIterStr
-    integer(kind=AE_INT) :: iIterVtx
   end type LS0_COLLECTION
 
 
@@ -472,129 +470,26 @@ contains
   end subroutine LS0_FindStringPointer
 
 
-  subroutine LS0_ResetIterator(io, ls0)
-    !! subroutine LS0_ResetIterator
-    !!
-    !! Resets the module's iterator prior to traversing for check data
-    !!
-    !! Calling Sequence:
-    !!    call LS0_ResetIterator(ls0)
-    !!
-    !! Arguments:
-    !!   (in)    type(LS0_COLLECTION), pointer :: ls0
-    !!             LS0_COLLECTION to be used
-    !!   (in)    type(IO_STATUS), pointer :: ls0
-    !!             Tracks error conditions
-    !!
-    ! [ ARGUMENTS ]
+  subroutine LS0_ComputeCheck(io, ls0, aem)
+    !! Updates check head for all LS0 linesink segments.
     type(LS0_COLLECTION), pointer :: ls0
+    type(AEM_DOMAIN), pointer :: aem
     type(IO_STATUS), pointer :: io
+    integer(kind=AE_INT) :: iStr, iVtx
 
     if (io%lDebug) then
-      call IO_Assert(io, (associated(ls0)), &
-           "LS0_ResetIterator: LS0_Create has not been called")
+      call IO_Assert(io, (associated(ls0)), "LS0_ComputeCheck: LS0_Create has not been called")
     end if
 
-    ls0%iIterStr = 1
-    ls0%iIterVtx = 0
+    do iStr = 1, ls0%iNStr
+      do iVtx = 1, ls0%Strings(iStr)%iNPts - 1
+        ls0%Strings(iStr)%Vertices(iVtx)%rCheckHead = rAEM_Head(io, aem, &
+            rHALF * (ls0%Strings(iStr)%Vertices(iVtx)%cZ + ls0%Strings(iStr)%Vertices(iVtx+1)%cZ), .false.)
+      end do
+    end do
 
     return
-  end subroutine LS0_ResetIterator
-
-
-  function LS0_NextIterator(io, ls0) result(itr)
-    !! function LS0_NextIterator
-    !!
-    !! Advances the module's iterator one step
-    !!
-    !! Calling Sequence:
-    !!    call LS0_NextIterator(ls0)
-    !!
-    !! Arguments:
-    !!   (in)    type(LS0_COLLECTION), pointer :: ls0
-    !!             LS0_COLLECTION to be used
-    !!   (in)    type(IO_STATUS), pointer :: ls0
-    !!             Tracks error conditions
-    !!
-    !! Return Value:
-    !!   type(ITERATOR_RESULT), pointer :: itr
-    !!     Pointer to the information for data retrieval
-    !!
-    ! [ ARGUMENTS ]
-    type(LS0_COLLECTION), pointer :: ls0
-    type(IO_STATUS), pointer :: io
-    ! [ RETURN VALUE ]
-    type(ITERATOR_RESULT), pointer :: itr
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(ls0)), &
-           "LS0_NextIterator: LS0_Create has not been called")
-    end if
-
-    if (ls0%iIterStr > ls0%iNStr) then
-      nullify(itr)
-      return
-    end if
-
-    ls0%iIterVtx = ls0%iIterVtx + 1
-    if (ls0%iIterVtx > ls0%Strings(ls0%iIterStr)%iNPts-1) then
-      ls0%iIterStr = ls0%iIterStr+1
-      ls0%iIterVtx = 1
-      if (ls0%iIterStr > ls0%iNStr) then
-        nullify(itr)
-        return
-      end if
-    end if
-
-    allocate(itr)
-    itr%iElementType = ELEM_AQU
-    itr%iElementString = ls0%iIterStr
-    itr%iElementVertex = ls0%iIterVtx
-    itr%iValueSelector = VALUE_HEAD
-    allocate(itr%cZ(1))
-    itr%cZ(1) = rHALF * (ls0%Strings(ls0%iIterStr)%Vertices(ls0%iIterVtx)%cZ + &
-                ls0%Strings(ls0%iIterStr)%Vertices(ls0%iIterVtx+1)%cZ)
-
-    return
-  end function LS0_NextIterator
-
-
-  subroutine LS0_SetIterator(io, ls0, aqu, itr, cValue)
-    !! subroutine LS0_SetIterator
-    !!
-    !! Stores the solved element strength at the iterator's current position
-    !!
-    !! Calling Sequence:
-    !!    call LS0_SetIterator(io, ls0, aqu, itr, cValue)
-    !!
-    !! Arguments:
-    !!   (in)    type(LS0_COLLECTION), pointer :: ls0
-    !!             LS0_COLLECTION to be used
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION providing aquifer properties
-    !!   (in)    type(ITERATOR_RESULT), pointer :: itr
-    !!             Identifies the element position to be updated
-    !!   (in)    complex :: cValue
-    !!             The solved strength value to store
-    !!
-    ! [ ARGUMENTS ]
-    type(LS0_COLLECTION), pointer :: ls0
-    type(AQU_COLLECTION), pointer :: aqu
-    type(ITERATOR_RESULT), pointer :: itr
-    complex(kind=AE_REAL), intent(in) :: cValue
-    type(IO_STATUS), pointer :: io
-
-    if (io%lDebug) then
-      call IO_Assert(io, (associated(ls0)), &
-           "LS0_NextIterator: LS0_Create has not been called")
-      call IO_Assert(io, (ls0%iIterStr <= ls0%iNStr), &
-           "LS0_SetIterator: Iterator out of range")
-    end if
-
-    ls0%Strings(itr%iElementString)%Vertices(itr%iElementVertex)%rCheckHead = real(cValue, AE_REAL)
-
-    return
-  end subroutine LS0_SetIterator
+  end subroutine LS0_ComputeCheck
 
 
   subroutine LS0_Read(io, ls0)

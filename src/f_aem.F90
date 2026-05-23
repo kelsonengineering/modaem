@@ -584,40 +584,6 @@ contains
   end function rAEM_FindPressureHeadZero
 
 
-  function AEM_CheckValue(io, aem, itr) result(cValue)
-    !! Computes the check value requested in the ITERATOR_RESULT itr
-    type(AEM_DOMAIN), pointer :: aem
-    type(ITERATOR_RESULT), pointer :: itr
-    type(IO_STATUS), pointer :: io
-    complex(kind=AE_REAL) :: cValue
-
-    select case (itr%iValueSelector)
-      case (VALUE_HEAD)
-        cValue = rAEM_Head(io, aem, itr%cZ(1), .false.)
-      case (VALUE_POTENTIAL)
-        cValue = cAEM_Potential(io, aem, itr%cZ(1), .false.)
-      case (VALUE_POTENTIALDIFF)
-        cValue = cAEM_Potential(io, aem, itr%cZ(2), .false.) - cAEM_Potential(io, aem, itr%cZ(1), .false.)
-      case (VALUE_DISCHARGE)
-        cValue = cAEM_Discharge(io, aem, itr%cZ(1), .false.)
-      case (VALUE_VELOCITY)
-        cValue = cAEM_Velocity(io, aem, itr%cZ(1), .false.)
-      case (VALUE_RECHARGE)
-        cValue = rAEM_Recharge(io, aem, itr%cZ(1), .false.)
-      case (VALUE_FLOW)
-        cValue = rAEM_Flow(io, aem, itr%cZ, .false.)
-      case (VALUE_SATDTHICK)
-        cValue = rDOM_SatdThickness(io, aem%dom, itr%cZ(1), real(cAEM_Potential(io, aem, itr%cZ(1), .false.)))
-      case (VALUE_TRANSMISSIVITY)
-        cValue = rDOM_Transmissivity(io, aem%dom, itr%cZ(1), real(cAEM_Potential(io, aem, itr%cZ(1), .false.)))
-      case (VALUE_EXTRACTION)
-        cValue = rAEM_Extraction(io, aem, .false.)
-    end select
-
-    return
-  end function AEM_CheckValue
-
-
   subroutine AEM_Report(io, aem)
     !! Writes an HTML report of matrix equation information
     type(AEM_DOMAIN), pointer :: aem
