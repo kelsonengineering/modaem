@@ -59,7 +59,7 @@ module m_inq
   use u_constants
   use u_io
   use m_aem
-  use m_packages
+  use p_packages
 
   implicit none
 

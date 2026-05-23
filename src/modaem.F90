@@ -32,7 +32,7 @@ program modaem
   use u_constants
   use u_io
   use m_aem
-  use m_packages
+  use p_packages
   use m_inq
   use m_ext
   use a_grid
