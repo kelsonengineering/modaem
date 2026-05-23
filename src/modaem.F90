@@ -169,9 +169,7 @@ program modaem
         if (associated(pkg%hb0)) call HB0_Report(io, pkg%hb0)
         if (associated(pkg%as0_top)) call AS0_Report(io, pkg%as0_top, '(aquifer top)')
         if (associated(pkg%as0_bottom)) call AS0_Report(io, pkg%as0_bottom, '(aquifer bottom)')
-#ifndef __GPL__
         if (associated(pkg%cw0)) call CW0_Report(io, pkg%cw0, pkg%aqu)
-#endif
         if (io%lDebug) then
           if (associated(pkg%aem%mat)) call MAT_Report(io, pkg%aem%mat, 'mat', .false.)
           if (associated(pkg%aem%fwl)) call FWL_Report(io, pkg%aem%fwl)

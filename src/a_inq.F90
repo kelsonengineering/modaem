@@ -1,4 +1,4 @@
-module m_inq
+module a_inq
 
   ! ModAEM 1.8
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
@@ -83,20 +83,14 @@ contains
 
     ! Locals -- for Directive parsing
 
-#ifndef __GPL__
     type(DIRECTIVE), dimension(20), parameter :: dirDirectives = &
-#else
-                       type(DIRECTIVE), dimension(19), parameter :: dirDirectives = &
-#endif
                        (/dirFIL, &
                        dirHEA, dirDIS, dirPOT, dirVEL, dirFLO, dirRCH, &
                        dirSAT, dirBDY, dirGAG, &
                        dirWL0, dirWL1, dirLS0, &  !**pd
     dirLS1, dirLS2, dirHB0, &
               dirAS0, &
-#ifndef __GPL__
               dirCW0, &
-#endif
               dirAQU, dirEND/)
 
     ! Locals -- Input values
@@ -289,13 +283,11 @@ contains
           ! Here for the AQU command -- extract information about AEM elements
           !****************************************************************************
           call AQU_Inquiry(io, pkg%aqu, LU_INQ)
-#ifndef __GPL__
         case (kOpCW0)
           !****************************************************************************
           ! Here for the CW0 command -- extract information about collector wells
           !****************************************************************************
           call CW0_Inquiry(io, pkg%cw0, pkg%aqu, LU_INQ)
-#endif
         case default
           continue
       end select
@@ -306,5 +298,5 @@ contains
     return
   end subroutine INQ_Read
 
-end module m_inq
+end module a_inq
 

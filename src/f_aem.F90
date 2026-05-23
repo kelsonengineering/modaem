@@ -1,4 +1,4 @@
-module m_aem
+module f_aem
 
   ! ModAEM 1.8
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
@@ -61,10 +61,8 @@ module m_aem
     integer(kind=AE_INT) :: iHB0NUnk
     integer(kind=AE_INT) :: iWL1Start
     integer(kind=AE_INT) :: iWL1NUnk
-#ifndef __GPL__
     integer(kind=AE_INT) :: iCW0Start
     integer(kind=AE_INT) :: iCW0NUnk
-#endif
 
     ! True if a solution is present
     logical :: lSolutionPresent
@@ -658,4 +656,4 @@ contains
   end subroutine AEM_Report
 
 
-end module m_aem
+end module f_aem

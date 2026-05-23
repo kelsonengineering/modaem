@@ -148,11 +148,7 @@ contains
     type(PKG_DOMAIN), pointer :: pkg
     type(IO_STATUS), pointer :: io
     ! Locals -- for Directive parsing
-#ifndef __GPL__
     type(DIRECTIVE), dimension(12), parameter :: dirDirectives = (/ dirCW0, &
-#else
-                       type(DIRECTIVE), dimension(11), parameter :: dirDirectives = (/&
-#endif
     dirEND, &
               dirWIN, dirTRA, dirFIL, dirTUN, dirTIM, &
               dirPOI, dirLIN, dirGRI, dirWL0, dirLS2 &
@@ -469,7 +465,6 @@ contains
               end do
             end do
           end do
-#ifndef __GPL__
         case (kOpCW0)
           !****************************************************************************
           ! Here for the CW0 command -- release points from a collector well
@@ -534,7 +529,6 @@ contains
             end if
           end do
           close(unit=iFwdLU)
-#endif
         case default
       end select
     end do
@@ -785,7 +779,6 @@ contains
                  rDOM_Base(io, pkg%aem%dom, cZN)
             exit
           end if
-#ifndef __GPL__
         else if (iEType == ELEM_CW0) then
           iFlag = kTR0HitElement
           iElementType = iEType
@@ -794,7 +787,6 @@ contains
           rZ = rDOM_SatdThickness(io, pkg%aem%dom, cZN, real(cAEM_Potential(io, pkg%aem, cZN), AE_REAL)) + &
                rDOM_Base(io, pkg%aem%dom, cZN)
           exit
-#endif
         else
           cZN = cZAfter
         end if
@@ -869,10 +861,8 @@ contains
         iElementID = iWL0_GetID(io, pkg%wl0, iElementID)
       case (ELEM_WL1)
         iElementID = iWL1_GetID(io, pkg%wl1, iElementID)
-#ifndef __GPL__
       case (ELEM_CW0)
         iElementID = iCW0_GetID(io, pkg%cw0, iElementID)
-#endif
     end select
 
     write (unit=iMyLU, fmt="(""END   "", 5(e17.9, 1x), 4i10)") cZN, rZ, rTime, rConc, &

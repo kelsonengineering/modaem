@@ -21,9 +21,7 @@ module p_packages
   use p_ls3
   use p_hb0
   use p_as0
-#ifndef __GPL__
   use p_cw0
-#endif
 
   implicit none
 
@@ -47,9 +45,7 @@ module p_packages
     type(HB0_COLLECTION), pointer :: hb0
     type(AS0_COLLECTION), pointer :: as0_top
     type(AS0_COLLECTION), pointer :: as0_bottom
-#ifndef __GPL__
     type(CW0_COLLECTION), pointer :: cw0
-#endif
   end type PKG_DOMAIN
 
 
@@ -77,9 +73,7 @@ contains
     pkg%wl1 => WL1_Create(io)
     pkg%as0_top => AS0_Create(AS0_TOP)
     pkg%as0_bottom => AS0_Create(AS0_BOTTOM)
-#ifndef __GPL__
     pkg%cw0 => CW0_Create(io)
-#endif
 
     return
   end function PKG_Create
@@ -101,9 +95,7 @@ contains
     call WL1_Destroy(io, pkg%wl1)
     call AS0_Destroy(io, pkg%as0_top)
     call AS0_Destroy(io, pkg%as0_bottom)
-#ifndef __GPL__
     call CW0_Destroy(io, pkg%cw0)
-#endif
     call AEM_Destroy(io, pkg%aem)
     deallocate(pkg, stat=iStat)
     call IO_Assert(io, (iStat == 0), "PKG_Destroy: deallocation failed")
@@ -128,9 +120,7 @@ contains
     call PD0_PreSolve(io, pkg%pd0)
     call AS0_PreSolve(io, pkg%as0_top, pkg%aqu)
     call AS0_PreSolve(io, pkg%as0_bottom, pkg%aqu)
-#ifndef __GPL__
     call CW0_PreSolve(io, pkg%cw0)
-#endif
 
     return
   end subroutine PKG_PreSolve
@@ -198,11 +188,9 @@ contains
     iNFWL = iNFWL + iWL1_GetInfo(io, pkg%wl1, SIZE_FWL, 0)
     iNFPD = iNFPD + iWL1_GetInfo(io, pkg%wl1, SIZE_FPD, 0)
     iNFDP = iNFDP + iWL1_GetInfo(io, pkg%wl1, SIZE_FDP, 0)
-#ifndef __GPL__
     iNFWL = iNFWL + iCW0_GetInfo(io, pkg%cw0, SIZE_FWL, 0)
     iNFPD = iNFPD + iCW0_GetInfo(io, pkg%cw0, SIZE_FPD, 0)
     iNFDP = iNFDP + iCW0_GetInfo(io, pkg%cw0, SIZE_FDP, 0)
-#endif
 
     ! Allocate function collections in the AEM kernel
     pkg%aem%fwl => FWL_Create(io, iNFWL)
@@ -224,9 +212,7 @@ contains
     call WL1_SetupFunctions(io, pkg%wl1, pkg%aem%fwl, pkg%aqu)
     call AS0_SetupFunctions(io, pkg%as0_top, pkg%aem%fwl, pkg%aem%fdp, pkg%aem%fas_top)
     call AS0_SetupFunctions(io, pkg%as0_bottom, pkg%aem%fwl, pkg%aem%fdp, pkg%aem%fas_bottom)
-#ifndef __GPL__
     call CW0_SetupFunctions(io, pkg%cw0, pkg%aem%fwl, pkg%aem%fdp)
-#endif
 
     return
   end subroutine PKG_AllocateFunctions
@@ -273,13 +259,11 @@ contains
                         pkg%aem%iLS3NUnk + pkg%aem%iHB0NUnk + 1
     pkg%aem%iWL1NUnk = iWL1_GetInfo(io, pkg%wl1, SIZE_UNKNOWNS, iIteration)
     iNUN = iNUN + pkg%aem%iWL1NUnk
-#ifndef __GPL__
     iNEQ = iNEQ + iCW0_GetInfo(io, pkg%cw0, SIZE_EQUATIONS, iIteration)
     pkg%aem%iCW0Start = pkg%aem%iAQUNUnk + pkg%aem%iLS1NUnk + pkg%aem%iLS2NUnk + &
                         pkg%aem%iLS3NUnk + pkg%aem%iHB0NUnk + pkg%aem%iWL1NUnk + 1
     pkg%aem%iCW0NUnk = iCW0_GetInfo(io, pkg%cw0, SIZE_UNKNOWNS, iIteration)
     iNUN = iNUN + pkg%aem%iCW0NUnk
-#endif
 
     call MAT_Alloc(io, pkg%aem%mat, iNEQ, iNUN)
 
@@ -289,9 +273,7 @@ contains
     if (pkg%aem%iLS3NUnk /= 0) call LS3_SetupMatrix(io, pkg%ls3, pkg%aqu, pkg%aem%mat)
     if (pkg%aem%iHB0NUnk /= 0) call HB0_SetupMatrix(io, pkg%hb0, pkg%aem%mat)
     if (pkg%aem%iWL1NUnk /= 0) call WL1_SetupMatrix(io, pkg%wl1, pkg%aqu, pkg%aem%mat)
-#ifndef __GPL__
     if (pkg%aem%iCW0NUnk /= 0) call CW0_SetupMatrix(io, pkg%cw0, pkg%aqu, pkg%aem%mat)
-#endif
 
     return
   end subroutine PKG_AllocateMatrix
@@ -309,9 +291,7 @@ contains
     call HB0_Update(io, pkg%hb0, pkg%aem%fdp)
     call WL0_Update(io, pkg%wl0, pkg%aem%fwl)
     call WL1_Update(io, pkg%wl1, pkg%aem%fwl)
-#ifndef __GPL__
     call CW0_Update(io, pkg%cw0, pkg%aem%fwl, pkg%aem%fdp)
-#endif
 
     return
   end subroutine PKG_Update
@@ -347,11 +327,9 @@ contains
       case (ELEM_WL1)
         rMultiplier = rWL1_GetCoefficientMultiplier(io, pkg%wl1, iElementString, &
                                                     iElementVertex, iElementFlag)
-#ifndef __GPL__
       case (ELEM_CW0)
         rMultiplier = rCW0_GetCoefficientMultiplier(io, pkg%cw0, iElementString, &
                                                     iElementVertex, iElementFlag)
-#endif
     end select
 
     return
@@ -427,7 +405,6 @@ contains
              rARow(pkg%aem%iWL1Start:pkg%aem%iWL1Start+pkg%aem%iWL1NUnk-1))
       end if
 
-#ifndef __GPL__
       if (pkg%aem%iCW0NUnk > 0) then
         call CW0_ComputeCoefficients(io, pkg%cw0, pkg%aqu, pkg%aem%fwl, pkg%aem%fdp, &
              (/(cCPZ(ic), ic=1, iNCP)/), &
@@ -435,7 +412,6 @@ contains
              cOrientation, rGhbDistance, iIteration, rMultiplier, &
              rARow(pkg%aem%iCW0Start:pkg%aem%iCW0Start+pkg%aem%iCW0NUnk-1))
       end if
-#endif
 
       call MAT_SetRow(io, pkg%aem%mat, iRow, rARow(1:pkg%aem%mat%iNVar), rZERO)
 
@@ -487,11 +463,9 @@ contains
         case (ELEM_WL1)
           rRHS = rWL1_ComputeRHS(io, pkg%wl1, pkg%aqu, iEqType, iElementType, &
                  iElementString, iElementVertex, iElementFlag, iIteration, lDirect)
-#ifndef __GPL__
         case (ELEM_CW0)
           rRHS = rCW0_ComputeRHS(io, pkg%cw0, pkg%aqu, iEqType, iElementType, &
                  iElementString, iElementVertex, iElementFlag, iIteration, lDirect)
-#endif
       end select
 
       call MAT_SetRHS(io, pkg%aem%mat, iRow, rRHS)
@@ -539,11 +513,9 @@ contains
         case (ELEM_WL1)
           call WL1_StoreResult(io, pkg%wl1, rRelaxation*rValue, &
                iElementType, iElementString, iElementVertex, iElementFlag, lDirect)
-#ifndef __GPL__
         case (ELEM_CW0)
           call CW0_StoreResult(io, pkg%cw0, rRelaxation*rValue, &
                iElementType, iElementString, iElementVertex, iElementFlag, lDirect)
-#endif
       end select
 
     end do
@@ -682,9 +654,7 @@ contains
     call IO_MessageText(io, "Enabling the drawdown options")
     iChanges = 0
     iChanges = iChanges + WL0_EnableDrawdown(io, pkg%wl0)
-#ifndef __GPL__
     iChanges = iChanges + CW0_EnableDrawdown(io, pkg%cw0)
-#endif
     write(unit=IO_MessageBuffer, fmt=*) "Number of changes: ", iChanges
     call IO_MessageText(io)
 
@@ -780,7 +750,6 @@ contains
       deallocate(itr)
     end do
 
-#ifndef __GPL__
     call CW0_ResetIterator(io, pkg%cw0)
     do
       itr => CW0_NextIterator(io, pkg%cw0)
@@ -789,7 +758,6 @@ contains
       deallocate(itr%cZ)
       deallocate(itr)
     end do
-#endif
 
     return
   end subroutine PKG_ComputeCheck
@@ -835,11 +803,9 @@ contains
                     iLS3_DoRouting(io, pkg%ls3, pkg%aqu, pkg%aem%iCurrentIteration, .true., .false.) + &
                     iLS3_Prepare(io, pkg%ls3, pkg%aqu, pkg%aem%iCurrentIteration) + &
                     iHB0_Prepare(io, pkg%hb0, pkg%aem%iCurrentIteration)
-#ifndef __GPL__
           iUpdate = iUpdate + &
                     iCW0_Prepare(io, pkg%cw0, pkg%aqu, pkg%aem%iCurrentIteration)
         end if
-#endif
         if (iUpdate > 0) then
           call PKG_Update(io, pkg)
           call PKG_ComputeCheck(io, pkg, .false.)
@@ -852,9 +818,7 @@ contains
           iLS2_GetInfo(io, pkg%ls2, INFO_REGENERATE, pkg%aem%iCurrentIteration) /= 0 .or. &
           iLS3_GetInfo(io, pkg%ls3, INFO_REGENERATE, pkg%aem%iCurrentIteration) /= 0 .or. &
           iHB0_GetInfo(io, pkg%hb0, INFO_REGENERATE, pkg%aem%iCurrentIteration) /= 0 .or. &
-#ifndef __GPL__
           iCW0_GetInfo(io, pkg%cw0, INFO_REGENERATE, pkg%aem%iCurrentIteration) /= 0 .or. &
-#endif
           .false.) then
         call IO_MessageText(io, "Allocating matrix")
         call MAT_Clear(io, pkg%aem%mat)
@@ -908,11 +872,8 @@ contains
                             iAQU = 2001, iWL0 = 2002, iPD0 = 2003, iWL1 = 2004, &
                             iLS0 = 2005, iLS1 = 2006, iLS2 = 2007, iLS3 = 2008, &
                             iHB0 = 2009, iAS0 = 20010, iOPT = 2011, &
-#ifndef __GPL__
                             iCW0 = 5001, &
-#endif
                             iRLX = 3001
-#ifndef __GPL__
     type(DIRECTIVE), dimension(15), parameter :: dirDirectives = (/ &
                        DIRECTIVE(iCW0, 'CW0'), &
                        DIRECTIVE(iEND, 'END'), &
@@ -929,23 +890,6 @@ contains
                        DIRECTIVE(iAS0, 'AS0'), &
                        DIRECTIVE(iOPT, 'OPT'), &
                        DIRECTIVE(iRLX, 'RLX')/)
-#else
-    type(DIRECTIVE), dimension(14), parameter :: dirDirectives = (/ &
-                       DIRECTIVE(iEND, 'END'), &
-                       DIRECTIVE(iDBG, 'DBG'), &
-                       DIRECTIVE(iAQU, 'AQU'), &
-                       DIRECTIVE(iWL0, 'WL0'), &
-                       DIRECTIVE(iPD0, 'PD0'), &
-                       DIRECTIVE(iWL1, 'WL1'), &
-                       DIRECTIVE(iLS0, 'LS0'), &
-                       DIRECTIVE(iLS1, 'LS1'), &
-                       DIRECTIVE(iLS2, 'LS2'), &
-                       DIRECTIVE(iLS3, 'LS3'), &
-                       DIRECTIVE(iHB0, 'HB0'), &
-                       DIRECTIVE(iAS0, 'AS0'), &
-                       DIRECTIVE(iOPT, 'OPT'), &
-                       DIRECTIVE(iRLX, 'RLX')/)
-#endif
     character(len=255) :: sOptionText
     integer(kind=AE_INT) :: iOpCode
     integer(kind=AE_INT) :: iStat
@@ -1023,11 +967,9 @@ contains
           end if
         case (iOPT)
           call IO_MessageText(io, '[OPT directive was ignored]')
-#ifndef __GPL__
         case (iCW0)
           call CW0_Alloc(io, pkg%cw0)
           call CW0_Read(io, pkg%cw0)
-#endif
       end select
     end do
 
@@ -1058,9 +1000,7 @@ contains
     call LS3_Save(io, pkg%ls3, mode)
     call HB0_Save(io, pkg%hb0, mode)
     call WL1_Save(io, pkg%wl1, mode)
-#ifndef __GPL__
     call CW0_Save(io, pkg%cw0, mode)
-#endif
 
     close(unit=LU_SCRATCH)
 
@@ -1089,9 +1029,7 @@ contains
     call LS3_Load(io, pkg%ls3, pkg%aem%fls, mode)
     call HB0_Load(io, pkg%hb0, pkg%aem%fdp, mode)
     call WL1_Load(io, pkg%wl1, pkg%aem%fwl, mode)
-#ifndef __GPL__
     call CW0_Load(io, pkg%cw0, pkg%aem%fwl, pkg%aem%fdp, mode)
-#endif
 
     close(unit=LU_SCRATCH)
 

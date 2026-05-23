@@ -114,10 +114,8 @@ module u_constants
   integer(kind=AE_INT), public, parameter :: kOpLS3 = 3011
   ! Strength-specified area-sinks
   integer(kind=AE_INT), public, parameter :: kOpAS0 = 3012
-#ifndef __GPL__
   ! Collector wells
   integer(kind=AE_INT), public, parameter :: kOpCW0 = 30013
-#endif
   ! Analysis Modules
   ! Pathline trace module
   integer(kind=AE_INT), public, parameter :: kOpTR0 = 3506
@@ -220,9 +218,7 @@ module u_constants
   type(DIRECTIVE), public, parameter :: dirLS2 = DIRECTIVE(kOpLS2, "LS2")
   type(DIRECTIVE), public, parameter :: dirLS3 = DIRECTIVE(kOpLS3, "LS3")
   type(DIRECTIVE), public, parameter :: dirAS0 = DIRECTIVE(kOpAS0, "AS0")
-#ifndef __GPL__
   type(DIRECTIVE), public, parameter :: dirCW0 = DIRECTIVE(kOpCW0, "CW0")
-#endif
 
   !
   type(DIRECTIVE), public, parameter :: dirWIN = DIRECTIVE(kOpWIN, "WIN")
