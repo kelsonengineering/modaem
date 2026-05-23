@@ -34,7 +34,7 @@ program modaem
   use f_aem
   use p_packages
   use a_inq
-  use m_ext
+  use a_ext
   use a_grid
   use a_tr0
   use a_stdio

@@ -26,7 +26,7 @@ add_executable(modaem
     m_aqu.F90
     m_as0.F90
     m_cw0.F90
-    m_ext.F90
+    a_ext.F90
     m_hb0.F90
     m_inq.F90
     m_ls0.F90
