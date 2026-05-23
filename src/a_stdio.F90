@@ -27,7 +27,7 @@ module a_stdio
 
   use u_constants
   use u_io
-  use m_aem
+  use f_aem
 
   implicit none
 

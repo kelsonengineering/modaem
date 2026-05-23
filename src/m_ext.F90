@@ -57,7 +57,7 @@ module m_ext
   use m_ls0
   use m_ls1
   use m_hb0
-  use m_aem
+  use f_aem
 
   implicit none
 

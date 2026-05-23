@@ -25,7 +25,7 @@ module a_grid
 
   use u_constants
   use u_io
-  use m_aem
+  use f_aem
   use p_packages
 
   implicit none

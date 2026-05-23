@@ -1,4 +1,4 @@
-module m_packages
+module p_packages
 
   ! ModAEM 2.0
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
@@ -10,7 +10,7 @@ module m_packages
   use u_io
   use u_matrix
   use u_domain
-  use m_aem
+  use f_aem
   use m_aqu
   use m_wl0
   use m_wl1
@@ -1099,4 +1099,4 @@ contains
   end subroutine PKG_Load
 
 
-end module m_packages
+end module p_packages

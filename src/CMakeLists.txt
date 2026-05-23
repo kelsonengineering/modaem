@@ -22,7 +22,7 @@ add_executable(modaem
     i_pond.F90
     i_well.F90
     # Element modules
-    m_aem.F90
+    f_aem.F90
     m_aqu.F90
     m_as0.F90
     m_cw0.F90
