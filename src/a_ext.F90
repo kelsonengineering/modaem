@@ -1,4 +1,4 @@
-module m_ext
+module a_ext
 
   ! ModAEM 1.8
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
@@ -52,11 +52,11 @@ module m_ext
 
   use u_constants
   use u_io
-  use m_wl0
-  use m_wl1
-  use m_ls0
-  use m_ls1
-  use m_hb0
+  use p_wl0
+  use p_wl1
+  use p_ls0
+  use p_ls1
+  use p_hb0
   use f_aem
 
   implicit none
@@ -240,4 +240,4 @@ contains
     return
   end subroutine EXT_Read
 
-end module m_ext
+end module a_ext

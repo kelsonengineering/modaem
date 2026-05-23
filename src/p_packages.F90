@@ -11,18 +11,18 @@ module p_packages
   use u_matrix
   use u_domain
   use f_aem
-  use m_aqu
-  use m_wl0
-  use m_wl1
-  use m_pd0
-  use m_ls0
-  use m_ls1
-  use m_ls2
-  use m_ls3
-  use m_hb0
-  use m_as0
+  use p_aqu
+  use p_wl0
+  use p_wl1
+  use p_pd0
+  use p_ls0
+  use p_ls1
+  use p_ls2
+  use p_ls3
+  use p_hb0
+  use p_as0
 #ifndef __GPL__
-  use m_cw0
+  use p_cw0
 #endif
 
   implicit none

@@ -23,19 +23,19 @@ add_executable(modaem
     i_well.F90
     # Element modules
     f_aem.F90
-    m_aqu.F90
-    m_as0.F90
-    m_cw0.F90
+    p_aqu.F90
+    p_as0.F90
+    p_cw0.F90
     a_ext.F90
-    m_hb0.F90
+    p_hb0.F90
     m_inq.F90
-    m_ls0.F90
-    m_ls1.F90
-    m_ls2.F90
-    m_ls3.F90
-    m_pd0.F90
-    m_wl0.F90
-    m_wl1.F90
+    p_ls0.F90
+    p_ls1.F90
+    p_ls2.F90
+    p_ls3.F90
+    p_pd0.F90
+    p_wl0.F90
+    p_wl1.F90
     # Application modules
     a_grid.F90
     a_obs.F90

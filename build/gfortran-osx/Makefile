@@ -22,7 +22,7 @@ all: modaem-2.0-dev
 	
 a_grid.o: a_grid.F90 u_constants.o u_io.o f_aem.o p_packages.o
 
-a_obs.o: a_obs.F90 u_constants.o u_io.o f_aem.o m_ls2.o
+a_obs.o: a_obs.F90 u_constants.o u_io.o f_aem.o p_ls2.o
 
 a_stdio.o: a_stdio.F90 u_constants.o u_io.o f_aem.o
 
@@ -52,33 +52,33 @@ i_well.o: i_well.F90 u_constants.o
 
 f_aem.o: f_aem.F90 u_constants.o u_io.o u_matrix.o u_domain.o f_reference.o f_well.o f_dipole.o f_pond.o f_linesink.o f_areasink.o
 
-p_packages.o: p_packages.F90 u_constants.o u_io.o u_matrix.o u_domain.o f_aem.o m_aqu.o m_wl0.o m_wl1.o m_pd0.o m_ls0.o m_ls1.o m_ls2.o m_ls3.o m_hb0.o m_as0.o
+p_packages.o: p_packages.F90 u_constants.o u_io.o u_matrix.o u_domain.o f_aem.o p_aqu.o p_wl0.o p_wl1.o p_pd0.o p_ls0.o p_ls1.o p_ls2.o p_ls3.o p_hb0.o p_as0.o p_cw0.o
 
-m_aqu.o: m_aqu.F90 u_constants.o u_io.o u_matrix.o u_polygon.o u_domain.o f_reference.o f_dipole.o f_linesink.o i_linesink.o
+p_aqu.o: p_aqu.F90 u_constants.o u_io.o u_matrix.o u_polygon.o u_domain.o f_reference.o f_dipole.o f_linesink.o i_linesink.o
 
-m_as0.o: m_as0.F90 u_constants.o u_io.o u_polygon.o u_matrix.o f_well.o f_dipole.o f_areasink.o i_areasink.o m_aqu.o
+p_as0.o: p_as0.F90 u_constants.o u_io.o u_polygon.o u_matrix.o f_well.o f_dipole.o f_areasink.o i_areasink.o p_aqu.o
 
-a_ext.o: a_ext.F90 u_constants.o u_io.o m_wl0.o m_wl1.o m_ls0.o m_ls1.o m_hb0.o f_aem.o
+a_ext.o: a_ext.F90 u_constants.o u_io.o p_wl0.o p_wl1.o p_ls0.o p_ls1.o p_hb0.o f_aem.o
 
-m_hb0.o: m_hb0.F90 u_constants.o u_io.o u_matrix.o f_dipole.o
+p_hb0.o: p_hb0.F90 u_constants.o u_io.o u_matrix.o f_dipole.o
 
 a_inq.o: a_inq.F90 u_constants.o u_io.o f_aem.o p_packages.o
 
-m_ls0.o: m_ls0.F90 u_constants.o u_io.o u_matrix.o f_well.o f_dipole.o m_aqu.o
+p_ls0.o: p_ls0.F90 u_constants.o u_io.o u_matrix.o f_well.o f_dipole.o p_aqu.o
 
-m_ls1.o: m_ls1.F90 u_constants.o u_io.o f_well.o f_dipole.o u_matrix.o m_aqu.o
+p_ls1.o: p_ls1.F90 u_constants.o u_io.o f_well.o f_dipole.o u_matrix.o p_aqu.o
 
-m_ls2.o: m_ls2.F90 u_constants.o u_io.o f_well.o f_dipole.o u_matrix.o m_aqu.o
+p_ls2.o: p_ls2.F90 u_constants.o u_io.o f_well.o f_dipole.o u_matrix.o p_aqu.o
 
-m_ls3.o: m_ls3.F90 u_constants.o u_io.o f_well.o f_dipole.o u_matrix.o m_aqu.o
+p_ls3.o: p_ls3.F90 u_constants.o u_io.o f_well.o f_dipole.o u_matrix.o p_aqu.o
 
-m_cw0.o: m_cw0.F90 u_constants.o u_io.o f_well.o f_dipole.o u_matrix.o m_aqu.o
+p_cw0.o: p_cw0.F90 u_constants.o u_io.o f_well.o f_dipole.o u_matrix.o p_aqu.o
 
-m_pd0.o: m_pd0.F90 u_constants.o u_io.o f_pond.o
+p_pd0.o: p_pd0.F90 u_constants.o u_io.o f_pond.o
 
-m_wl0.o: m_wl0.F90 u_constants.o u_io.o f_well.o f_bwl.o m_aqu.o 
+p_wl0.o: p_wl0.F90 u_constants.o u_io.o f_well.o f_bwl.o p_aqu.o 
 
-m_wl1.o: m_wl1.F90 u_constants.o u_io.o f_well.o u_matrix.o m_aqu.o
+p_wl1.o: p_wl1.F90 u_constants.o u_io.o f_well.o u_matrix.o p_aqu.o
 
 modaem.o: modaem.F90 u_constants.o u_io.o f_aem.o p_packages.o a_inq.o a_ext.o a_grid.o a_tr0.o a_stdio.o a_obs.o
 
@@ -102,10 +102,10 @@ test.o: test.F90 $(INF)
 
 INF = i_well.o i_linesink.o i_dipole.o i_pond.o i_areasink.o
 
-OBJ = a_tr0.o m_as0.o m_wl1.o m_ls0.o u_matrix.o u_polygon.o u_domain.o u_math.o modaem.o m_wl0.o a_stdio.o \
-      f_pond.o a_obs.o m_ls1.o a_grid.o m_aqu.o m_pd0.o \
-      f_reference.o f_linesink.o f_dipole.o f_areasink.o a_ext.o f_aem.o p_packages.o u_io.o m_hb0.o u_constants.o  \
-      f_well.o a_inq.o m_ls2.o u_grid.o m_ls3.o m_cw0.o f_bwl.o polypack.o $(INF)
+OBJ = a_tr0.o p_as0.o p_wl1.o p_ls0.o u_matrix.o u_polygon.o u_domain.o u_math.o modaem.o p_wl0.o a_stdio.o \
+      f_pond.o a_obs.o p_ls1.o a_grid.o p_aqu.o p_pd0.o \
+      f_reference.o f_linesink.o f_dipole.o f_areasink.o a_ext.o f_aem.o p_packages.o u_io.o p_hb0.o u_constants.o  \
+      f_well.o a_inq.o p_ls2.o u_grid.o p_ls3.o p_cw0.o f_bwl.o polypack.o $(INF)
 
 clean: neat
 	-rm -f .cppdefs *.o *.mod

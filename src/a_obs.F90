@@ -84,7 +84,7 @@ module a_obs
   use u_constants
   use u_io
   use f_aem
-  use m_ls2
+  use p_ls2
 
   implicit none
 
