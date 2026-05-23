@@ -58,12 +58,8 @@ module m_inq
 
   use u_constants
   use u_io
-  use m_wl0
-  use m_wl1
-  use m_ls0
-  use m_ls1
-  use m_hb0
   use m_aem
+  use m_packages
 
   implicit none
 
@@ -78,11 +74,11 @@ module m_inq
 contains
 
 
-  subroutine INQ_Read(io, aem)
+  subroutine INQ_Read(io, pkg)
     ! This reads and processes the input commands for the INQ package
 
     ! Argument list
-    type(AEM_DOMAIN), pointer :: aem
+    type(PKG_DOMAIN), pointer :: pkg
     type(IO_STATUS), pointer :: io
 
     ! Locals -- for Directive parsing
@@ -118,7 +114,7 @@ contains
     ! Clear the status flags
     fINQFileOpen = .false.
     call IO_MessageText(io, "Entering inquiry module INQ")
-    call IO_Assert(io, (associated(aem)), "INQ_Read: No AEM_DOMAIN object")
+    call IO_Assert(io, (associated(pkg)), "INQ_Read: No PKG_DOMAIN object")
 
     ! The remainder of this routine uses ifIOInputRecord to process
     ! the model input file.
@@ -160,7 +156,7 @@ contains
           call IO_Assert(io, fINQFileOpen, "INQ_Read: No output file")
           cZ1 = cIO_GetCoordinate(io, "cZ1")
           iLabel = iIO_GetInteger(io, "iLabel")
-          rValue = rAEM_Head(io, aem, cZ1)
+          rValue = rAEM_Head(io, pkg%aem, cZ1)
           write (unit=LU_INQ, fmt="(""HEA"", "", "", i9, 1x, 3("", "", e18.11))") iLabel, cZ1, rValue
         case (kOpDIS)
           !****************************************************************************
@@ -171,7 +167,7 @@ contains
           call IO_Assert(io, fINQFileOpen, "INQ_Read: No output file")
           cZ1 = cIO_GetCoordinate(io, "cZ1")
           iLabel = iIO_GetInteger(io, "iLabel")
-          cValue = cIO_WorldDischarge(io, cAEM_Discharge(io, aem, cZ1))
+          cValue = cIO_WorldDischarge(io, cAEM_Discharge(io, pkg%aem, cZ1))
           write (unit=LU_INQ, fmt="(""DIS"", "", "", i9, 1x, 4("", "", e18.11))") iLabel, cZ1, cValue
         case (kOpPOT)
           !****************************************************************************
@@ -181,7 +177,7 @@ contains
           call IO_Assert(io, fINQFileOpen, "INQ_Read: No output file")
           cZ1 = cIO_GetCoordinate(io, "cZ1")
           iLabel = iIO_GetInteger(io, "iLabel")
-          cValue = cAEM_Potential(io, aem, cZ1)
+          cValue = cAEM_Potential(io, pkg%aem, cZ1)
           write (unit=LU_INQ, fmt="(""POT"", "", "", i9, 1x, 4("", "", e18.11))") iLabel, cZ1, cValue
         case (kOpVEL)
           !****************************************************************************
@@ -192,7 +188,7 @@ contains
           call IO_Assert(io, fINQFileOpen, "INQ_Read: No output file")
           cZ1 = cIO_GetCoordinate(io, "cZ1")
           iLabel = iIO_GetInteger(io, "iLabel")
-          cValue = cIO_WorldDischarge(io, cAEM_Velocity(io, aem, cZ1))
+          cValue = cIO_WorldDischarge(io, cAEM_Velocity(io, pkg%aem, cZ1))
           write (unit=LU_INQ, fmt="(""VEL"", "", "", i9, 1x, 4("", "", e18.11))") iLabel, cZ1, cValue
         case (kOpFLO)
           !****************************************************************************
@@ -204,7 +200,7 @@ contains
           cZ1 = cIO_GetCoordinate(io, "cZ1")
           cZ2 = cIO_GetCoordinate(io, "cZ2")
           iLabel = iIO_GetInteger(io, "iLabel")
-          rValue = rIO_WorldLength(io, rAEM_Flow(io, aem, (/cZ1, cZ2/)), cZ2-cZ1)
+          rValue = rIO_WorldLength(io, rAEM_Flow(io, pkg%aem, (/cZ1, cZ2/)), cZ2-cZ1)
           write (unit=LU_INQ, fmt="(""FLO"", "", "", i9, 1x, 5("", "", e18.11))") iLabel, cZ1, cZ2, rValue
         case (kOpBDY)
           !****************************************************************************
@@ -216,8 +212,8 @@ contains
           cZ1 = cIO_GetCoordinate(io, "cZ1")
           cZ2 = cIO_GetCoordinate(io, "cZ2")
           iLabel = iIO_GetInteger(io, "iLabel")
-          rFlux = rAEM_Flow(io, aem, (/cZ1, cZ2/))
-          rHead = rAEM_Head(io, aem, rHALF*(cZ1+cZ2))
+          rFlux = rAEM_Flow(io, pkg%aem, (/cZ1, cZ2/))
+          rHead = rAEM_Head(io, pkg%aem, rHALF*(cZ1+cZ2))
           write (unit=LU_INQ, fmt="(""BDY"", "", "", i9, 1x, 6("", "", e18.11))") iLabel, cZ1, cZ2, rHead, rFlux
         case (kOpRCH)
           !****************************************************************************
@@ -228,7 +224,7 @@ contains
           call IO_Assert(io, fINQFileOpen, "INQ_Read: No output file")
           cZ1 = cIO_GetCoordinate(io, "cZ1")
           iLabel = iIO_GetInteger(io, "iLabel")
-          rValue = rAEM_Recharge(io, aem, cZ1)
+          rValue = rAEM_Recharge(io, pkg%aem, cZ1)
           write (unit=LU_INQ, fmt="(""RCH"", "", "", i9, 1x, 3("", "", e18.11))") iLabel, cZ1, rValue
         case (kOpSAT)
           !****************************************************************************
@@ -239,7 +235,7 @@ contains
           call IO_Assert(io, fINQFileOpen, "INQ_Read: No output file")
           cZ1 = cIO_GetCoordinate(io, "cZ1")
           iLabel = iIO_GetInteger(io, "iLabel")
-          rValue = rAEM_SatdThick(io, aem, cZ1)
+          rValue = rAEM_SatdThick(io, pkg%aem, cZ1)
           write (unit=LU_INQ, fmt="(""SAT"", "", "", i9, 1x, 3("", "", e18.11))") iLabel, cZ1, rValue
         case (kOpGAG)
           !****************************************************************************
@@ -250,55 +246,55 @@ contains
           call IO_Assert(io, fINQFileOpen, "INQ_Read: No output file")
           iGageID = iIO_GetInteger(io, "iGageID")
           iLabel = iIO_GetInteger(io, "iLabel")
-          rValue = rLS2_Gage(io, aem%ls2, iID)
+          rValue = rLS2_Gage(io, pkg%ls2, iID)
           write (unit=LU_INQ, fmt='("GAG", ", ", i9, ", ", 1x, i9, 1x, ", ", e18.11)') iID, iGageId, rValue
         case (kOpWL0)
           !****************************************************************************
           ! Here for the WL0 command -- extract information about WL0 elements
           !****************************************************************************
-          call WL0_Inquiry(io, aem%wl0, aem%aqu, LU_INQ)
+          call WL0_Inquiry(io, pkg%wl0, pkg%aqu, LU_INQ)
         case (kOpWL1) !**pd
           !****************************************************************************
           ! Here for the WL1 command -- extract information about WL1 elements
           !****************************************************************************
-          call WL1_Inquiry(io, aem%wl1, aem%aqu, LU_INQ) !**pd
+          call WL1_Inquiry(io, pkg%wl1, pkg%aqu, LU_INQ) !**pd
         case (kOpLS0)
           !****************************************************************************
           ! Here for the LS0 command -- extract information about LS0 elements
           !****************************************************************************
-          call LS0_Inquiry(io, aem%ls0, LU_INQ)
+          call LS0_Inquiry(io, pkg%ls0, LU_INQ)
         case (kOpLS1)
           !****************************************************************************
           ! Here for the LS1 command -- extract information about LS1 elements
           !****************************************************************************
-          call LS1_Inquiry(io, aem%ls1, LU_INQ)
+          call LS1_Inquiry(io, pkg%ls1, LU_INQ)
         case (kOpLS2)
           !****************************************************************************
           ! Here for the LS2 command -- extract information about LS2 elements
           !****************************************************************************
-          call LS2_Inquiry(io, aem%ls2, LU_INQ)
+          call LS2_Inquiry(io, pkg%ls2, LU_INQ)
         case (kOpHB0)
           !****************************************************************************
           ! Here for the HB0 command -- extract information about HB0 elements
           !****************************************************************************
-          call HB0_Inquiry(io, aem%hb0, LU_INQ)
+          call HB0_Inquiry(io, pkg%hb0, LU_INQ)
         case (kOpAS0)
           !****************************************************************************
           ! Here for the AS0 command -- extract information about AS0 elements
           !****************************************************************************
-          call AS0_Inquiry(io, aem%as0_top, LU_INQ)
-          call AS0_Inquiry(io, aem%as0_bottom, LU_INQ)
+          call AS0_Inquiry(io, pkg%as0_top, LU_INQ)
+          call AS0_Inquiry(io, pkg%as0_bottom, LU_INQ)
         case (kOpAQU)
           !****************************************************************************
           ! Here for the AQU command -- extract information about AEM elements
           !****************************************************************************
-          call AQU_Inquiry(io, aem%aqu, LU_INQ)
+          call AQU_Inquiry(io, pkg%aqu, LU_INQ)
 #ifndef __GPL__
         case (kOpCW0)
           !****************************************************************************
           ! Here for the CW0 command -- extract information about collector wells
           !****************************************************************************
-          call CW0_Inquiry(io, aem%cw0, aem%aqu, LU_INQ)
+          call CW0_Inquiry(io, pkg%cw0, pkg%aqu, LU_INQ)
 #endif
         case default
           continue

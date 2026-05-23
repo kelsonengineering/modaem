@@ -46,6 +46,7 @@ module m_as0
   use u_matrix
   use f_well
   use f_dipole
+  use f_areasink
   use i_areasink
   use m_aqu
 
@@ -359,6 +360,8 @@ contains
     select case (iOption)
       case (SIZE_FWL)
         iValue = as0%iNStr
+      case (SIZE_FAS)
+        iValue = as0%iNStr
       case (SIZE_FDP)
         do iStr = 1, as0%iNStr
           str => as0%Strings(iStr)
@@ -372,33 +375,17 @@ contains
   end function iAS0_GetInfo
 
 
-  subroutine AS0_SetupFunctions(io, as0, fwl, fdp)
+  subroutine AS0_SetupFunctions(io, as0, fwl, fdp, fas)
     !! subroutine AS0_Setup
     !!
-    !! This routine sets up the functions in f_well and f_dipole for the line-sinks
-    !! Since this module creates given-strength elements, the strengths of
-    !! all functions are computed at set-up time.
-    !!
-    !! Note: This routine assumes that sufficient space has been allocated
-    !! in f_well and in f_dipole by SOL_Alloc.
-    !!
-    !! Calling Sequence:
-    !!    call AS0_Setup(io, as0, fwl, fdp)
-    !!
-    !! Arguments:
-    !!   (in)    type(AS0_COLLECTION), pointer
-    !!             AS0_COLLECTION object to be used
-    !!   (in)    type(FWL_COLLECTION), pointer
-    !!             FWL_COLLECTION function object
-    !!   (in)    type(AS0_COLLECTION), pointer
-    !!             FDP_COLLECTION function object
-    !!   (in)    type(AAU_COLLECTION), pointer
-    !!             AQU_COLLECTION overlapping the model
+    !! Sets up FWL/FDP functions for the dipole+well approximation outside polygons,
+    !! and registers each polygon into the FAS collection for inside-polygon computation.
     !!
     ! [ ARGUMENTS ]
     type(AS0_COLLECTION), pointer :: as0
     type(FWL_COLLECTION), pointer :: fwl
     type(FDP_COLLECTION), pointer :: fdp
+    type(FAS_COLLECTION), pointer :: fas
     type(IO_STATUS), pointer :: io
     ! [ LOCAAS ]
     integer(kind=AE_INT) :: iStr, iSeg
@@ -408,6 +395,7 @@ contains
     complex(kind=AE_REAL), dimension(2) :: seg
     type(AS0_STRING), pointer :: str
     type(FDP_DIPOLE), pointer :: pTempDP
+    type(FAS_AREASINK), pointer :: pTempFAS
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(as0)), &
@@ -447,6 +435,9 @@ contains
 
       ! Put a well at the end of the string
       str%pFWL => FWL_New(io, fwl, cZ0, real(cRho3), rZERO, ELEM_AS0, iStr, -1, -1)
+
+      ! Register the polygon in the FAS collection for inside-polygon computation
+      pTempFAS => FAS_New(io, fas, str%poly, str%iNPts, str%rN, ELEM_AS0, iStr)
 
     end do
 

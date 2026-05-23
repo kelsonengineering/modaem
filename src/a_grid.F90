@@ -26,7 +26,7 @@ module a_grid
   use u_constants
   use u_io
   use m_aem
-  use m_aqu
+  use m_packages
 
   implicit none
 
@@ -60,11 +60,11 @@ contains
   !> Processes model input for the GRI (grid) module
   !>
   !> Test doc
-  subroutine GRI_Read(io, aem)
+  subroutine GRI_Read(io, pkg)
 
     ! Argument list
-    type(AEM_DOMAIN), pointer :: aem 
-    type(IO_STATUS), pointer :: io  
+    type(PKG_DOMAIN), pointer :: pkg
+    type(IO_STATUS), pointer :: io
     ! Locals -- for Directive parsing
     integer(kind=AE_INT), parameter :: &
                           iEND=1001, iOPT=1002, iWIN=1003, iDIM=1004, &
@@ -101,7 +101,7 @@ contains
     rMissingValue = -901.0_AE_REAL
     rScale = rONE
     call IO_MessageText(io, "Entering GRI module")
-    call IO_Assert(io, (associated(aem)), "GRI_Read: No AEM_DOMAIN object")
+    call IO_Assert(io, (associated(pkg)), "GRI_Read: No PKG_DOMAIN object")
     ! Get the default settings
     call IO_GetWindow(io, cLL, cUR)
     iRes = 30
@@ -139,14 +139,14 @@ contains
           ! Here for the HEA command -- generate and write a grid of heads
           !****************************************************************************
           sFile = sIO_GetField(io, "sFile")
-          call GRI_MakeGrid(io, aem, GRID_HEAD, cLL, cUR, iRes, sFile, iOption, io%lProfile, &
+          call GRI_MakeGrid(io, pkg,GRID_HEAD, cLL, cUR, iRes, sFile, iOption, io%lProfile, &
                lCheckActive, rMissingValue, rScale)
         case (iPOT)
           !****************************************************************************
           ! Here for the POT command -- generate and write a grid of potentials
           !****************************************************************************
           sFile = sIO_GetField(io, "sFile")
-          call GRI_MakeGrid(io, aem, GRID_POTENTIAL, cLL, cUR, iRes, sFile, iOption, io%lProfile, &
+          call GRI_MakeGrid(io, pkg,GRID_POTENTIAL, cLL, cUR, iRes, sFile, iOption, io%lProfile, &
                lCheckActive, rMissingValue, rScale)
         case (iPSI)
           !****************************************************************************
@@ -156,21 +156,21 @@ contains
           cBcOrigin = cIO_GetCoordinate(io, "cBcOrigin", def=cHUGE)
           cBcCheck = cIO_GetCoordinate(io, "cBcCheck", def=cHUGE)
           iBcQuadrant = iIO_GetInteger(io, "iBcQuadrant", def=0)
-          call GRI_MakeGrid(io, aem, GRID_STREAMFUNCTION, cLL, cUR, iRes, sFile, iOption, io%lProfile, &
+          call GRI_MakeGrid(io, pkg,GRID_STREAMFUNCTION, cLL, cUR, iRes, sFile, iOption, io%lProfile, &
                lCheckActive, rMissingValue, rScale, cBcOrigin, cBcCheck, iBcQuadrant)
         case (iQ_X)
           !****************************************************************************
           ! Here for the QX command -- generate and write a grid of discharges
           !****************************************************************************
           sFile = sIO_GetField(io, "sFile")
-          call GRI_MakeGrid(io, aem, GRID_QX, cLL, cUR, iRes, sFile, iOption, io%lProfile, &
+          call GRI_MakeGrid(io, pkg,GRID_QX, cLL, cUR, iRes, sFile, iOption, io%lProfile, &
                lCheckActive, rMissingValue, rScale)
         case (iQ_Y)
           !****************************************************************************
           ! Here for the QY command -- generate and write a grid of discharges
           !****************************************************************************
           sFile = sIO_GetField(io, "sFile")
-          call GRI_MakeGrid(io, aem, GRID_QY, cLL, cUR, iRes, sFile, iOption, io%lProfile, &
+          call GRI_MakeGrid(io, pkg,GRID_QY, cLL, cUR, iRes, sFile, iOption, io%lProfile, &
                lCheckActive, rMissingValue, rScale)
         case (iFLO)
           !****************************************************************************
@@ -178,7 +178,7 @@ contains
           !****************************************************************************
           sFile = sIO_GetField(io, "sFile")
           cBcOrigin = cIO_GetCoordinate(io, "cBcOrigin", def=cZERO)
-          call GRI_MakeGrid(io, aem, GRID_FLOW, cLL, cUR, iRes, sFile, iOption, io%lProfile, &
+          call GRI_MakeGrid(io, pkg,GRID_FLOW, cLL, cUR, iRes, sFile, iOption, io%lProfile, &
                lCheckActive, rMissingValue, rScale, cBcOrigin)
         case (iPRH)
           !****************************************************************************
@@ -187,7 +187,7 @@ contains
           !****************************************************************************
           call IO_Assert(io, io%lProfile, "Pressure-head grids are valid only in PROFILE models")
           sFile = sIO_GetField(io, "sFile")
-          call GRI_MakeGrid(io, aem, GRID_PRESSURE_HEAD, cLL, cUR, iRes, sFile, iOption, io%lProfile, &
+          call GRI_MakeGrid(io, pkg,GRID_PRESSURE_HEAD, cLL, cUR, iRes, sFile, iOption, io%lProfile, &
                lCheckActive, rMissingValue, rScale, cBcOrigin)
         case (iVEL)
           !****************************************************************************
@@ -195,7 +195,7 @@ contains
           !                             (only valid in PROFILE mode)
           !****************************************************************************
           sFile = sIO_GetField(io, "sFile")
-          call GRI_MakeGrid(io, aem, GRID_VELOCITY_MAGNITUDE, cLL, cUR, iRes, sFile, iOption, io%lProfile, &
+          call GRI_MakeGrid(io, pkg,GRID_VELOCITY_MAGNITUDE, cLL, cUR, iRes, sFile, iOption, io%lProfile, &
                lCheckActive, rMissingValue, rScale, cBcOrigin)
         case (iOPT)
           !****************************************************************************
@@ -236,7 +236,7 @@ contains
   end subroutine GRI_Read
 
 
-  subroutine GRI_MakeGrid(io, aem, iFunc, cLL, cUR, iRes, sFile, iOption, lProfile, lCheckActive, &
+  subroutine GRI_MakeGrid(io, pkg,iFunc, cLL, cUR, iRes, sFile, iOption, lProfile, lCheckActive, &
                rMissingValue, rScale, cBcOrigin, cBcCheck, iBcQuadrant)
     !! subroutine GRI_MakeGrid
     !!
@@ -244,8 +244,8 @@ contains
     !! results to sFile
     !!
     !! Arguments
-    !!    (in)    type(AEM_DOMAIN), pointer :: aem
-    !!              AEM_DOMAIN to be used
+    !!    (in)    type(PKG_DOMAIN), pointer :: pkg
+    !!              PKG_DOMAIN to be used
     !!    (in)    integer :: iFunc
     !!              Function to be gridded(see constants defined above)
     !!                GRID_HEAD            Head(makes '.head.grd' file)
@@ -282,7 +282,7 @@ contains
     !! Note: Uses the LU_GRID LU for output
     !!
     ! [ ARGUMENTS ]
-    type(AEM_DOMAIN), pointer :: aem
+    type(PKG_DOMAIN), pointer :: pkg
     integer(kind=AE_INT), intent(in) :: iFunc
     complex(kind=AE_REAL), intent(in) :: cLL
     complex(kind=AE_REAL), intent(in) :: cUR
@@ -311,7 +311,7 @@ contains
     integer(kind=AE_INT), parameter :: BC_LOWER_LEFT = 3
     integer(kind=AE_INT), parameter :: BC_LOWER_RIGHT = 4
 
-    call IO_Assert(io, (associated(aem)), 'MakeGrid: No AEM_DOMAIN object')
+    call IO_Assert(io, (associated(pkg)), 'MakeGrid: No PKG_DOMAIN object')
     call IO_Assert(io, (abs(cUR-cLL) > rSMALL_GRID), 'MakeGrid: Bad window')
     call IO_Assert(io, (iRes > 2), 'MakeGrid: Bad resolution')
 
@@ -371,10 +371,10 @@ contains
           rY = rMyMinY + (j-1)*rDeltaY
           do i = 1, iMyResX
             rX = rMyMinX + (i-1)*rDeltaX
-            if (lCheckActive .and. .not. lAQU_CheckActive(io, aem%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
+            if (lCheckActive .and. .not. lAQU_CheckActive(io, pkg%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
               rGrid(j,i) = rMissingValue
             else
-              rGrid(j, i) = rAEM_Head(io, aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))
+              rGrid(j, i) = rAEM_Head(io, pkg%aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))
               if (lProfile) then
                 if (rGrid(j, i) < rY) rGrid(j, i) = rMissingValue
               end if
@@ -387,10 +387,10 @@ contains
           rY = rMyMinY + (j-1)*rDeltaY
           do i = 1, iMyResX
             rX = rMyMinX + (i-1)*rDeltaX
-            if (lCheckActive .and. .not. lAQU_CheckActive(io, aem%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
+            if (lCheckActive .and. .not. lAQU_CheckActive(io, pkg%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
               rGrid(j,i) = rMissingValue
             else
-              rGrid(j, i) = rAEM_Head(io, aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) - rY
+              rGrid(j, i) = rAEM_Head(io, pkg%aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) - rY
             end if
           end do
         end do
@@ -400,12 +400,12 @@ contains
           rY = rMyMinY + (j-1)*rDeltaY
           do i = 1, iMyResX
             rX = rMyMinX + (i-1)*rDeltaX
-            if (lCheckActive .and. .not. lAQU_CheckActive(io, aem%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
+            if (lCheckActive .and. .not. lAQU_CheckActive(io, pkg%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
               rGrid(j,i) = rMissingValue
             else
-              rGrid(j, i) = real(cAEM_Potential(io, aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))))
+              rGrid(j, i) = real(cAEM_Potential(io, pkg%aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))))
               if (lProfile) then
-                if (rAEM_Head(io, aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) < rY) rGrid(j, i) = rMissingValue
+                if (rAEM_Head(io, pkg%aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) < rY) rGrid(j, i) = rMissingValue
               end if
             end if
           end do
@@ -416,12 +416,12 @@ contains
           rY = rMyMinY + (j-1)*rDeltaY
           do i = 1, iMyResX
             rX = rMyMinX + (i-1)*rDeltaX
-            if (lCheckActive .and. .not. lAQU_CheckActive(io, aem%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
+            if (lCheckActive .and. .not. lAQU_CheckActive(io, pkg%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
               rGrid(j,i) = rMissingValue
             else
-              rGrid(j, i) = aimag(cAEM_Potential(io, aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))))
+              rGrid(j, i) = aimag(cAEM_Potential(io, pkg%aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))))
               if (lProfile) then
-                if (rAEM_Head(io, aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) < rY) then
+                if (rAEM_Head(io, pkg%aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) < rY) then
                   rGrid(j, i) = rMissingValue
                 else
                   rGrid(j, i) = rGrid(j, i)
@@ -429,19 +429,19 @@ contains
                   select case (iBcQuadrant)
                     case (BC_UPPER_RIGHT)
                       if (rX > real(cBcOrigin) .and. rY > aimag(cBcOrigin)) then
-                        rBC = rAQU_BranchCut(io, aem%aqu, (/ cmplx(rX, rY, AE_REAL), cBcCheck /))
+                        rBC = rAQU_BranchCut(io, pkg%aqu, (/ cmplx(rX, rY, AE_REAL), cBcCheck /))
                       end if
                     case (BC_UPPER_LEFT)
                       if (rX < real(cBcOrigin) .and. rY > aimag(cBcOrigin)) then
-                        rBC = rAQU_BranchCut(io, aem%aqu, (/ cmplx(rX, rY, AE_REAL), cBcCheck /))
+                        rBC = rAQU_BranchCut(io, pkg%aqu, (/ cmplx(rX, rY, AE_REAL), cBcCheck /))
                       end if
                     case (BC_LOWER_LEFT)
                       if (rX < real(cBcOrigin) .and. rY < aimag(cBcOrigin)) then
-                        rBC = rAQU_BranchCut(io, aem%aqu, (/ cmplx(rX, rY, AE_REAL), cBcCheck /))
+                        rBC = rAQU_BranchCut(io, pkg%aqu, (/ cmplx(rX, rY, AE_REAL), cBcCheck /))
                       end if
                     case (BC_LOWER_RIGHT)
                       if (rX > real(cBcOrigin) .and. rY < aimag(cBcOrigin)) then
-                        rBC = rAQU_BranchCut(io, aem%aqu, (/ cmplx(rX, rY, AE_REAL), cBcCheck /))
+                        rBC = rAQU_BranchCut(io, pkg%aqu, (/ cmplx(rX, rY, AE_REAL), cBcCheck /))
                       end if
                   end select
                   rGrid(j, i) = rGrid(j, i) - rBC
@@ -456,13 +456,13 @@ contains
           rY = rMyMinY + (j-1)*rDeltaY
           do i = 1, iMyResX
             rX = rMyMinX + (i-1)*rDeltaX
-            if (lCheckActive .and. .not. lAQU_CheckActive(io, aem%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
+            if (lCheckActive .and. .not. lAQU_CheckActive(io, pkg%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
               rGrid(j,i) = rMissingValue
             else
               rGrid(j, i) = real(cIO_WorldDischarge(io, &
-                                 cAEM_Discharge(io, aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))))
+                                 cAEM_Discharge(io, pkg%aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))))
               if (lProfile) then
-                if (rAEM_Head(io, aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) < rY) rGrid(j, i) = rMissingValue
+                if (rAEM_Head(io, pkg%aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) < rY) rGrid(j, i) = rMissingValue
               end if
             end if
           end do
@@ -473,13 +473,13 @@ contains
           rY = rMyMinY + (j-1)*rDeltaY
           do i = 1, iMyResX
             rX = rMyMinX + (i-1)*rDeltaX
-            if (lCheckActive .and. .not. lAQU_CheckActive(io, aem%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
+            if (lCheckActive .and. .not. lAQU_CheckActive(io, pkg%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
               rGrid(j,i) = rMissingValue
             else
               rGrid(j, i) = aimag(cIO_WorldDischarge(io, &
-                                 cAEM_Discharge(io, aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))))
+                                 cAEM_Discharge(io, pkg%aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))))
               if (lProfile) then
-                if (rAEM_Head(io, aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) < rY) rGrid(j, i) = rMissingValue
+                if (rAEM_Head(io, pkg%aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) < rY) rGrid(j, i) = rMissingValue
               end if
             end if
           end do
@@ -490,13 +490,13 @@ contains
           rY = rMyMinY + (j-1)*rDeltaY
           do i = 1, iMyResX
             rX = rMyMinX + (i-1)*rDeltaX
-            if (lCheckActive .and. .not. lAQU_CheckActive(io, aem%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
+            if (lCheckActive .and. .not. lAQU_CheckActive(io, pkg%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
               rGrid(j,i) = rMissingValue
             else
               rGrid(j, i) = real(cIO_WorldDischarge(io, &
-                                 cAEM_Velocity(io, aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))))
+                                 cAEM_Velocity(io, pkg%aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))))
               if (lProfile) then
-                if (rAEM_Head(io, aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) < rY) rGrid(j, i) = rMissingValue
+                if (rAEM_Head(io, pkg%aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) < rY) rGrid(j, i) = rMissingValue
               end if
             end if
           end do
@@ -507,13 +507,13 @@ contains
           rY = rMyMinY + (j-1)*rDeltaY
           do i = 1, iMyResX
             rX = rMyMinX + (i-1)*rDeltaX
-            if (lCheckActive .and. .not. lAQU_CheckActive(io, aem%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
+            if (lCheckActive .and. .not. lAQU_CheckActive(io, pkg%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
               rGrid(j,i) = rMissingValue
             else
               rGrid(j, i) = aimag(cIO_WorldDischarge(io, &
-                                  cAEM_Velocity(io, aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))))
+                                  cAEM_Velocity(io, pkg%aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))))
               if (lProfile) then
-                if (rAEM_Head(io, aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) < rY) rGrid(j, i) = rMissingValue
+                if (rAEM_Head(io, pkg%aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) < rY) rGrid(j, i) = rMissingValue
               end if
             end if
           end do
@@ -524,13 +524,13 @@ contains
           rY = rMyMinY + (j-1)*rDeltaY
           do i = 1, iMyResX
             rX = rMyMinX + (i-1)*rDeltaX
-            if (lCheckActive .and. .not. lAQU_CheckActive(io, aem%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
+            if (lCheckActive .and. .not. lAQU_CheckActive(io, pkg%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
               rGrid(j,i) = rMissingValue
             else
               rGrid(j, i) = abs(cIO_WorldDischarge(io, &
-                                 cAEM_Velocity(io, aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))))
+                                 cAEM_Velocity(io, pkg%aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))))
               if (lProfile) then
-                if (rAEM_Head(io, aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) < rY) rGrid(j, i) = rMissingValue
+                if (rAEM_Head(io, pkg%aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) < rY) rGrid(j, i) = rMissingValue
               end if
             end if
           end do
@@ -541,15 +541,15 @@ contains
           rY = rMyMinY + (j-1)*rDeltaY
           do i = 1, iMyResX
             rX = rMyMinX + (i-1)*rDeltaX
-            if (lCheckActive .and. .not. lAQU_CheckActive(io, aem%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
+            if (lCheckActive .and. .not. lAQU_CheckActive(io, pkg%aqu, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)))) then
               rGrid(j,i) = rMissingValue
             else
 !              rGrid(j, i) = rIO_WorldLength(io, &
-!                                  rAEM_Flow(io, aem, (/ cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)), cBcOrigin /)), &
+!                                  rAEM_Flow(io, pkg%aem, (/ cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)), cBcOrigin /)), &
 !                                  cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))-cBcOrigin)
-              rGrid(j, i) = rAEM_Flow(io, aem, (/ cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)), cBcOrigin /))
+              rGrid(j, i) = rAEM_Flow(io, pkg%aem, (/ cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL)), cBcOrigin /))
               if (lProfile) then
-                if (rAEM_Head(io, aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) < rY) rGrid(j, i) = rMissingValue
+                if (rAEM_Head(io, pkg%aem, cIO_LocalCoords(io,cmplx(rX, rY, AE_REAL))) < rY) rGrid(j, i) = rMissingValue
               end if
             end if
           end do

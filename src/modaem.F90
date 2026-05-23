@@ -31,13 +31,8 @@ program modaem
 
   use u_constants
   use u_io
-  use m_aqu
-  use m_wl0
-  use m_wl1
-  use m_ls0
-  use m_ls1
-  use m_hb0
   use m_aem
+  use m_packages
   use m_inq
   use m_ext
   use a_grid
@@ -48,7 +43,7 @@ program modaem
   implicit none
 
   ! [ RETURN VALUE ]
-  type(AEM_DOMAIN), pointer :: aem
+  type(PKG_DOMAIN), pointer :: pkg
   ! [ LOCALS ]
   integer(kind=AE_INT), parameter :: &
                           iEOD = 1000, iAEM = 1001, iRPT = 1002, iSOL = 1003, iGRI = 1004, iOBS = 1005, &
@@ -131,7 +126,7 @@ program modaem
   lDebug = .false.
   ! Wire up the files...
   call IO_OpenAll(io, sBaseName)
-  nullify(aem)
+  nullify(pkg)
 
   ! Here we go!
   do
@@ -152,140 +147,139 @@ program modaem
         call IO_MessageText(io, "EOD Encountered -- Job complete")
         exit
       case (iAEM)
-        ! Populate the AEM_DOMAIN object from the input file according to these sizes...
-        call IO_Assert(io, (.not. associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has already been created")
-        aem => AEM_Create(io)
-        call AEM_Read(io, aem)
+        ! Populate the PKG_DOMAIN object from the input file according to these sizes...
+        call IO_Assert(io, (.not. associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has already been created")
+        pkg => PKG_Create(io)
+        call PKG_Read(io, pkg)
       case (iRPT)
         ! Generates a report
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
         call HTML_Start()
         call HTML_Header('ModAEM 1.8.0-dev', 1)
-        !call AEM_Report(io, aem)
-        if (associated(aem%aqu)) call AQU_Report(io, aem%aqu)
-        if (associated(aem%wl0)) call WL0_Report(io, aem%wl0)
-        if (associated(aem%wl1)) call WL1_Report(io, aem%wl1)
-        if (associated(aem%pd0)) call PD0_Report(io, aem%pd0)
-        if (associated(aem%ls0)) call LS0_Report(io, aem%ls0)
-        if (associated(aem%ls1)) call LS1_Report(io, aem%ls1)
-        if (associated(aem%ls2)) call LS2_Report(io, aem%ls2, aem%aqu)
-        if (associated(aem%hb0)) call HB0_Report(io, aem%hb0)
-        if (associated(aem%as0_top)) call AS0_Report(io, aem%as0_top, '(aquifer top)')
-        if (associated(aem%as0_bottom)) call AS0_Report(io, aem%as0_bottom, '(aquifer bottom)')
+        !call AEM_Report(io, pkg%aem)
+        if (associated(pkg%aqu)) call AQU_Report(io, pkg%aqu)
+        if (associated(pkg%wl0)) call WL0_Report(io, pkg%wl0)
+        if (associated(pkg%wl1)) call WL1_Report(io, pkg%wl1)
+        if (associated(pkg%pd0)) call PD0_Report(io, pkg%pd0)
+        if (associated(pkg%ls0)) call LS0_Report(io, pkg%ls0)
+        if (associated(pkg%ls1)) call LS1_Report(io, pkg%ls1)
+        if (associated(pkg%ls2)) call LS2_Report(io, pkg%ls2, pkg%aqu)
+        if (associated(pkg%hb0)) call HB0_Report(io, pkg%hb0)
+        if (associated(pkg%as0_top)) call AS0_Report(io, pkg%as0_top, '(aquifer top)')
+        if (associated(pkg%as0_bottom)) call AS0_Report(io, pkg%as0_bottom, '(aquifer bottom)')
 #ifndef __GPL__
-        if (associated(aem%cw0)) call CW0_Report(io, aem%cw0, aem%aqu)
+        if (associated(pkg%cw0)) call CW0_Report(io, pkg%cw0, pkg%aqu)
 #endif
         if (io%lDebug) then
-          if (associated(aem%mat)) call MAT_Report(io, aem%mat, 'mat', .false.)
-          if (associated(aem%fwl)) call FWL_Report(io, aem%fwl)
-          if (associated(aem%fpd)) call FPD_Report(io, aem%fpd)
-          if (associated(aem%fdp)) call FDP_Report(io, aem%fdp)
+          if (associated(pkg%aem%mat)) call MAT_Report(io, pkg%aem%mat, 'mat', .false.)
+          if (associated(pkg%aem%fwl)) call FWL_Report(io, pkg%aem%fwl)
+          if (associated(pkg%aem%fpd)) call FPD_Report(io, pkg%aem%fpd)
+          if (associated(pkg%aem%fdp)) call FDP_Report(io, pkg%aem%fdp)
         end if
 
         call HTML_End()
       case (iSAV)
         ! Save the model solution information to a .pre file
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
         sFname = sIO_GetField(io, "sFname")
         sMode = sIO_GetField(io, "sMode", def="BINARY", allowed=(/"ASCII ", "BINARY"/))
         if (trim(sMode) == "BINARY") then
-          call AEM_Save(io, aem, sFname, IO_MODE_ASCII)
+          call PKG_Save(io, pkg, sFname, IO_MODE_ASCII)
         else
-          call AEM_Save(io, aem, sFname, IO_MODE_ASCII)
+          call PKG_Save(io, pkg, sFname, IO_MODE_ASCII)
         end if
       case (iPRE)
         ! Precondition the model solution information from a .pre file
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
         sMode = sIO_GetField(io, "sMode", def="BINARY", allowed=(/"ASCII ", "BINARY"/))
         if (trim(sMode) == "BINARY") then
-          call AEM_Load(io, aem, sFname, IO_MODE_ASCII)
+          call PKG_Load(io, pkg, sFname, IO_MODE_ASCII)
         else
-          call AEM_Load(io, aem, sFname, IO_MODE_ASCII)
+          call PKG_Load(io, pkg, sFname, IO_MODE_ASCII)
         end if
       case (iSOL)
         ! Enter the SOLver module
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
         iNIter = iIO_GetInteger(io, "iNIter", def=4, minimum=1)
         rRelaxation = rIO_GetReal(io, "rRelaxation", def=rONE, minimum=0.1_AE_REAL, maximum=rONE)
         iNPolishIter = iIO_GetInteger(io, "iNPolishIter", def=1, minimum=0)
-        call AEM_Solve(io, aem, iNIter, iNPolishIter, rRelaxation)
+        call PKG_Solve(io, pkg, iNIter, iNPolishIter, rRelaxation)
       case (iDDN)
         ! Switch on the "drawdown" elements
-        call AEM_EnableDrawdown(io, aem)
+        call PKG_EnableDrawdown(io, pkg)
       case (iGRI)
         ! Enter the GRId module
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
-        call GRI_Read(io, aem)
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
+        call GRI_Read(io, pkg)
       case (iINQ)
         ! Enter the inquiry module
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
-        call INQ_Read(io, aem)
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
+        call INQ_Read(io, pkg)
       case (iOBS)
         ! Enter the observations module
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
-        call OBS_Read(io, aem)
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
+        call OBS_Read(io, pkg%aem)
       case (iEXT)
         ! Enter the extract module
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
-        call EXT_Read(io, aem)
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
+        call EXT_Read(io, pkg%aem)
       case (iTR0)
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
         ! Enter the TR0 2-D tracing module
-        call IO_Assert(io, (associated(aem)), "AEM_Read: No DIM statement")
-        call TR0_Read(io, aem)
+        call TR0_Read(io, pkg)
       case (iHEA)
         ! Report the head to the error LU
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
         cZ1 = cIO_GetCoordinate(io, 'cZ1')
         write (unit=IO_MessageBuffer, &
                fmt="("" >> Head       at "", d13.6, 1x, d13.6, "" = "", d13.6, 1x, d13.6)" &
-               ) cZ1, rAEM_Head(io, aem, cZ1)
+               ) cZ1, rAEM_Head(io, pkg%aem, cZ1)
         call IO_ErrorText(io)
       case (iPOT)
         ! Report the complex potential to the error LU
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
         cZ1 = cIO_GetCoordinate(io, 'cZ1')
         write (unit=IO_MessageBuffer, &
                fmt="("" >> Potential  at "", d13.6, 1x, d13.6, "" = "", d13.6, 1x, d13.6)" &
-               ) cZ1, cAEM_Potential(io, aem, cZ1)
+               ) cZ1, cAEM_Potential(io, pkg%aem, cZ1)
         call IO_ErrorText(io)
       case (iGRA)
         ! Report the estimated gradient in Phi
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
         cZ1 = cIO_GetCoordinate(io, 'cZ1')
         rTol = rIO_GetReal(io, 'rTol', def=0.0001_AE_REAL)
-        rDPhiDX = (real(cAEM_Potential(io, aem, cZ1-cmplx(rTol, rZERO, AE_REAL))) - &
-                  real(cAEM_Potential(io, aem, cZ1+cmplx(rTol, rZERO, AE_REAL)))) / (rTWO*rTol)
-        rDPhiDY = (real(cAEM_Potential(io, aem, cZ1-cmplx(rZERO, rTol, AE_REAL))) - &
-                  real(cAEM_Potential(io, aem, cZ1+cmplx(rZERO, rTol, AE_REAL)))) / (rTWO*rTol)
+        rDPhiDX = (real(cAEM_Potential(io, pkg%aem, cZ1-cmplx(rTol, rZERO, AE_REAL))) - &
+                  real(cAEM_Potential(io, pkg%aem, cZ1+cmplx(rTol, rZERO, AE_REAL)))) / (rTWO*rTol)
+        rDPhiDY = (real(cAEM_Potential(io, pkg%aem, cZ1-cmplx(rZERO, rTol, AE_REAL))) - &
+                  real(cAEM_Potential(io, pkg%aem, cZ1+cmplx(rZERO, rTol, AE_REAL)))) / (rTWO*rTol)
         write (unit=IO_MessageBuffer, &
                fmt="("" >> Gradient   at "", d13.6, 1x, d13.6, "" = "", d13.6, 1x, d13.6)" &
                ) cZ1, cIO_WorldDischarge(io, cmplx(rDPhiDX, rDPhiDY, AE_REAL))
         call IO_ErrorText(io)
       case (iLAP)
         ! Report the estimated laplacian
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
         cZ1 = cIO_GetCoordinate(io,"CZ1")
         rTol = rIO_GetReal(io,"rTol",def=0.0001_AE_REAL)
-        cPE = cAEM_Potential(io, aem, cZ1+cmplx(rTol, rZERO, AE_REAL))
-        cPW = cAEM_Potential(io, aem, cZ1-cmplx(rTol, rZERO, AE_REAL))
-        cPN = cAEM_Potential(io, aem, cZ1+cmplx(rZERO, rTol, AE_REAL))
-        cPS = cAEM_Potential(io, aem, cZ1-cmplx(rZERO, rTol, AE_REAL))
-        cPC = cAEM_Potential(io, aem, cZ1)
+        cPE = cAEM_Potential(io, pkg%aem, cZ1+cmplx(rTol, rZERO, AE_REAL))
+        cPW = cAEM_Potential(io, pkg%aem, cZ1-cmplx(rTol, rZERO, AE_REAL))
+        cPN = cAEM_Potential(io, pkg%aem, cZ1+cmplx(rZERO, rTol, AE_REAL))
+        cPS = cAEM_Potential(io, pkg%aem, cZ1-cmplx(rZERO, rTol, AE_REAL))
+        cPC = cAEM_Potential(io, pkg%aem, cZ1)
         rLapl = (cPE+cPW+cPN+cPS - rFOUR*cPC) / (rTol*rTol)
         write (unit=IO_MessageBuffer, &
                fmt="("" >> Laplacian   at "", d13.6, 1x, d13.6, "" = "", d13.6)" &
@@ -293,72 +287,72 @@ program modaem
         call IO_ErrorText(io)
       case (iDIS)
         ! Report the complex discharge to the error LU
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
         cZ1 = cIO_GetCoordinate(io,"CZ1")
-        cDis = cAEM_Discharge(io, aem, cZ1)
+        cDis = cAEM_Discharge(io, pkg%aem, cZ1)
         write (unit=IO_MessageBuffer, &
                fmt="("" >> Discharge  at "", d13.6, 1x, d13.6, "" = "", d13.6, 1x, d13.6)" &
                ) cZ1, cIO_WorldDischarge(io, cDis)
         call IO_ErrorText(io)
       case (iVEL)
         ! Report the velocity to the error LU
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
         cZ1 = cIO_GetCoordinate(io,"CZ1")
-        cVel = cAEM_Velocity(io, aem, cZ1)
+        cVel = cAEM_Velocity(io, pkg%aem, cZ1)
         write (unit=IO_MessageBuffer, &
                fmt="("" >> Velocity   at "", d13.6, 1x, d13.6, "" = "", d13.6, 1x, d13.6)" &
                ) cZ1, cIO_WorldDischarge(io, cVel)
         call IO_ErrorText(io)
       case (iRCH)
         ! Report the recharge to the error LU
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
         cZ1 = cIO_GetCoordinate(io,"CZ1")
-        rRch = rAEM_Recharge(io, aem, cZ1)
+        rRch = rAEM_Recharge(io, pkg%aem, cZ1)
         write (unit=IO_MessageBuffer, &
                fmt="("" >> Recharge   at "", d13.6, 1x, d13.6, "" = "", d13.6)" &
                ) cZ1, rRch
         call IO_ErrorText(io)
       case (iTHK)
         ! Report the saturated thickness to the error LU
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
         cZ1 = cIO_GetCoordinate(io,"CZ1")
-        rThk = rAEM_SatdThick(io, aem, cZ1)
+        rThk = rAEM_SatdThick(io, pkg%aem, cZ1)
         write (unit=IO_MessageBuffer, &
                fmt="("" >> Thickness at "", d13.6, 1x, d13.6, "" = "", d13.6, 1x, d13.6)" &
                ) cZ1, rThk
         call IO_ErrorText(io)
       case (iFLO)
         ! Report the total flow to the error LU
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
         cZ1 = cIO_GetCoordinate(io,"CZ1")
         cZ2 = cIO_GetCoordinate(io,"CZ2",def=cZ1)
         write (unit=IO_MessageBuffer, &
                fmt="("" >> Flow       between "", d13.6, 1x, d13.6, "" and "", d13.6, 1x, d13.6, "" = "", d13.6)" &
-               ) cZ1, cZ2, rIO_WorldLength(io, rAEM_Flow(io, aem, (/cZ1, cZ2/)), cZ2-cZ1)
+               ) cZ1, cZ2, rIO_WorldLength(io, rAEM_Flow(io, pkg%aem, (/cZ1, cZ2/)), cZ2-cZ1)
         call IO_ErrorText(io)
       case (iIFC)
         ! Report the interface elevation to the error LU
-        call IO_Assert(io, (associated(aem)), &
-             "AEM_Read: the AEM_DOMAIN has not been created")
+        call IO_Assert(io, (associated(pkg)), &
+             "PKG_Read: the PKG_DOMAIN has not been created")
         cZ1 = cIO_GetCoordinate(io,"CZ1")
         write (unit=IO_MessageBuffer, &
                fmt="("" >> Interface elev  at "", d13.6, 1x, d13.6, "" = "", d13.6)" &
-               ) cZ1, rAEM_InterfaceElevation(io, aem, cZ1)
+               ) cZ1, rAEM_InterfaceElevation(io, pkg%aem, cZ1)
         call IO_ErrorText(io)
       case (iSTD)
         ! Enter the STDIO module
-        call STD_IO(io, aem)
+        call STD_IO(io, pkg%aem)
       case default
     end select
   end do
 
-  !**pd Destroy the aem object and all member objects
-  if (associated(aem)) call AEM_Destroy(io, aem)
+  !**pd Destroy the pkg object and all member objects
+  if (associated(pkg)) call PKG_Destroy(io, pkg)
 
   call exit(0)
 end program modaem

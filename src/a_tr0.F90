@@ -31,12 +31,8 @@ module a_tr0
   !
   use u_constants
   use u_io
-  use m_wl0
-  use m_ls0
-  use m_ls1
-  use m_hb0
-  use m_wl1
   use m_aem
+  use m_packages
 
   implicit none
 
@@ -83,7 +79,7 @@ module a_tr0
 contains
 
 
-  subroutine TR0_Read(io, aem)
+  subroutine TR0_Read(io, pkg)
     ! This reads and processes the input commands for the TR0 package
     ! Commands:
     !
@@ -149,7 +145,7 @@ contains
 
 
     ! Argument list
-    type(AEM_DOMAIN), pointer :: aem
+    type(PKG_DOMAIN), pointer :: pkg
     type(IO_STATUS), pointer :: io
     ! Locals -- for Directive parsing
 #ifndef __GPL__
@@ -195,7 +191,7 @@ contains
     rTR0Decay = TR0_DEFAULT_DECAY
     call IO_MessageText(io, "Entering 2-D trace module TR0")
 
-    call IO_Assert(io, (associated(aem)), "TR0_Read: No AEM_DOMAIN object")
+    call IO_Assert(io, (associated(pkg)), "TR0_Read: No PKG_DOMAIN object")
 
     ! The remainder of this routine uses IO_InputRecord to process
     ! the model input file.
@@ -290,7 +286,7 @@ contains
           call IO_MessageText(io)
           rX0 = real(cZ0)
           rY0 = aimag(cZ0)
-          call TR0_Trace(io, aem, rX0, rY0, rZ0, rT0, rC0, iDir, iFlag, iElementType, iElementID, iElementVtx)
+          call TR0_Trace(io, pkg, rX0, rY0, rZ0, rT0, rC0, iDir, iFlag, iElementType, iElementID, iElementVtx)
         case (kOpLIN)
           !****************************************************************************
           ! Here for the LIN command -- release points along a line
@@ -321,7 +317,7 @@ contains
                    fmt="("" Point: "", i5, "" Starting point: "", 2(e16.9, 1x), "" Direction: "", i2)" &
                    ) i, rX0, rY0, iDir
             call IO_MessageText(io)
-            call TR0_Trace(io, aem, rX0, rY0, rThisZ0, rThisT0, rThisC0, iDir, iFlag, iElementType, iElementID, iElementVtx)
+            call TR0_Trace(io, pkg, rX0, rY0, rThisZ0, rThisT0, rThisC0, iDir, iFlag, iElementType, iElementID, iElementVtx)
           end do
         case (kOpGRI)
           !****************************************************************************
@@ -372,7 +368,7 @@ contains
                      fmt="("" Row: "", i5, "" Col: "", i5, "" Starting point: "", 2(e16.9, 1x), "" Direction: "", i2)" &
                      ) j, i, rX0, rY0, iDir
               call IO_MessageText(io)
-              call TR0_Trace(io, aem, rX0, rY0, rThisZ0, rThisT0, rThisC0, iDir, iFlag, iElementType, iElementID, iElementVtx)
+              call TR0_Trace(io, pkg, rX0, rY0, rThisZ0, rThisT0, rThisC0, iDir, iFlag, iElementType, iElementID, iElementVtx)
             end do
           end do
         case (kOpWL0)
@@ -396,7 +392,7 @@ contains
           rT0 = rIO_GetReal(io, "rT0", def=rZERO)
           rC0 = rIO_GetReal(io, "rC0", def=rZERO)
           rMinWidth = rIO_GetReal(io, "rMinWidth", def=rZERO)
-          call WL0_FindWell(io, aem%wl0, iWellID, cZWell, rDischarge, rRadius, pFWL, lWellFound)
+          call WL0_FindWell(io, pkg%wl0, iWellID, cZWell, rDischarge, rRadius, pFWL, lWellFound)
           call IO_Assert(io, lWellFound, "TR0_Read: Specified well not found")
           ! Forward trace from injection wells; backward trace from pumping wells
           if (rDischarge < 0) then
@@ -407,7 +403,7 @@ contains
             call IO_ErrorText(io, " >> Reverse tracing is selected from pumping well")
           end if
           ! Now, compute the orientation of the discharge vector, less the well
-          cWWell = cAEM_DischargeAtWell(io, aem, cZWell, pFWL)
+          cWWell = cAEM_DischargeAtWell(io, pkg%aem, cZWell, pFWL)
           if (cWWell == cZERO) then
             rOrient = rZERO
           else
@@ -433,7 +429,7 @@ contains
             rThisZ0 = rZ0
             rThisT0 = rT0
             rThisC0 = rC0
-            call TR0_Trace(io, aem, rX1, rY1, rThisZ0, rThisT0, rThisC0, iDir, iFlag, iElementType, iElementID, iElementVtx)
+            call TR0_Trace(io, pkg, rX1, rY1, rThisZ0, rThisT0, rThisC0, iDir, iFlag, iElementType, iElementID, iElementVtx)
           end do
         case (kOpLS2)
           !****************************************************************************
@@ -445,7 +441,7 @@ contains
           rT0 = rIO_GetReal(io, "rT0", def=rZERO)
           rC0 = rIO_GetReal(io, "rC0", def=rZERO)
           iDir = iIO_GetInteger(io, "iDir")
-          ls2 => aem%ls2
+          ls2 => pkg%ls2
           do istr = 1, ls2%iNStr
             ls2_str => ls2%Strings(istr)
             do ivtx = 1, ls2_str%iNPts-1
@@ -469,7 +465,7 @@ contains
                 rThisZ0 = this_ls2_vtx%rCPDepth
                 rThisT0 = rT0
                 rThisC0 = rC0
-                call TR0_Trace(io, aem, rX1, rY1, rThisZ0, rThisT0, rThisC0, iDir, iFlag, iElementType, iElementID, iElementVtx)
+                call TR0_Trace(io, pkg, rX1, rY1, rThisZ0, rThisT0, rThisC0, iDir, iFlag, iElementType, iElementID, iElementVtx)
               end do
             end do
           end do
@@ -497,7 +493,7 @@ contains
           rZ0Save = rZ0
 
           ! Get the well location...
-          call CW0_FindWell(io, aem%cw0, iWellID, cZWell, rDischarge, lWellFound)
+          call CW0_FindWell(io, pkg%cw0, iWellID, cZWell, rDischarge, lWellFound)
           call IO_Assert(io, lWellFound, "TR0_Read: Specified well not found")
 
           ! Forward trace from injection wells; backward trace from pumping wells
@@ -526,15 +522,15 @@ contains
             ! Here's where it gets interesting... Make a temporary file for the forward trace and trace into it.
             ! The forward trace happens at the aquifer bottom to ensure that all the water that _can_ make it
             ! to the collector get there.
-            rBottom = rDOM_Base(io, aem%dom, cmplx(rX1, rY1, AE_REAL))
+            rBottom = rDOM_Base(io, pkg%aem%dom, cmplx(rX1, rY1, AE_REAL))
             rZ0 = rZ0Save
-            call TR0_Trace(io, aem, rX1, rY1, rBottom, rThisT0, rThisC0, -iDir, iFlag, &
+            call TR0_Trace(io, pkg, rX1, rY1, rBottom, rThisT0, rThisC0, -iDir, iFlag, &
                            iElementType, iElementID, iElementVtx, iFwdLU)
             print *, '   forward trace stopped at ', iFlag, iElementType, iElementID, iElementVtx
             ! Now, trace from where we hit the well, starting from time = 0
             rT0 = rZERO
             if (iElementType == ELEM_CW0 .and. iElementID == iWellID) then
-              call TR0_Trace(io, aem, rX1, rY1, rZ0, rT0, rC0, iDir, iFlag, iElementType, iElementID, iElementVtx)
+              call TR0_Trace(io, pkg, rX1, rY1, rZ0, rT0, rC0, iDir, iFlag, iElementType, iElementID, iElementVtx)
             end if
           end do
           close(unit=iFwdLU)
@@ -547,12 +543,12 @@ contains
   end subroutine TR0_Read
 
 
-  subroutine TR0_Trace(io, aem, rX0, rY0, rZ0, rT0, rC0, iDir, iFlag, iElementType, iElementID, iElementVtx, iOptionalLU)
+  subroutine TR0_Trace(io, pkg, rX0, rY0, rZ0, rT0, rC0, iDir, iFlag, iElementType, iElementID, iElementVtx, iOptionalLU)
     ! Computes a single streamline starting at cZO, using the predictor-corrector method
     !
     ! All parameters receive the position at the end of the streamline.
     !
-    type(AEM_DOMAIN), pointer :: aem
+    type(PKG_DOMAIN), pointer :: pkg
     real(kind=AE_REAL), intent(inout) :: rX0, rY0, rZ0, rT0, rC0
     integer(kind=AE_INT), intent(in) :: iDir
     integer(kind=AE_INT), intent(out) :: iFlag, iElementType, iElementID, iElementVtx
@@ -585,14 +581,14 @@ contains
 
     ! Make sure we're not on a vertex...
     cZN = cmplx(rX0, rY0, AE_REAL)
-    if (lFWL_CheckPoint(io, aem%fwl, cZN, rVERTEX_TOL, cZFix, rStrength, iEType, iEString, iEVertex, iEFlag)) cZN = cZFix
-    if (lFDP_CheckPoint(io, aem%fdp, cZN, rVERTEX_TOL, cZFix, rStrength, iEType, iEString, iEVertex, iEFlag)) cZN = cZFix
-    if (lAQU_CheckPoint(io, aem%aqu, cZN, rVERTEX_TOL, cZFix, rStrength, iEType, iEString, iEVertex, iEFlag)) cZN = cZFix
+    if (lFWL_CheckPoint(io, pkg%aem%fwl, cZN, rVERTEX_TOL, cZFix, rStrength, iEType, iEString, iEVertex, iEFlag)) cZN = cZFix
+    if (lFDP_CheckPoint(io, pkg%aem%fdp, cZN, rVERTEX_TOL, cZFix, rStrength, iEType, iEString, iEVertex, iEFlag)) cZN = cZFix
+    if (lAQU_CheckPoint(io, pkg%aqu, cZN, rVERTEX_TOL, cZFix, rStrength, iEType, iEString, iEVertex, iEFlag)) cZN = cZFix
 
     ! Initialize
     cZO = cZN
-    cVN = cAEM_Velocity(io, aem, cZN)
-    cPrevDis = cAEM_Discharge(io, aem, cZN)
+    cVN = cAEM_Velocity(io, pkg%aem, cZN)
+    cPrevDis = cAEM_Discharge(io, pkg%aem, cZN)
     rTime = rT0
     rConc = rC0
     iPrev = 1
@@ -601,8 +597,8 @@ contains
     lTimeout = .false.
 
     ! Is the particle in the aquifer?
-    rBase = rDOM_Base(io, aem%dom, cZO)
-    rThickness = rDOM_SatdThickness(io, aem%dom, cZO, real(cAEM_Potential(io, aem, cZO)))
+    rBase = rDOM_Base(io, pkg%aem%dom, cZO)
+    rThickness = rDOM_SatdThickness(io, pkg%aem%dom, cZO, real(cAEM_Potential(io, pkg%aem, cZO)))
     if (rZ0 > rBase + rThickness) then
       rZ = rBase + rThickness
     else if (rZ0 < rBase) then
@@ -670,7 +666,7 @@ contains
       end if
 
       ! Abort if the head is below the aquifer bottom
-      if (real(cAEM_Potential(io, aem, cZO)) <= rZERO) then
+      if (real(cAEM_Potential(io, pkg%aem, cZO)) <= rZERO) then
         iFlag = kTR0AquiferDry
         iElementType = 0
         iElementID = 0
@@ -679,7 +675,7 @@ contains
       end if
 
       ! Look to see if we're in a well...
-      if (lFWL_CheckPoint(io, aem%fwl, cZN, rTR0Step*TR0_WLX_TERMINATION_FACTOR, cZFix, &
+      if (lFWL_CheckPoint(io, pkg%aem%fwl, cZN, rTR0Step*TR0_WLX_TERMINATION_FACTOR, cZFix, &
           rStrength, iEType, iEString, iEVertex, iEFlag)) then
         ! Check direction...
         if (sign(rONE, rStrength) == sign(rONE, real(iDir, AE_REAL))) then
@@ -694,9 +690,9 @@ contains
 
       ! PHEW. Now, proceed with the tracing...
       ! Adjust step size if necessary...  Note: all the xxxCheckPoint calls are made without regard to iDir
-      if (lFWL_CheckPoint(io, aem%fwl, cZN, rTR0WellProx*rTR0Step, cZFix, rStrength, iEType, iEString, iEVertex, iEFlag) .or. &
-          lFDP_CheckPoint(io, aem%fdp, cZN, rTR0Prox*rTR0Step, cZFix, rStrength, iEType, iEString, iEVertex, iEFlag) .or. &
-          lAQU_CheckPoint(io, aem%aqu, cZN, rTR0Prox*rTR0Step, cZFix, rStrength, iEType, iEString, iEVertex, iEFlag) &
+      if (lFWL_CheckPoint(io, pkg%aem%fwl, cZN, rTR0WellProx*rTR0Step, cZFix, rStrength, iEType, iEString, iEVertex, iEFlag) .or. &
+          lFDP_CheckPoint(io, pkg%aem%fdp, cZN, rTR0Prox*rTR0Step, cZFix, rStrength, iEType, iEString, iEVertex, iEFlag) .or. &
+          lAQU_CheckPoint(io, pkg%aqu, cZN, rTR0Prox*rTR0Step, cZFix, rStrength, iEType, iEString, iEVertex, iEFlag) &
           ) then
         rStep = rTR0Frac * iDir * rTR0Step
       else
@@ -707,24 +703,24 @@ contains
       ! Determine the first guess for the complex coordinate of the next point on the streamline,
       ! Then check to see if we've hit something.
       cZN = cZO + rStep*cVO/abs(cVO)
-      if (lFDP_CheckIntersection(io, aem%fdp, cZO, cZN, cZInt, cZBefore, cZAfter, &
+      if (lFDP_CheckIntersection(io, pkg%aem%fdp, cZO, cZN, cZInt, cZBefore, cZAfter, &
           iEType, iEString, iEVertex, iEFlag, cENormal)) then
         ! We hit a dipole!
         cZN = cZBefore
       end if
 
-      if (lAQU_CheckIntersection(io, aem%aqu, cZO, cZN, cZInt, cZBefore, cZAfter, &
+      if (lAQU_CheckIntersection(io, pkg%aqu, cZO, cZN, cZInt, cZBefore, cZAfter, &
           iEType, iEString, iEVertex, iEFlag, cENormal)) then
         ! We hit an edge element! Update the position and leave.
         cZN = cZBefore
       end if
 
-      if (lFWL_CheckPoint(io, aem%fwl, cZN, rTR0Step*TR0_WLX_TERMINATION_FACTOR, cZFix, rStrength, &
+      if (lFWL_CheckPoint(io, pkg%aem%fwl, cZN, rTR0Step*TR0_WLX_TERMINATION_FACTOR, cZFix, rStrength, &
           iEType, iEString, iEVertex, iEFlag)) then
         ! Check direction...
         if (sign(rONE, rStrength) == sign(rONE, real(iDir, AE_REAL))) then
           ! Move vertically with recharge until reaching the element
-          if (TR0_RechargeMove(io, aem, cZO, cZN, rF, iDir, rZ, iFlag, iElementType, iElementID, iElementVtx)) then
+          if (TR0_RechargeMove(io, pkg, cZO, cZN, rF, iDir, rZ, iFlag, iElementType, iElementID, iElementVtx)) then
             cV = cVO                        ! Needed for time computations(below)
             exit
           else
@@ -744,24 +740,24 @@ contains
       ! *******************************************************************************************
       ! Compute an improved location using a predictor-corrector strategy, then
       ! Compute the complex discharge Qx-iQy at the first guess
-      cVN = cAEM_Velocity(io, aem, cZN)
+      cVN = cAEM_Velocity(io, pkg%aem, cZN)
       ! Estimate the average value of the complex discharge on the interval.
       cV = .5*(cVO+cVN)
       ! Obtain the second approximation of the point on the streamline.
       cZN = cZO + rStep*cV/abs(cV)
 
-      if (lFDP_CheckIntersection(io, aem%fdp, cZO, cZN, cZInt, cZBefore, cZAfter, &
+      if (lFDP_CheckIntersection(io, pkg%aem%fdp, cZO, cZN, cZInt, cZBefore, cZAfter, &
           iEType, iEString, iEVertex, iEFlag, cENormal)) then
         ! We hit a dipole!
         ! Move vertically with recharge until reaching the element
         cZN = cZBefore
-        if (TR0_RechargeMove(io, aem, CZO, cZN, rF, iDir, rZ, iFlag, iElementType, iElementID, iElementVtx)) then
+        if (TR0_RechargeMove(io, pkg, CZO, cZN, rF, iDir, rZ, iFlag, iElementType, iElementID, iElementVtx)) then
           cV = cVO
           exit
         end if
         ! Now, move vertically according to the amount of water removed by the element
-        cQBefore = cAEM_Discharge(io, aem, cZBefore)
-        cQAfter = cAEM_Discharge(io, aem, cZAfter)
+        cQBefore = cAEM_Discharge(io, pkg%aem, cZBefore)
+        cQAfter = cAEM_Discharge(io, pkg%aem, cZAfter)
         ! Does the flow reverse at the element(e.g. a line-sink)?
         if (iEType == ELEM_LS0 .or. iEType == ELEM_LS1 .or. iEType == ELEM_LS2) then
           if (sign(rONE, real(cENormal*cQBefore)) /= sign(rONE, real(cENormal*cQAfter))) then
@@ -769,8 +765,8 @@ contains
             iElementType = iEType
             iElementID = iEString
             iElementVtx = iEVertex
-            rZ = rDOM_SatdThickness(io, aem%dom, cZN, real(cAEM_Potential(io, aem, cZN), AE_REAL)) + &
-                 rDOM_Base(io, aem%dom, cZN)
+            rZ = rDOM_SatdThickness(io, pkg%aem%dom, cZN, real(cAEM_Potential(io, pkg%aem, cZN), AE_REAL)) + &
+                 rDOM_Base(io, pkg%aem%dom, cZN)
             exit
           end if
           ! Now, jump the element to the point after
@@ -785,8 +781,8 @@ contains
             iElementType = iEType
             iElementID = iEString
             iElementVtx = iEVertex
-            rZ = rDOM_SatdThickness(io, aem%dom, cZN, real(cAEM_Potential(io, aem, cZN), AE_REAL)) + &
-                 rDOM_Base(io, aem%dom, cZN)
+            rZ = rDOM_SatdThickness(io, pkg%aem%dom, cZN, real(cAEM_Potential(io, pkg%aem, cZN), AE_REAL)) + &
+                 rDOM_Base(io, pkg%aem%dom, cZN)
             exit
           end if
 #ifndef __GPL__
@@ -795,20 +791,20 @@ contains
           iElementType = iEType
           iElementID = iEString
           iElementVtx = iEVertex
-          rZ = rDOM_SatdThickness(io, aem%dom, cZN, real(cAEM_Potential(io, aem, cZN), AE_REAL)) + &
-               rDOM_Base(io, aem%dom, cZN)
+          rZ = rDOM_SatdThickness(io, pkg%aem%dom, cZN, real(cAEM_Potential(io, pkg%aem, cZN), AE_REAL)) + &
+               rDOM_Base(io, pkg%aem%dom, cZN)
           exit
 #endif
         else
           cZN = cZAfter
         end if
 
-      else if (lAQU_CheckIntersection(io, aem%aqu, cZO, cZN, cZInt, cZBefore, cZAfter, &
+      else if (lAQU_CheckIntersection(io, pkg%aqu, cZO, cZN, cZInt, cZBefore, cZAfter, &
              iEType, iEString, iEVertex, iEFlag, cENormal)) then
         ! We hit an edge element! Update the position and leave.
         ! Move vertically with recharge until reaching the element
         cZN = cZBefore
-        if (TR0_RechargeMove(io, aem, CZO, cZN, rF, iDir, rZ, iFlag, iElementType, iElementID, iElementVtx)) then
+        if (TR0_RechargeMove(io, pkg, CZO, cZN, rF, iDir, rZ, iFlag, iElementType, iElementID, iElementVtx)) then
           cV = cVO
           exit
         end if
@@ -820,7 +816,7 @@ contains
         exit
       else
         ! Move vertically with recharge
-        if (TR0_RechargeMove(io, aem, CZO, cZN, rF, iDir, rZ, iFlag, iElementType, iElementID, iElementVtx)) then
+        if (TR0_RechargeMove(io, pkg, CZO, cZN, rF, iDir, rZ, iFlag, iElementType, iElementID, iElementVtx)) then
           cV = cVO
           exit
         end if
@@ -829,7 +825,7 @@ contains
       ! *******************************************************************************************
 
       ! Did we hit a well?
-      if (lFWL_CheckPoint(io, aem%fwl, cZN, rTR0Step*TR0_WLX_TERMINATION_FACTOR, cZFix, rStrength, &
+      if (lFWL_CheckPoint(io, pkg%aem%fwl, cZN, rTR0Step*TR0_WLX_TERMINATION_FACTOR, cZFix, rStrength, &
           iEType, iEString, iEVertex, iEFlag)) then
         ! Check direction...
         if (sign(rONE, rStrength) == sign(rONE, real(iDir, AE_REAL))) then
@@ -864,18 +860,18 @@ contains
     ! Write the end record, but first, look up the ID number for the element that was hit...
     select case (iElementType)
       case (ELEM_LS0)
-        iElementID = iLS0_GetID(io, aem%ls0, iElementID)
+        iElementID = iLS0_GetID(io, pkg%ls0, iElementID)
       case (ELEM_LS1)
-        iElementID = iLS1_GetID(io, aem%ls1, iElementID)
+        iElementID = iLS1_GetID(io, pkg%ls1, iElementID)
       case (ELEM_LS2)
-        iElementID = iLS2_GetID(io, aem%ls2, iElementID)
+        iElementID = iLS2_GetID(io, pkg%ls2, iElementID)
       case (ELEM_WL0)
-        iElementID = iWL0_GetID(io, aem%wl0, iElementID)
+        iElementID = iWL0_GetID(io, pkg%wl0, iElementID)
       case (ELEM_WL1)
-        iElementID = iWL1_GetID(io, aem%wl1, iElementID)
+        iElementID = iWL1_GetID(io, pkg%wl1, iElementID)
 #ifndef __GPL__
       case (ELEM_CW0)
-        iElementID = iCW0_GetID(io, aem%cw0, iElementID)
+        iElementID = iCW0_GetID(io, pkg%cw0, iElementID)
 #endif
     end select
 
@@ -892,11 +888,11 @@ contains
   end subroutine TR0_Trace
 
 
-  function TR0_RechargeMove(io, aem, CZO, cZN, rF, iDir, rZ, iFlag, iElementType, iElementID, iElementVtx) result(lStop)
+  function TR0_RechargeMove(io, pkg, CZO, cZN, rF, iDir, rZ, iFlag, iElementType, iElementID, iElementVtx) result(lStop)
     ! Moves the fraction rF with recharge. If the particle leaves the aquifer along
     ! the path cZO-cZN, adjusts cZN and returns .true.
     ! [ PARAMETERS ]
-    type(AEM_DOMAIN), pointer :: aem
+    type(PKG_DOMAIN), pointer :: pkg
     complex(kind=AE_REAL), intent(in) :: cZO
     complex(kind=AE_REAL), intent(inout) :: cZN
     real(kind=AE_REAL), intent(inout) :: rF, rZ
@@ -908,9 +904,9 @@ contains
     ! [ LOCALS ]
     real(kind=AE_REAL) :: rFN, rDS, rNT, rNB, rQ1
 
-    rQ1 = abs(cAEM_Discharge(io, aem, cZN))
-    rNT = rAEM_TopRecharge(io, aem, cZN)
-    rNB = rAEM_BottomRecharge(io, aem, cZN)
+    rQ1 = abs(cAEM_Discharge(io, pkg%aem, cZN))
+    rNT = rAEM_TopRecharge(io, pkg%aem, cZN)
+    rNB = rAEM_BottomRecharge(io, pkg%aem, cZN)
     rDS = abs(cZN-cZO)
     if (iDir > 0) then
       rFN = (rF*rQ1 + rF*rNT*rDS + (rONE-rF)*rNB*rDS) / rQ1
@@ -924,20 +920,20 @@ contains
     if (rFN > rONE) then
       cZN = cZO + (cZN-cZO)*(rONE-rF)/(rFN-rF)
       iFlag = kTR0LeftTop
-      rZ = rDOM_SatdThickness(io, aem%dom, cZN, real(cAEM_Potential(io, aem, cZN), AE_REAL)) + &
-           rDOM_Base(io, aem%dom, cZN)
+      rZ = rDOM_SatdThickness(io, pkg%aem%dom, cZN, real(cAEM_Potential(io, pkg%aem, cZN), AE_REAL)) + &
+           rDOM_Base(io, pkg%aem%dom, cZN)
       rF = rONE
       lStop = .true.
     else if (rFN < rZERO) then
       cZN = cZO + (cZN-cZO)*(rZERO-rF)/(rFN-rF)
       iFlag = kTR0LeftTop
-      rZ = rDOM_Base(io, aem%dom, cZN)
+      rZ = rDOM_Base(io, pkg%aem%dom, cZN)
       rF = rZERO
       lStop = .true.
     else
       rF = rFN
-      rZ = rF * rDOM_SatdThickness(io, aem%dom, cZN, real(cAEM_Potential(io, aem, cZN), AE_REAL)) + &
-           rDOM_Base(io, aem%dom, cZN)
+      rZ = rF * rDOM_SatdThickness(io, pkg%aem%dom, cZN, real(cAEM_Potential(io, pkg%aem, cZN), AE_REAL)) + &
+           rDOM_Base(io, pkg%aem%dom, cZN)
       lStop = .false.
     end if
 

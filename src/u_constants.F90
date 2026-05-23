@@ -341,6 +341,7 @@ module u_constants
   integer(kind=AE_INT), public, parameter :: SIZE_FDP = 2
   integer(kind=AE_INT), public, parameter :: SIZE_FPD = 3
   integer(kind=AE_INT), public, parameter :: SIZE_FLS = 7
+  integer(kind=AE_INT), public, parameter :: SIZE_FAS = 8
   integer(kind=AE_INT), public, parameter :: SIZE_UNKNOWNS = 4
   integer(kind=AE_INT), public, parameter :: SIZE_EQUATIONS = 5
   integer(kind=AE_INT), public, parameter :: INFO_REGENERATE = 6
