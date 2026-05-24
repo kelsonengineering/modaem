@@ -1389,7 +1389,7 @@ contains
           call IO_Assert(io, (associated(str)), "LS3_Read: No current string")
           call IO_Assert(io, (str%iCount < size(str%Vertices)), "LS3_Read: Space exhausted")
           write (unit=sTag, fmt=*) 'cZ ', ls3%iCount, str%iCount+1
-          cZ = cIO_GetCoordinate(io, sTag, extents=.true., check_points=str%Vertices(:)%cZ)
+          cZ = cIO_GetCoordinate(io, sTag, extents=.true., check_points=str%Vertices(1:str%iCount)%cZ)
           rHead = rIO_GetReal(io, 'rHead')
           rDepth = rIO_GetReal(io, 'rDepth', maximum = rHead-rTINY)
 

@@ -1006,7 +1006,7 @@ contains
           !****************************************************************************
           call IO_Assert(io, (associated(str)), "HB0_Read: No current string")
           call IO_Assert(io, (str%iNPts < size(str%Vertices)), "HB0_Read: Space exhausted")
-          cZ = cIO_GetCoordinate(io, "cZ", check_points=str%Vertices%cZ)
+          cZ = cIO_GetCoordinate(io, "cZ", check_points=str%Vertices(1:str%iNPts)%cZ)
           call IO_Assert(io, (iStat == 0), "HB0_Read: I/O Error")
           str%iNPts = str%iNPts+1
           vtx => str%Vertices(str%iNPts)
