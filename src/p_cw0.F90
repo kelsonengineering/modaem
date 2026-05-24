@@ -12,21 +12,15 @@ module p_cw0
   !!
   !! Module use:
   !!   u_constants  --  Universal ModAEM constant declarations
-  !!   f_well     --  Function module for collections of wells
-  !!   f_dipole   --  Function module for collections of line-dipoles
+  !!   f_linesink   --  Function module for collections of line-sinks
   !!
   !! This module provides the necessary functionality for discharge-specified
   !! line-sink elements. Elements are defined as strings of points, with the
   !! discharge rate(per length) specified for each segment.
-  !!
-  !! Note: ModAEM uses the "traditional" line-sink function (io, Strack, 1989)
-  !! for matrix generation, but uses strings of dipoles terminated by a well
-  !! for computational performance, once a solution is achieved.
 
   use u_constants
   use u_io
-  use f_well
-  use f_dipole
+  use f_linesink
   use f_aem
   use u_matrix
   use p_aqu
@@ -46,15 +40,13 @@ module p_cw0
     !!     The complex coordinate of the segment's control point
     !!   real :: rHeadDifference
     !!     The difference in head between the vertex and next vertex in a string
-    !!   real :: rDPStrength
-    !!     The dipole strength at the vertex
     !!   real :: rLength
     !!     The segment length
     !!   real :: rSpecValue
     !!     The 'specified value' (potential difference between this vertex and the
     !!     next one) for this iteration
-    !!   type(FDP_DIPOLE), pointer :: pFDP
-    !!     Pointer to the vertex entry in the FDP module. Note: set to NULL for the
+    !!   type(FLS_LINESINK), pointer :: pFLS
+    !!     Pointer to the vertex entry in the FLS module. Note: set to NULL for the
     !!     last vertex of the string; an element is considered to extend from vertex
     !!     'i' to vertex 'i+1'.
     !!   real :: rCheck
@@ -63,11 +55,10 @@ module p_cw0
     complex(kind=AE_REAL) :: cZ
     complex(kind=AE_REAL) :: cCPZ
     real(kind=AE_REAL) :: rHeadDifference
-    real(kind=AE_REAL) :: rDPStrength
     real(kind=AE_REAL) :: rStrength
     real(kind=AE_REAL) :: rLength
     real(kind=AE_REAL) :: rSpecValue
-    type(FDP_DIPOLE), pointer :: pFDP
+    type(FLS_LINESINK), pointer :: pFLS
     real(kind=AE_REAL) :: rCheck
     real(kind=AE_REAL) :: rTransmissivity
     real(kind=AE_REAL) :: rResistanceTerm
@@ -83,15 +74,11 @@ module p_cw0
     !!     Complex coordinate of the end of the radial
     !!   type(CW0_VERTEX), dimension(:), pointer :: Vertices
     !!     A vector of CW0_VERTEX objects
-    !!   type(FWL_WELL), pointer :: pFWL
-    !!     Pointer to the FWL function associated with the(inner) end of the radial
-    !!
     real(kind=AE_REAL) :: rResistance
     real(kind=AE_REAL) :: rWidth
     real(kind=AE_REAL) :: rBlankLength
     complex(kind=AE_REAL) :: cZEnd
     type(CW0_VERTEX), dimension(:), pointer :: Vertices
-    type(FWL_WELL), pointer :: pFWL
   end type CW0_RADIAL
 
   type :: CW0_WELL
@@ -369,20 +356,11 @@ contains
 
     iValue = 0
     select case (iOption)
-      case (SIZE_FWL)
+      case (SIZE_FLS)
         iValue = 0
         do iWel = 1, cw0%iCount
           wel => cw0%Wells(iWel)
-          iValue = iValue + wel%iNRad
-        end do
-      case (SIZE_FDP)
-        iValue = 0
-        do iWel = 1, cw0%iCount
-          wel => cw0%Wells(iWel)
-          do iRad = 1, wel%iNRad
-            rad => wel%Radials(iRad)
-            iValue = iValue + wel%iResolution
-          end do
+          iValue = iValue + wel%iNRad * wel%iResolution
         end do
       case (SIZE_EQUATIONS)
         iValue = 0
@@ -415,15 +393,10 @@ contains
   end function iCW0_GetInfo
 
 
-  subroutine CW0_SetupFunctions(io, cw0, fwl, fdp)
+  subroutine CW0_SetupFunctions(io, cw0, fls)
     !! subroutine CW0_Setup
     !!
-    !! This routine sets up the functions in f_well and f_dipole for the line-sinks
-    !! Since this module creates given-strength elements, the strengths of
-    !! all functions are computed at set-up time.
-    !!
-    !! Note: This routine assumes that sufficient space has been allocated
-    !! in f_well and in f_dipole by SOL_Alloc.
+    !! This routine sets up the FLS linesink functions for the collector well radials.
     !!
     !! Calling Sequence:
     !!    call CW0_Setup(cw0)
@@ -431,93 +404,59 @@ contains
     !! Arguments:
     !!   (in)    type(CW0_COLLECTION), pointer
     !!             CW0_COLLECTION object to be used
-    !!   (in)    type(FWL_COLLECTION), pointer
-    !!             FWL_COLLECTION object to be used
-    !!   (in)    type(FDP_COLLECTION), pointer
-    !!             FDP_COLLECTION object to be used
+    !!   (in)    type(FLS_COLLECTION), pointer
+    !!             FLS_COLLECTION object to be used
     !!
     ! [ ARGUMENTS ]
     type(CW0_COLLECTION), pointer :: cw0
-    type(FWL_COLLECTION), pointer :: fwl
-    type(FDP_COLLECTION), pointer :: fdp
+    type(FLS_COLLECTION), pointer :: fls
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iSeg, iWel, iRad, iVtx, i, iDP, iStat
-    real(kind=AE_REAL) :: rStrength, rDisch, rHead1, rHead2, rHead, rLen, rSumRes, &
-                         rTotalLength, rAvgStrength
-    complex(kind=AE_REAL) :: cZ1, cZ, cDZi, cRho1, cRho2, cRho3
-    complex(kind=AE_REAL), dimension(3) :: cCPResult
+    integer(kind=AE_INT) :: iWel, iRad, iVtx, iStat
+    real(kind=AE_REAL) :: rLen
+    complex(kind=AE_REAL) :: cDZi
     type(CW0_WELL), pointer :: wel
     type(CW0_RADIAL), pointer :: rad
-    type(CW0_VERTEX), pointer :: this, next, last_vtx
+    type(CW0_VERTEX), pointer :: this, next
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(cw0)), &
            "CW0_Setup: CW0_Create has not been called")
-      call IO_Assert(io, (associated(fwl)), &
-           "CW0_Setup: Illegal FWL_COLLECTION object")
-      call IO_Assert(io, (associated(fdp)), &
-           "CW0_Setup: Illegal FDP_COLLECTION object")
+      call IO_Assert(io, (associated(fls)), &
+           "CW0_Setup: Illegal FLS_COLLECTION object")
     end if
 
     do iWel = 1, cw0%iCount
       wel => cw0%Wells(iWel)
-      ! Create the vertices for the sub-segments on the radials
-      rTotalLength = rZERO
       do iRad = 1, wel%iNRad
-        ! Build dipoles for all segments of each radial arm
         rad => wel%Radials(iRad)
-        ! The length of the radial arm is the distance from the tip of the arm
-        ! to the center of the radial collector, less the radius of the caisson
-        !rLen = abs(rad%cZEnd - wel%cZC) - wel%rRC
         rLen = abs(rad%cZEnd - wel%cZC) - rad%rBlankLength
-        ! Unit vector along the arm(from tip towards center)
         cDZi = (wel%cZC-rad%cZEnd)/abs(wel%cZC-rad%cZEnd)
         allocate(rad%Vertices(wel%iResolution+1), stat = iStat)
         call IO_Assert(io, (iStat == 0), "CW0_SetupFunctions: Allocation failed")
 
-        ! OK.  Now we'll put the vertices along the arm, using constant spacing,
         do iVtx = 1, wel%iResolution+1
           this => rad%Vertices(iVtx)
           this%cZ = rad%cZEnd + cDZI * rLen * float(iVtx-1) / float(wel%iResolution)
           this%rHeadDifference = rZERO
-          this%rDPStrength = rZERO
           this%rStrength = rZERO
           this%rLength = rZERO
           this%rSpecValue = rZERO
           this%rCheck = rZERO
+          nullify(this%pFLS)
         end do
 
-        ! Woo hoo! Now, make the line dipoles and a well for each arm
         do iVtx = 1, wel%iResolution
           this => rad%Vertices(iVtx)
           next => rad%Vertices(iVtx+1)
           this%rLength = abs(next%cZ - this%cZ)
-          rTotalLength = rTotalLength + this%rLength
-          this%rDPStrength = rZERO
-          this%pFDP => FDP_New(io, fdp, this%cZ, next%cZ, (/cZERO, cZERO, cZERO/), ELEM_CW0, &
-               iWel, iRad, iWel)
-          ! For this version, no overspecification -- control points at centers of segments
+          this%pFLS => FLS_New(io, fls, this%cZ, next%cZ, cZERO, ELEM_CW0, iWel, iRad, iVtx)
           this%cCPZ = rHALF * (this%cZ + next%cZ)
         end do
-        ! Put a well at the end of each arm
-        last_vtx => rad%Vertices(wel%iResolution+1)
-        rad%pFWL => FWL_New(io, fwl, last_vtx%cZ, rZERO, rZERO, ELEM_CW0, iWel, iRad, iVtx)
       end do
-
-      ! Now, set all the arms' strengths to the average pumping rate per unit length
-      !    if (.not. wel%lHeadSpec) then
-      !      rAvgStrength = wel%rQ / rTotalLength
-      !      do iRad = 1, wel%iNRad
-      !        do iVtx = 1, wel%iResolution
-      !          call CW0_StoreResult(io, cw0, rAvgStrength, ELEM_CW0, iWel, iRad, iVtx, .true.)
-      !        end do
-      !      end do
-      !    end if
     end do
 
-    ! Make sure that the functions are updated
-    call CW0_Update(io, cw0, fwl, fdp)
+    call CW0_Update(io, cw0, fls)
 
     return
   end subroutine CW0_SetupFunctions
@@ -667,7 +606,7 @@ contains
   end subroutine CW0_SetRegenerate
 
 
-  subroutine CW0_ComputeCoefficients(io, cw0, aqu, fwl, fdp, cPathZ, iEqType, iElementType, iElementString, &
+  subroutine CW0_ComputeCoefficients(io, cw0, aqu, fls, cPathZ, iEqType, iElementType, iElementString, &
                iElementVertex, iElementFlag, cOrientation, rGhbResistance, &
                iIteration, rMultiplier, rARow)
     !! subroutine CW0_ComputeCoefficients
@@ -681,10 +620,8 @@ contains
     !! Arguments:
     !!   (in)    type(CW0_COLLECTION), pointer
     !!             CW0_COLLECTION object to be used
-    !!   (in)    type(FWL_COLLECTION), pointer
-    !!             FWL_COLLECTION object to be used
-    !!   (in)    type(FDP_COLLECTION), pointer
-    !!             FDP_COLLECTION object to be used
+    !!   (in)    type(FLS_COLLECTION), pointer
+    !!             FLS_COLLECTION object to be used
     !!   (in)    complex :: cPathZ(:)
     !!             The control point(or control path) to be used
     !!   (in)    integer :: iEqType
@@ -708,8 +645,7 @@ contains
     ! [ ARGUMENTS ]
     type(CW0_COLLECTION), pointer :: cw0
     type(AQU_COLLECTION), pointer :: aqu
-    type(FWL_COLLECTION), pointer :: fwl
-    type(FDP_COLLECTION), pointer :: fdp
+    type(FLS_COLLECTION), pointer :: fls
     complex(kind=AE_REAL), dimension(:), intent(in) :: cPathZ
     complex(kind=AE_REAL), intent(in) :: cOrientation
     integer(kind=AE_INT), intent(in) :: iEqType
@@ -723,9 +659,9 @@ contains
     real(kind=AE_REAL), dimension(:), intent(out) :: rARow
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iStat, iCol, iWel, iVtx, iNDP, iWhich, iVtxCol, &
+    integer(kind=AE_INT) :: iStat, iCol, iWel, iVtx, iNLS, iWhich, iVtxCol, &
                            iLastCol, iNextCol, iBaseCol
-    complex(kind=AE_REAL), dimension(:, :, :), allocatable :: cDPF, cDP, cDPW
+    complex(kind=AE_REAL), dimension(:, :, :), allocatable :: cLSF, cLSW
     type(CW0_WELL), pointer :: wel
     type(CW0_RADIAL), pointer :: rad
     type(CW0_VERTEX), pointer :: first_vtx, this, next, last_vtx
@@ -734,10 +670,8 @@ contains
     if (io%lDebug) then
       call IO_Assert(io, (associated(cw0)), &
            "CW0_ComputeCoefficients: CW0_Create has not been called")
-      call IO_Assert(io, (associated(fwl)), &
-           "CW0_Setup: Illegal FWL_COLLECTION object")
-      call IO_Assert(io, (associated(fdp)), &
-           "CW0_ComputeCoefficients: Illegal FDP_COLLECTION object")
+      call IO_Assert(io, (associated(fls)), &
+           "CW0_ComputeCoefficients: Illegal FLS_COLLECTION object")
     end if
 
     iCol = 0
@@ -747,50 +681,50 @@ contains
       rad => wel%Radials(wel%iNRad)
       last_vtx => rad%Vertices(wel%iResolution)
       first_vtx => wel%Radials(1)%Vertices(1)
-      iNDP = wel%iNRad * wel%iResolution
+      iNLS = wel%iNRad * wel%iResolution
       iBaseCol = iCol
 
-      allocate(cDPF(0:iNDP+1, 1, 1), stat = iStat)
+      allocate(cLSF(0:iNLS+1, 1, 1), stat = iStat)
       call IO_Assert(io, (iStat == 0), "CW0_ComputeCoefficients: Allocation failed")
 
-      ! Get the appropriate incluence functions for the boundary condition type
+      ! Get the appropriate influence functions for the boundary condition type
       select case (iEqType)
         case (EQN_HEAD)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FLS_GetInfluence(io, fls, INFLUENCE_P, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSF(1:iNLS, :, :))
         case (EQN_BDYGHB)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, first_vtx%pFDP, iNDP, (/rHALF*sum(cPathZ)/), cOrientation, cDPF(1:iNDP, :, :))
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_F, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPW(1:iNDP, :, :))
-          cDPF = cDPF + rGhbResistance*cDPW
+          call FLS_GetInfluence(io, fls, INFLUENCE_P, first_vtx%pFLS, iNLS, (/rHALF*sum(cPathZ)/), cOrientation, cLSF(1:iNLS, :, :))
+          call FLS_GetInfluence(io, fls, INFLUENCE_F, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSW(1:iNLS, :, :))
+          cLSF = cLSF + rGhbResistance*cLSW
         case (EQN_FLOW)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_F, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FLS_GetInfluence(io, fls, INFLUENCE_F, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSF(1:iNLS, :, :))
         case (EQN_INHO)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FLS_GetInfluence(io, fls, INFLUENCE_P, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSF(1:iNLS, :, :))
         case (EQN_DISCHARGE)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_W, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FLS_GetInfluence(io, fls, INFLUENCE_W, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSF(1:iNLS, :, :))
         case (EQN_RECHARGE)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_G, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FLS_GetInfluence(io, fls, INFLUENCE_G, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSF(1:iNLS, :, :))
         case (EQN_CONTINUITY)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_Q, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FLS_GetInfluence(io, fls, INFLUENCE_Q, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSF(1:iNLS, :, :))
         case (EQN_TOTALFLOW)
           if (iElementType == ELEM_CW0 .and. iElementString == iWel) then
-            call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_Q, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+            call FLS_GetInfluence(io, fls, INFLUENCE_Q, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSF(1:iNLS, :, :))
           else
-            call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_Z, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+            call FLS_GetInfluence(io, fls, INFLUENCE_Z, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSF(1:iNLS, :, :))
           end if
         case (EQN_POTENTIALDIFF)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_D, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FLS_GetInfluence(io, fls, INFLUENCE_D, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSF(1:iNLS, :, :))
       end select
 
-      do iVtx = 1, iNDP
+      do iVtx = 1, iNLS
         iCol = iCol + 1
-        rARow(iCol) = real(cDPF(iVtx, 1, 1))
+        rARow(iCol) = real(cLSF(iVtx, 1, 1))
       end do
 
       ! Look up the matrix column for the specified vertex and adjust the coefficients
       if (iElementType == ELEM_CW0 .and. iEqType == EQN_POTENTIALDIFF .and. iElementString == iWel) then
         rad => wel%Radials(iElementVertex)
         this => rad%Vertices(iElementFlag)
-        iVtxCol = iBaseCol + this%pFDP%iIndex - first_vtx%pFDP%iIndex + 1
+        iVtxCol = iBaseCol + this%pFLS%iIndex - first_vtx%pFLS%iIndex + 1
         if (iElementFlag /= wel%iResolution) then
           next => rad%Vertices(iElementFlag+1)
           iNextCol = iVtxCol+1
@@ -816,11 +750,11 @@ contains
         this => rad%Vertices(iElementFlag)
         rT1 = rDOM_Transmissivity(io, aqu%dom, this%cCPZ, this%rCheck)
         this%rResistanceTerm = (rT1 * rad%rResistance) / rad%rWidth
-        iVtxCol = iBaseCol + this%pFDP%iIndex - first_vtx%pFDP%iIndex + 1
+        iVtxCol = iBaseCol + this%pFLS%iIndex - first_vtx%pFLS%iIndex + 1
         rARow(iVtxCol) = rARow(iVtxCol) - this%rResistanceTerm
       end if
 
-      deallocate(cDPF)
+      deallocate(cLSF)
     end do
 
     ! Use the multiplier
@@ -975,7 +909,7 @@ contains
       ! [ LOCALS ]
       type(CW0_WELL), pointer :: wel
       type(CW0_RADIAL), pointer :: rad
-      type(CW0_VERTEX), pointer :: this, next
+      type(CW0_VERTEX), pointer :: this
 
       if (io%lDebug) then
         call IO_Assert(io, (associated(cw0)), &
@@ -998,13 +932,11 @@ contains
       end if
 
       this => rad%Vertices(iElementFlag)
-      next => rad%Vertices(iElementFlag+1)
       if (lDirect) then
         this%rStrength = rValue
       else
         this%rStrength = this%rStrength + rValue
       end if
-      next%rDPStrength = this%rDPStrength + this%rStrength * this%rLength
 
       return
     end subroutine CW0_StoreResult
@@ -1138,10 +1070,10 @@ contains
     end function CW0_EnableDrawdown
 
 
-    subroutine CW0_Update(io, cw0, fwl, fdp)
+    subroutine CW0_Update(io, cw0, fls)
       !! subroutine CW0_Update
       !!
-      !! Updates the underlying function objects for the specified layer.
+      !! Updates the underlying FLS function objects for the collector well radials.
       !!
       !! Calling Sequence:
       !!    CW0_Update(cw0)
@@ -1149,30 +1081,23 @@ contains
       !! Arguments:
       !!   (in)    type(CW0_COLLECTION), pointer
       !!             CW0_COLLECTION object to be used
-      !!   (in)    type(FWL_COLLECTION), pointer
-      !!             FWL_COLLECTION object to be used
-      !!   (in)    type(FDP_COLLECTION), pointer
-      !!             FDP_COLLECTION object to be used
+      !!   (in)    type(FLS_COLLECTION), pointer
+      !!             FLS_COLLECTION object to be used
       !!
       ! [ ARGUMENTS ]
       type(CW0_COLLECTION), pointer :: cw0
-      type(FWL_COLLECTION), pointer :: fwl
-      type(FDP_COLLECTION), pointer :: fdp
+      type(FLS_COLLECTION), pointer :: fls
       type(IO_STATUS), pointer :: io
       ! [ LOCALS ]
       integer(kind=AE_INT) :: iWel, iRad, iVtx
-      complex(kind=AE_REAL) :: cRho1, cRho2, cRho3
       real(kind=AE_REAL) :: rTotalExtraction
       type(CW0_WELL), pointer :: wel
       type(CW0_RADIAL), pointer :: rad
-      type(CW0_VERTEX), pointer :: this, next
-
+      type(CW0_VERTEX), pointer :: this
 
       if (io%lDebug) then
         call IO_Assert(io, (associated(cw0)), &
              "CW0_Update: CW0_Create has not been called")
-        call IO_Assert(io, (associated(fdp)), &
-             "CW0_Update: Illegal FDP_COLLECTION object")
       end if
 
       do iWel = 1, cw0%iCount
@@ -1182,18 +1107,11 @@ contains
           rad => wel%Radials(iRad)
           do iVtx = 1, wel%iResolution
             this => rad%Vertices(iVtx)
-            next => rad%Vertices(iVtx+1)
-            cRho1 = cmplx(this%rDPStrength, rZERO, AE_REAL)
-            cRho3 = cmplx(next%rDPStrength, rZERO, AE_REAL)
-            cRho2 = rHALF * (cRho1 + cRho3)
-            this%pFDP%cRho = (/cRho1, cRho2, cRho3/)
+            this%pFLS%cSigma = cmplx(this%rStrength, rZERO, AE_REAL)
             rTotalExtraction = rTotalExtraction + this%rLength*this%rStrength
           end do
-          ! Put a well at the end of the string
-          rad%pFWL%rDischarge = real(cRho3)
         end do
         wel%rCheck = rTotalExtraction
-        !    print *, 'ext ', iWel, rTotalExtraction
       end do
 
       return
@@ -1698,9 +1616,7 @@ contains
       if (associated(cw0%Wells)) then
         call HTML_StartTable()
         call HTML_AttrInteger('Number of wells', cw0%iCount)
-        call HTML_AttrInteger('Number of FWL functions', iCW0_GetInfo(io, cw0, SIZE_FWL, 0))
-        call HTML_AttrInteger('Number of FPD functions', iCW0_GetInfo(io, cw0, SIZE_FPD, 0))
-        call HTML_AttrInteger('Number of FDP functions', iCW0_GetInfo(io, cw0, SIZE_FDP, 0))
+        call HTML_AttrInteger('Number of FLS functions', iCW0_GetInfo(io, cw0, SIZE_FLS, 0))
         call HTML_AttrInteger('Number of equations', iCW0_GetInfo(io, cw0, SIZE_EQUATIONS, 0))
         call HTML_AttrInteger('Number of unknowns', iCW0_GetInfo(io, cw0, SIZE_UNKNOWNS, 0))
         call HTML_EndTable()
@@ -1731,7 +1647,7 @@ contains
             call HTML_Header('Radial information', 4)
             call HTML_StartTable()
             call HTML_AttrInteger('Radial #', iRad)
-            call HTML_AttrInteger('FWL index', rad%pFWL%iIndex)
+            call HTML_AttrInteger('First FLS index', rad%Vertices(1)%pFLS%iIndex)
             call HTML_AttrReal('Tip X', real(rad%cZEnd), '(f12.1)')
             call HTML_AttrReal('Tip Y', aimag(rad%cZEnd), '(f12.1)')
             call HTML_AttrReal('Resistance', rad%rResistance)
@@ -1741,11 +1657,11 @@ contains
 
             call HTML_Header('Radial vertices', 4)
             call HTML_StartTable()
-            call HTML_TableHeader((/'      ', 'FDP # ', 'X     ', 'Y     ', 'Sigma ', 'Length', 'Head  ','Inside'/))
-            do iVtx = 1, wel%iResolution+1
+            call HTML_TableHeader((/'      ', 'FLS # ', 'X     ', 'Y     ', 'Sigma ', 'Length', 'Head  ','Inside'/))
+            do iVtx = 1, wel%iResolution
               vtx => rad%Vertices(iVtx)
               call HTML_StartRow()
-              call HTML_ColumnInteger((/ iVtx, vtx%pFDP%iIndex /))
+              call HTML_ColumnInteger((/ iVtx, vtx%pFLS%iIndex /))
               call HTML_ColumnComplex((/ vtx%cZ /))
               call HTML_ColumnReal((/ vtx%rStrength /))
               call HTML_ColumnReal((/ vtx%rLength /))
@@ -1797,13 +1713,12 @@ contains
     end subroutine CW0_Save
 
 
-    subroutine CW0_Load(io, cw0, fwl, fdp, mode)
+    subroutine CW0_Load(io, cw0, fls, mode)
       !! Loads the CW0 records from the file on the SCRATCH LU
       ! [ ARGUMENTS ]
       type(IO_STATUS), pointer :: io
       type(CW0_COLLECTION), pointer :: cw0
-      type(FDP_COLLECTION), pointer :: fdp
-      type(FWL_COLLECTION), pointer :: fwl
+      type(FLS_COLLECTION), pointer :: fls
       integer(kind=AE_INT), intent(in) :: mode
       ! [ LOCALS ]
       integer(kind=AE_INT) :: imodule, iwel, irad, ivtx, istat
@@ -1835,7 +1750,7 @@ contains
       end do
 
       ! Now, populate the internal data structures
-      call CW0_Update(io, cw0, fwl, fdp)
+      call CW0_Update(io, cw0, fls)
 
       return
     end subroutine CW0_Load

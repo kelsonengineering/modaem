@@ -72,7 +72,7 @@ p_ls2.o: p_ls2.F90 u_constants.o u_io.o f_linesink.o f_aem.o u_matrix.o p_aqu.o
 
 p_ls3.o: p_ls3.F90 u_constants.o u_io.o f_well.o f_dipole.o f_aem.o u_matrix.o p_aqu.o
 
-p_cw0.o: p_cw0.F90 u_constants.o u_io.o f_well.o f_dipole.o f_aem.o u_matrix.o p_aqu.o
+p_cw0.o: p_cw0.F90 u_constants.o u_io.o f_linesink.o f_aem.o u_matrix.o p_aqu.o
 
 p_pd0.o: p_pd0.F90 u_constants.o u_io.o f_pond.o
 

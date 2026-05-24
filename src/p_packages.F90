@@ -182,9 +182,7 @@ contains
     iNFWL = iNFWL + iWL1_GetInfo(io, pkg%wl1, SIZE_FWL, 0)
     iNFPD = iNFPD + iWL1_GetInfo(io, pkg%wl1, SIZE_FPD, 0)
     iNFDP = iNFDP + iWL1_GetInfo(io, pkg%wl1, SIZE_FDP, 0)
-    iNFWL = iNFWL + iCW0_GetInfo(io, pkg%cw0, SIZE_FWL, 0)
-    iNFPD = iNFPD + iCW0_GetInfo(io, pkg%cw0, SIZE_FPD, 0)
-    iNFDP = iNFDP + iCW0_GetInfo(io, pkg%cw0, SIZE_FDP, 0)
+    iNFLS = iNFLS + iCW0_GetInfo(io, pkg%cw0, SIZE_FLS, 0)
 
     ! Allocate function collections in the AEM kernel
     pkg%aem%fwl => FWL_Create(io, iNFWL)
@@ -206,7 +204,7 @@ contains
     call WL1_SetupFunctions(io, pkg%wl1, pkg%aem%fwl, pkg%aqu)
     call AS0_SetupFunctions(io, pkg%as0_top, pkg%aem%fwl, pkg%aem%fdp, pkg%aem%fas_top)
     call AS0_SetupFunctions(io, pkg%as0_bottom, pkg%aem%fwl, pkg%aem%fdp, pkg%aem%fas_bottom)
-    call CW0_SetupFunctions(io, pkg%cw0, pkg%aem%fwl, pkg%aem%fdp)
+    call CW0_SetupFunctions(io, pkg%cw0, pkg%aem%fls)
 
     return
   end subroutine PKG_AllocateFunctions
@@ -285,7 +283,7 @@ contains
     call HB0_Update(io, pkg%hb0, pkg%aem%fdp)
     call WL0_Update(io, pkg%wl0, pkg%aem%fwl)
     call WL1_Update(io, pkg%wl1, pkg%aem%fwl)
-    call CW0_Update(io, pkg%cw0, pkg%aem%fwl, pkg%aem%fdp)
+    call CW0_Update(io, pkg%cw0, pkg%aem%fls)
 
     return
   end subroutine PKG_Update
@@ -400,7 +398,7 @@ contains
       end if
 
       if (pkg%aem%iCW0NUnk > 0) then
-        call CW0_ComputeCoefficients(io, pkg%cw0, pkg%aqu, pkg%aem%fwl, pkg%aem%fdp, &
+        call CW0_ComputeCoefficients(io, pkg%cw0, pkg%aqu, pkg%aem%fls, &
              (/(cCPZ(ic), ic=1, iNCP)/), &
              iEqType, iElementType, iElementString, iElementVertex, iElementFlag, &
              cOrientation, rGhbDistance, iIteration, rMultiplier, &
@@ -947,7 +945,7 @@ contains
     call LS3_Load(io, pkg%ls3, pkg%aem%fls, mode)
     call HB0_Load(io, pkg%hb0, pkg%aem%fdp, mode)
     call WL1_Load(io, pkg%wl1, pkg%aem%fwl, mode)
-    call CW0_Load(io, pkg%cw0, pkg%aem%fwl, pkg%aem%fdp, mode)
+    call CW0_Load(io, pkg%cw0, pkg%aem%fls, mode)
 
     close(unit=LU_SCRATCH)
 
