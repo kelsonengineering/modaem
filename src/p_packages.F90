@@ -151,9 +151,7 @@ contains
     iNFPD = iNFPD + iPD0_GetInfo(io, pkg%pd0, SIZE_FPD, 0)
     iNFDP = iNFDP + iPD0_GetInfo(io, pkg%pd0, SIZE_FDP, 0)
 
-    iNFWL = iNFWL + iLS0_GetInfo(io, pkg%ls0, SIZE_FWL, 0)
-    iNFPD = iNFPD + iLS0_GetInfo(io, pkg%ls0, SIZE_FPD, 0)
-    iNFDP = iNFDP + iLS0_GetInfo(io, pkg%ls0, SIZE_FDP, 0)
+    iNFLS = iNFLS + iLS0_GetInfo(io, pkg%ls0, SIZE_FLS, 0)
 
     iNFWL = iNFWL + iAS0_GetInfo(io, pkg%as0_top, SIZE_FWL, 0)
     iNFPD = iNFPD + iAS0_GetInfo(io, pkg%as0_top, SIZE_FPD, 0)
@@ -171,13 +169,9 @@ contains
     iNFDP = iNFDP + iAQU_GetInfo(io, pkg%aqu, SIZE_FDP, 0)
     iNFLS = iNFLS + iAQU_GetInfo(io, pkg%aqu, SIZE_FLS, 0)
 
-    iNFWL = iNFWL + iLS1_GetInfo(io, pkg%ls1, SIZE_FWL, 0)
-    iNFPD = iNFPD + iLS1_GetInfo(io, pkg%ls1, SIZE_FPD, 0)
-    iNFDP = iNFDP + iLS1_GetInfo(io, pkg%ls1, SIZE_FDP, 0)
+    iNFLS = iNFLS + iLS1_GetInfo(io, pkg%ls1, SIZE_FLS, 0)
 
-    iNFWL = iNFWL + iLS2_GetInfo(io, pkg%ls2, SIZE_FWL, 0)
-    iNFPD = iNFPD + iLS2_GetInfo(io, pkg%ls2, SIZE_FPD, 0)
-    iNFDP = iNFDP + iLS2_GetInfo(io, pkg%ls2, SIZE_FDP, 0)
+    iNFLS = iNFLS + iLS2_GetInfo(io, pkg%ls2, SIZE_FLS, 0)
 
     iNFLS = iNFLS + iLS3_GetInfo(io, pkg%ls3, SIZE_FLS, 0)
 
@@ -204,9 +198,9 @@ contains
     call AQU_SetupFunctions(io, pkg%aqu, pkg%aem%fdp, pkg%aem%fls)
     call WL0_SetupFunctions(io, pkg%wl0, pkg%aem%fwl, pkg%aqu)
     call PD0_SetupFunctions(io, pkg%pd0, pkg%aem%fpd)
-    call LS0_SetupFunctions(io, pkg%ls0, pkg%aem%fwl, pkg%aem%fdp)
-    call LS1_SetupFunctions(io, pkg%ls1, pkg%aem%fwl, pkg%aem%fdp)
-    call LS2_SetupFunctions(io, pkg%ls2, pkg%aem%fwl, pkg%aem%fdp)
+    call LS0_SetupFunctions(io, pkg%ls0, pkg%aem%fls)
+    call LS1_SetupFunctions(io, pkg%ls1, pkg%aem%fls)
+    call LS2_SetupFunctions(io, pkg%ls2, pkg%aem%fls)
     call LS3_SetupFunctions(io, pkg%ls3, pkg%aem%fls)
     call HB0_SetupFunctions(io, pkg%hb0, pkg%aem%fdp)
     call WL1_SetupFunctions(io, pkg%wl1, pkg%aem%fwl, pkg%aqu)
@@ -285,8 +279,8 @@ contains
     type(IO_STATUS), pointer :: io
 
     call AQU_Update(io, pkg%aqu, pkg%aem%fdp)
-    call LS1_Update(io, pkg%ls1, pkg%aem%fwl, pkg%aem%fdp)
-    call LS2_Update(io, pkg%ls2, pkg%aem%fwl, pkg%aem%fdp)
+    call LS1_Update(io, pkg%ls1, pkg%aem%fls)
+    call LS2_Update(io, pkg%ls2, pkg%aem%fls)
     call LS3_Update(io, pkg%ls3, pkg%aem%fls)
     call HB0_Update(io, pkg%hb0, pkg%aem%fdp)
     call WL0_Update(io, pkg%wl0, pkg%aem%fwl)
@@ -368,7 +362,7 @@ contains
       end if
 
       if (pkg%aem%iLS1NUnk > 0) then
-        call LS1_ComputeCoefficients(io, pkg%ls1, pkg%aem%fwl, pkg%aem%fdp, &
+        call LS1_ComputeCoefficients(io, pkg%ls1, pkg%aem%fls, &
              (/(cCPZ(ic), ic=1, iNCP)/), &
              iEqType, iElementType, iElementString, iElementVertex, iElementFlag, &
              cOrientation, rGhbDistance, iIteration, rMultiplier, &
@@ -376,7 +370,7 @@ contains
       end if
 
       if (pkg%aem%iLS2NUnk > 0) then
-        call LS2_ComputeCoefficients(io, pkg%ls2, pkg%aqu, pkg%aem%fwl, pkg%aem%fdp, &
+        call LS2_ComputeCoefficients(io, pkg%ls2, pkg%aqu, pkg%aem%fls, &
              (/(cCPZ(ic), ic=1, iNCP)/), &
              iEqType, iElementType, iElementString, iElementVertex, iElementFlag, &
              cOrientation, rGhbDistance, iIteration, rMultiplier, &
@@ -948,8 +942,8 @@ contains
     call IO_Assert(io, istat==0, "Open failed on input file " // trim(sFname))
 
     call AQU_Load(io, pkg%aqu, pkg%aem%fdp, mode)
-    call LS1_Load(io, pkg%ls1, pkg%aem%fwl, pkg%aem%fdp, mode)
-    call LS2_Load(io, pkg%ls2, pkg%aem%fwl, pkg%aem%fdp, mode)
+    call LS1_Load(io, pkg%ls1, pkg%aem%fls, mode)
+    call LS2_Load(io, pkg%ls2, pkg%aem%fls, mode)
     call LS3_Load(io, pkg%ls3, pkg%aem%fls, mode)
     call HB0_Load(io, pkg%hb0, pkg%aem%fdp, mode)
     call WL1_Load(io, pkg%wl1, pkg%aem%fwl, mode)

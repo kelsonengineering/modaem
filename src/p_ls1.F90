@@ -29,21 +29,15 @@ module p_ls1
   !!
   !! Module use:
   !!   u_constants  --  Universal ModAEM constant declarations
-  !!   f_well     --  Function module for collections of wells
-  !!   f_dipole   --  Function module for collections of line-dipoles
+  !!   f_linesink   --  Function module for collections of line-sinks
   !!
-  !! This module provides the necessary functionality for discharge-specified
+  !! This module provides the necessary functionality for head-specified
   !! line-sink elements. Elements are defined as strings of points, with the
-  !! discharge rate(per length) specified for each segment.
-  !!
-  !! Note: ModAEM uses the "traditional" line-sink function (io, Strack, 1989)
-  !! for matrix generation, but uses strings of dipoles terminated by a well
-  !! for computational performance, once a solution is achieved.
+  !! specified head at each vertex.
 
   use u_constants
   use u_io
-  use f_well
-  use f_dipole
+  use f_linesink
   use f_aem
   use u_matrix
   use p_aqu
@@ -58,25 +52,24 @@ module p_ls1
     !! Type that holds information for one vertex along a line-sink string
     !!
     !! Members:
-    !!   complex :: cZC
+    !!   complex :: cZ
     !!     The complex coordinate of the vertex
     !!   real :: rHead
     !!     The specified head at the vertex
-    !!   real :: rDPStrength
-    !!     The dipole strength at the vertex
+    !!   real :: rStrength
+    !!     The sink density (sigma) for the segment starting at this vertex
     !!   real :: rLength
     !!     The segment length
-    !!   type(FDP_DIPOLE), pointer :: pFDP
-    !!     Pointer to the vertex entry in the FDP module. Note: nullified for the
+    !!   type(FLS_LINESINK), pointer :: pFLS
+    !!     Pointer to the vertex entry in the FLS module. Note: nullified for the
     !!     last vertex of the string; an element is considered to extend from vertex
     !!     'i' to vertex 'i+1'.
     !!
     complex(kind=AE_REAL) :: cZ
     real(kind=AE_REAL) :: rHead
-    real(kind=AE_REAL) :: rDPStrength
     real(kind=AE_REAL) :: rStrength
     real(kind=AE_REAL) :: rLength
-    type(FDP_DIPOLE), pointer :: pFDP
+    type(FLS_LINESINK), pointer :: pFLS
     complex(kind=AE_REAL), dimension(1) :: cCPZ
     real(kind=AE_REAL) :: rCPHead
     real(kind=AE_REAL) :: rCheckPot
@@ -93,15 +86,11 @@ module p_ls1
     !!     A vector of LS1_VERTEX objects
     !!   integer :: iNPts
     !!     The number of vertices actually in use
-    !!   type(FWL_WELL), pointer :: pFWL
-    !!     Pointer to the string entry in the FWL module. The well extracts the
-    !!     total extraction rate for the string.
     !!   integer :: iID
     !!     The ID number for the string
     !!
     type(LS1_VERTEX), dimension(:), pointer :: Vertices
     integer(kind=AE_INT) :: iNPts
-    type(FWL_WELL), pointer :: pFWL
     integer(kind=AE_INT) :: iID
   end type LS1_STRING
 
@@ -352,9 +341,7 @@ contains
 
     iValue = 0
     select case (iOption)
-      case (SIZE_FWL)
-        iValue = ls1%iNStr
-      case (SIZE_FDP)
+      case (SIZE_FLS)
         do iStr = 1, ls1%iNStr
           str => ls1%Strings(iStr)
           iValue = iValue + str%iNPts-1
@@ -383,62 +370,46 @@ contains
   end function iLS1_GetInfo
 
 
-  subroutine LS1_SetupFunctions(io, ls1, fwl, fdp)
-    !! subroutine LS1_Setup
+  subroutine LS1_SetupFunctions(io, ls1, fls)
+    !! subroutine LS1_SetupFunctions
     !!
-    !! This routine sets up the functions in f_well and f_dipole for the line-sinks
-    !! Since this module creates given-strength elements, the strengths of
-    !! all functions are computed at set-up time.
-    !!
-    !! Note: This routine assumes that sufficient space has been allocated
-    !! in f_well and in f_dipole by SOL_Alloc.
+    !! This routine sets up the functions in f_linesink for the line-sinks.
+    !! All linesinks are created with zero strength; strengths are determined
+    !! by the matrix solution and applied via LS1_Update.
     !!
     !! Calling Sequence:
-    !!    call LS1_Setup(ls1)
+    !!    call LS1_SetupFunctions(io, ls1, fls)
     !!
     !! Arguments:
     !!   (in)    type(LS1_COLLECTION), pointer
     !!             LS1_COLLECTION object to be used
-    !!   (in)    type(FWL_COLLECTION), pointer
-    !!             FWL_COLLECTION object to be used
-    !!   (in)    type(FDP_COLLECTION), pointer
-    !!             FDP_COLLECTION object to be used
+    !!   (in)    type(FLS_COLLECTION), pointer
+    !!             FLS_COLLECTION function object
     !!
     ! [ ARGUMENTS ]
     type(LS1_COLLECTION), pointer :: ls1
-    type(FWL_COLLECTION), pointer :: fwl
-    type(FDP_COLLECTION), pointer :: fdp
+    type(FLS_COLLECTION), pointer :: fls
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iStr, iVtx, i, iDP
-    real(kind=AE_REAL) :: rStrength, rDisch, rHead1, rHead2, rHead
-    complex(kind=AE_REAL) :: cRho1, cRho2, cRho3
-    complex(kind=AE_REAL), dimension(3) :: cCPResult
+    integer(kind=AE_INT) :: iStr, iVtx
     type(LS1_STRING), pointer :: str
-    type(LS1_VERTEX), pointer :: this_vtx, next_vtx, last_vtx
+    type(LS1_VERTEX), pointer :: this_vtx, next_vtx
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(ls1)), &
-           "LS1_Setup: LS1_Create has not been called")
-      call IO_Assert(io, (associated(fwl)), &
-           "LS0_Setup: Illegal FWL_COLLECTION object")
-      call IO_Assert(io, (associated(fdp)), &
-           "LS1_Setup: Illegal FDP_COLLECTION object")
+           "LS1_SetupFunctions: LS1_Create has not been called")
+      call IO_Assert(io, (associated(fls)), &
+           "LS1_SetupFunctions: Illegal FLS_COLLECTION object")
     end if
 
     do iStr = 1, ls1%iNStr
       str => ls1%Strings(iStr)
-      ! Build dipoles for all segments
       do iVtx = 1, str%iNPts-1
         this_vtx => str%Vertices(iVtx)
         next_vtx => str%Vertices(iVtx+1)
         this_vtx%rLength = abs(next_vtx%cZ - this_vtx%cZ)
-        this_vtx%pFDP => FDP_New(io, fdp, this_vtx%cZ, next_vtx%cZ, (/cZERO, cZERO, cZERO/), ELEM_LS1, iStr, iVtx, -1)
+        this_vtx%pFLS => FLS_New(io, fls, this_vtx%cZ, next_vtx%cZ, cZERO, ELEM_LS1, iStr, iVtx, -1)
       end do
-
-      ! Put a well at the end of the string
-      last_vtx => str%Vertices(str%iNPts)
-      str%pFWL => FWL_New(io, fwl, last_vtx%cZ, rZERO, rZERO, ELEM_LS1, iStr, -1, -1)
     end do
 
     return
@@ -564,7 +535,7 @@ contains
   end function rLS1_GetCoefficientMultiplier
 
 
-  subroutine LS1_ComputeCoefficients(io, ls1, fwl, fdp, cPathZ, iEqType, iElementType, iElementString, &
+  subroutine LS1_ComputeCoefficients(io, ls1, fls, cPathZ, iEqType, iElementType, iElementString, &
                iElementVertex, iElementFlag, cOrientation, rGhbResistance, &
                iIteration, rMultiplier, rARow)
     !! subroutine LS1_ComputeCoefficients
@@ -573,15 +544,13 @@ contains
     !! elements in layer iL.
     !!
     !! Calling Sequence:
-    !!    call LS1_ComputeCoefficients(io, ls1, cPathZ, iEqType, cOrientation, rRow)
+    !!    call LS1_ComputeCoefficients(io, ls1, fls, cPathZ, iEqType, cOrientation, rRow)
     !!
     !! Arguments:
     !!   (in)    type(LS1_COLLECTION), pointer
     !!             LS1_COLLECTION object to be used
-    !!   (in)    type(FWL_COLLECTION), pointer
-    !!             FWL_COLLECTION object to be used
-    !!   (in)    type(FDP_COLLECTION), pointer
-    !!             FDP_COLLECTION object to be used
+    !!   (in)    type(FLS_COLLECTION), pointer
+    !!             FLS_COLLECTION object to be used
     !!   (in)    complex :: cPathZ(:)
     !!             The control point(or control path) to be used
     !!   (in)    integer :: iEqType
@@ -602,8 +571,7 @@ contains
     !!
     ! [ ARGUMENTS ]
     type(LS1_COLLECTION), pointer :: ls1
-    type(FWL_COLLECTION), pointer :: fwl
-    type(FDP_COLLECTION), pointer :: fdp
+    type(FLS_COLLECTION), pointer :: fls
     complex(kind=AE_REAL), dimension(:), intent(in) :: cPathZ
     complex(kind=AE_REAL), intent(in) :: cOrientation
     integer(kind=AE_INT), intent(in) :: iEqType
@@ -617,18 +585,16 @@ contains
     real(kind=AE_REAL), dimension(:), intent(out) :: rARow
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
-    integer(kind=AE_INT) :: iStat, iCol, iStr, iVtx, iNDP
-    complex(kind=AE_REAL), dimension(:, :, :), allocatable :: cDPF, cDPW
+    integer(kind=AE_INT) :: iStat, iCol, iStr, iVtx, iNLS
+    complex(kind=AE_REAL), dimension(:, :, :), allocatable :: cLSF, cLSW
     type(LS1_STRING), pointer :: str
     type(LS1_VERTEX), pointer :: first_vtx
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(ls1)), &
            "LS1_ComputeCoefficients: LS1_Create has not been called")
-      call IO_Assert(io, (associated(fwl)), &
-           "LS0_Setup: Illegal FWL_COLLECTION object")
-      call IO_Assert(io, (associated(fdp)), &
-           "LS1_ComputeCoefficients: Illegal FDP_COLLECTION object")
+      call IO_Assert(io, (associated(fls)), &
+           "LS1_ComputeCoefficients: Illegal FLS_COLLECTION object")
     end if
 
     iCol = 0
@@ -636,41 +602,41 @@ contains
     do iStr = 1, ls1%iNStr
       str => ls1%Strings(iStr)
       first_vtx => str%Vertices(1)
-      ! ASSUMES that LS1_Setup routine created consecutive dipole entries
-      iNDP = str%iNPts-1
-      allocate(cDPF(0:iNDP, 1, 1), cDPW(0:iNDP, 1, 1), stat = iStat)
+      ! ASSUMES that LS1_SetupFunctions created consecutive linesink entries
+      iNLS = str%iNPts-1
+      allocate(cLSF(0:iNLS, 1, 1), cLSW(0:iNLS, 1, 1), stat = iStat)
       call IO_Assert(io, (iStat == 0), "LS1_ComputeCoefficients: Allocation failed")
 
-      ! Get the appropriate incluence functions for the boundary condition type
+      ! Get the appropriate influence functions for the boundary condition type
       select case (iEqType)
         case (EQN_HEAD)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FLS_GetInfluence(io, fls, INFLUENCE_P, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSF(1:iNLS, :, :))
         case (EQN_BDYGHB)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, first_vtx%pFDP, iNDP, (/rHALF*sum(cPathZ)/), cOrientation, cDPF(1:iNDP, :, :))
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_F, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPW(1:iNDP, :, :))
-          cDPF = cDPF + rGhbResistance*cDPW
+          call FLS_GetInfluence(io, fls, INFLUENCE_P, first_vtx%pFLS, iNLS, (/rHALF*sum(cPathZ)/), cOrientation, cLSF(1:iNLS, :, :))
+          call FLS_GetInfluence(io, fls, INFLUENCE_F, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSW(1:iNLS, :, :))
+          cLSF = cLSF + rGhbResistance*cLSW
         case (EQN_FLOW)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_F, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FLS_GetInfluence(io, fls, INFLUENCE_F, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSF(1:iNLS, :, :))
         case (EQN_INHO)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_P, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FLS_GetInfluence(io, fls, INFLUENCE_P, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSF(1:iNLS, :, :))
         case (EQN_DISCHARGE)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_W, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FLS_GetInfluence(io, fls, INFLUENCE_W, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSF(1:iNLS, :, :))
         case (EQN_RECHARGE)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_G, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FLS_GetInfluence(io, fls, INFLUENCE_G, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSF(1:iNLS, :, :))
         case (EQN_CONTINUITY)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_Q, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FLS_GetInfluence(io, fls, INFLUENCE_Q, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSF(1:iNLS, :, :))
         case (EQN_POTENTIALDIFF)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_D, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FLS_GetInfluence(io, fls, INFLUENCE_D, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSF(1:iNLS, :, :))
         case (EQN_TOTALFLOW)
-          call FDP_GetInfluence_ILS(io, fdp, INFLUENCE_Z, first_vtx%pFDP, iNDP, cPathZ, cOrientation, cDPF(1:iNDP, :, :))
+          call FLS_GetInfluence(io, fls, INFLUENCE_Z, first_vtx%pFLS, iNLS, cPathZ, cOrientation, cLSF(1:iNLS, :, :))
       end select
 
-      do iVtx = 1, iNDP
+      do iVtx = 1, iNLS
         iCol = iCol+1
-        rARow(iCol) = real(cDPF(iVtx, 1, 1))
+        rARow(iCol) = real(cLSF(iVtx, 1, 1))
       end do
 
-      deallocate(cDPF, cDPW)
+      deallocate(cLSF, cLSW)
     end do
 
     rARow = rARow * rMultiplier
@@ -778,7 +744,7 @@ contains
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
     type(LS1_STRING), pointer :: str
-    type(LS1_VERTEX), pointer :: this_vtx, next_vtx
+    type(LS1_VERTEX), pointer :: this_vtx
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(ls1)), &
@@ -795,65 +761,52 @@ contains
     end if
 
     this_vtx => str%Vertices(iElementVertex)
-    next_vtx => str%Vertices(iElementVertex+1)
     if (lDirect) then
       this_vtx%rStrength = rValue
     else
       this_vtx%rStrength = this_vtx%rStrength + rValue
     end if
-    next_vtx%rDPStrength = this_vtx%rDPStrength + this_vtx%rStrength * this_vtx%rLength
 
     return
   end subroutine LS1_StoreResult
 
 
-  subroutine LS1_Update(io, ls1, fwl, fdp)
+  subroutine LS1_Update(io, ls1, fls)
     !! subroutine LS1_Update
     !!
     !! Updates the underlying function objects for the specified layer.
     !!
     !! Calling Sequence:
-    !!    LS1_Update(ls1)
+    !!    LS1_Update(io, ls1, fls)
     !!
     !! Arguments:
     !!   (in)    type(LS1_COLLECTION), pointer
     !!             LS1_COLLECTION object to be used
-    !!   (in)    type(FWL_COLLECTION), pointer
-    !!             FWL_COLLECTION object to be used
-    !!   (in)    type(FDP_COLLECTION), pointer
-    !!             FDP_COLLECTION object to be used
+    !!   (in)    type(FLS_COLLECTION), pointer
+    !!             FLS_COLLECTION function object
     !!
     ! [ ARGUMENTS ]
     type(LS1_COLLECTION), pointer :: ls1
-    type(FWL_COLLECTION), pointer :: fwl
-    type(FDP_COLLECTION), pointer :: fdp
+    type(FLS_COLLECTION), pointer :: fls
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
     integer(kind=AE_INT) :: iStr, iVtx
-    complex(kind=AE_REAL) :: cRho1, cRho2, cRho3
     type(LS1_STRING), pointer :: str
-    type(LS1_VERTEX), pointer :: this_vtx, next_vtx
-
+    type(LS1_VERTEX), pointer :: vtx
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(ls1)), &
            "LS1_Update: LS1_Create has not been called")
-      call IO_Assert(io, (associated(fdp)), &
-           "LS1_Update: Illegal FDP_COLLECTION object")
+      call IO_Assert(io, (associated(fls)), &
+           "LS1_Update: Illegal FLS_COLLECTION object")
     end if
 
     do iStr = 1, ls1%iNStr
       str => ls1%Strings(iStr)
       do iVtx = 1, str%iNPts-1
-        this_vtx => str%Vertices(iVtx)
-        next_vtx => str%Vertices(iVtx+1)
-        cRho1 = cmplx(this_vtx%rDPStrength, rZERO, AE_REAL)
-        cRho3 = cmplx(next_vtx%rDPStrength, rZERO, AE_REAL)
-        cRho2 = rHALF * (cRho1+cRho3)
-        this_vtx%pFDP%cRho = (/cRho1, cRho2, cRho3/)
+        vtx => str%Vertices(iVtx)
+        vtx%pFLS%cSigma = cmplx(vtx%rStrength, rZERO, AE_REAL)
       end do
-      ! Put a well at the end of the string
-      str%pFWL%rDischarge = real(cRho3)
     end do
 
     return
@@ -1004,12 +957,11 @@ contains
           this_vtx => str%Vertices(str%iNPts)
           this_vtx%cZ = cZ
           this_vtx%rHead = rHead
-          this_vtx%rDPStrength = rZERO
           this_vtx%rStrength = rZERO
           if (str%iNPts > 1) then
             last_vtx%rLength = abs(this_vtx%cZ - last_vtx%cZ)
           end if
-          nullify(this_vtx%pFDP)
+          nullify(this_vtx%pFLS)
           last_vtx => this_vtx
         case (kOpEND)
           ! EOD mark was found. Exit the file parser.
@@ -1028,7 +980,6 @@ contains
           allocate(str%Vertices(iMaxVtx), stat = iStat)
           call IO_Assert(io, (iStat == 0), "LS1_Read: Allocation failed")
           ! Made it!
-          nullify(str%pFWL)          ! No FWL function yet!
           str%iID = iID
           str%iNPts = 0      ! Initialize the vertex counter
       end select
@@ -1112,7 +1063,6 @@ contains
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
     integer(kind=AE_INT) :: iStr, iVtx
-    integer(kind=AE_INT) :: nWL, nPD, nDP, nEQ, nUN
     type(LS1_STRING), pointer :: str
     type(LS1_VERTEX), pointer :: vtx, next
     real(kind=AE_REAL) :: rSigma
@@ -1128,9 +1078,7 @@ contains
     if (associated(ls1%Strings)) then
       call HTML_StartTable()
       call HTML_AttrInteger('Number of strings', ls1%iNStr)
-      call HTML_AttrInteger('Number of FWL functions', iLS1_GetInfo(io, ls1, SIZE_FWL, 0))
-      call HTML_AttrInteger('Number of FPD functions', iLS1_GetInfo(io, ls1, SIZE_FPD, 0))
-      call HTML_AttrInteger('Number of FDP functions', iLS1_GetInfo(io, ls1, SIZE_FDP, 0))
+      call HTML_AttrInteger('Number of FLS functions', iLS1_GetInfo(io, ls1, SIZE_FLS, 0))
       call HTML_AttrInteger('Number of equations', iLS1_GetInfo(io, ls1, SIZE_EQUATIONS, 0))
       call HTML_AttrInteger('Number of unknowns', iLS1_GetInfo(io, ls1, SIZE_UNKNOWNS, 0))
       call HTML_EndTable()
@@ -1141,19 +1089,18 @@ contains
         call HTML_StartTable()
         call HTML_AttrInteger('String number', iStr)
         call HTML_AttrInteger('ID', str%iID)
-        call HTML_AttrInteger('FWL index', str%pFWL%iIndex)
         call HTML_EndTable()
 
         call HTML_Header('Vertices', 4)
 
         call HTML_StartTable()
-        call HTML_TableHeader((/'Vertex', 'FDP # ', 'X     ', 'Y     ', 'Head  ', 'Sigma ', 'Check ', 'M Head', 'Error '/))
+        call HTML_TableHeader((/'Vertex', 'FLS # ', 'X     ', 'Y     ', 'Head  ', 'Sigma ', 'Check ', 'M Head', 'Error '/))
         do iVtx = 1, str%iNPts-1
           vtx => str%Vertices(iVtx)
           next => str%Vertices(iVtx+1)
           rSigma = rIO_WorldLength(io, vtx%rStrength, next%cZ-vtx%cZ)
           call HTML_StartRow()
-          call HTML_ColumnInteger((/iVtx, vtx%pFDP%iIndex/))
+          call HTML_ColumnInteger((/iVtx, vtx%pFLS%iIndex/))
           call HTML_ColumnComplex((/cIO_WorldCoords(io, vtx%cZ)/))
           call HTML_ColumnReal((/vtx%rCPHead, rSigma, vtx%rCheckPot, vtx%rCheckHead, vtx%rCheckHead-vtx%rCPHead/))
           call HTML_EndRow()
@@ -1203,13 +1150,12 @@ contains
   end subroutine LS1_Save
 
 
-  subroutine LS1_Load(io, ls1, fwl, fdp, mode)
+  subroutine LS1_Load(io, ls1, fls, mode)
     !! Loads the LS1 records from the file on the SCRATCH LU
     ! [ ARGUMENTS ]
     type(IO_STATUS), pointer :: io
     type(LS1_COLLECTION), pointer :: ls1
-    type(FWL_COLLECTION), pointer :: fwl
-    type(FDP_COLLECTION), pointer :: fdp
+    type(FLS_COLLECTION), pointer :: fls
     integer(kind=AE_INT), intent(in) :: mode
     ! [ LOCALS ]
     integer(kind=AE_INT) :: imodule, istr, ivtx, iflg, istat
@@ -1240,7 +1186,7 @@ contains
     end do
 
     ! Now, populate the internal data structures
-    call LS1_Update(io, ls1, fwl, fdp)
+    call LS1_Update(io, ls1, fls)
 
     return
   end subroutine LS1_Load

@@ -64,11 +64,11 @@ p_hb0.o: p_hb0.F90 u_constants.o u_io.o u_matrix.o f_dipole.o f_aem.o
 
 a_inq.o: a_inq.F90 u_constants.o u_io.o f_aem.o p_packages.o
 
-p_ls0.o: p_ls0.F90 u_constants.o u_io.o u_matrix.o f_well.o f_dipole.o f_aem.o p_aqu.o
+p_ls0.o: p_ls0.F90 u_constants.o u_io.o f_linesink.o f_aem.o p_aqu.o
 
-p_ls1.o: p_ls1.F90 u_constants.o u_io.o f_well.o f_dipole.o f_aem.o u_matrix.o p_aqu.o
+p_ls1.o: p_ls1.F90 u_constants.o u_io.o f_linesink.o f_aem.o u_matrix.o p_aqu.o
 
-p_ls2.o: p_ls2.F90 u_constants.o u_io.o f_well.o f_dipole.o f_aem.o u_matrix.o p_aqu.o
+p_ls2.o: p_ls2.F90 u_constants.o u_io.o f_linesink.o f_aem.o u_matrix.o p_aqu.o
 
 p_ls3.o: p_ls3.F90 u_constants.o u_io.o f_well.o f_dipole.o f_aem.o u_matrix.o p_aqu.o
 

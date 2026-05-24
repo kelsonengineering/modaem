@@ -29,22 +29,15 @@ module p_ls0
   !!
   !! Module use:
   !!   u_constants  --  Universal ModAEM constant declarations
-  !!   f_well     --  Function module for collections of wells
-  !!   f_dipole   --  Function module for collections of line-dipoles
+  !!   f_linesink   --  Function module for collections of line-sinks
   !!
   !! This module provides the necessary functionality for discharge-specified
   !! line-sink elements. Elements are defined as strings of points, with the
   !! discharge rate(per length) specified for each segment.
-  !!
-  !! Note: ModAEM uses the "traditional" line-sink function (io, Strack, 1989)
-  !! for matrix generation, but uses strings of dipoles terminated by a well
-  !! for computational performance, once a solution is achieved.
 
   use u_constants
   use u_io
-  use u_matrix
-  use f_well
-  use f_dipole
+  use f_linesink
   use f_aem
   use p_aqu
 
@@ -58,18 +51,18 @@ module p_ls0
     !! Type that holds information for one vertex along a line-sink string
     !!
     !! Members:
-    !!   complex :: cZC
+    !!   complex :: cZ
     !!     The complex coordinate of the vertex
     !!   real :: rSigma
     !!     The sink density at the vertex
-    !!   type(FDP_DIPOLE), pointer :: pFDP
-    !!     Pointer to the vertex entry in the FDP module. Note: nullified for the
+    !!   type(FLS_LINESINK), pointer :: pFLS
+    !!     Pointer to the vertex entry in the FLS module. Note: nullified for the
     !!     last vertex of the string; an element is considered to extend from vertex
     !!     'i' to vertex 'i+1'.
     !!
     complex(kind=AE_REAL) :: cZ
     real(kind=AE_REAL) :: rSigma
-    type(FDP_DIPOLE), pointer :: pFDP
+    type(FLS_LINESINK), pointer :: pFLS
     real(kind=AE_REAL) :: rCheckHead
   end type LS0_VERTEX
 
@@ -83,15 +76,11 @@ module p_ls0
     !!     A vector of LS0_VERTEX objects
     !!   integer :: iNPts
     !!     The number of vertices actually in use
-    !!   type(FWL_WELL), pointer :: pFWL
-    !!     Pointer to the string entry in the FWL module. The well extracts the
-    !!     total extraction rate for the string.
     !!   integer :: iID
     !!     The ID number for the string
     !!
     type(LS0_VERTEX), dimension(:), pointer :: Vertices
     integer(kind=AE_INT) :: iNPts
-    type(FWL_WELL), pointer :: pFWL
     integer(kind=AE_INT) :: iID
   end type LS0_STRING
 
@@ -337,11 +326,9 @@ contains
 
     iValue = 0
     select case (iOption)
-      case (SIZE_FWL)
-        iValue = ls0%iNStr
-      case (SIZE_FDP)
+      case (SIZE_FLS)
         do iStr = 1, ls0%iNStr
-          str => ls0%Strings(ls0%iNStr)
+          str => ls0%Strings(iStr)
           iValue = iValue + str%iNPts-1
         end do
       case default
@@ -352,72 +339,48 @@ contains
   end function iLS0_GetInfo
 
 
-  subroutine LS0_SetupFunctions(io, ls0, fwl, fdp)
-    !! subroutine LS0_Setup
+  subroutine LS0_SetupFunctions(io, ls0, fls)
+    !! subroutine LS0_SetupFunctions
     !!
-    !! This routine sets up the functions in f_well and f_dipole for the line-sinks
+    !! This routine sets up the functions in f_linesink for the line-sinks.
     !! Since this module creates given-strength elements, the strengths of
     !! all functions are computed at set-up time.
     !!
-    !! Note: This routine assumes that sufficient space has been allocated
-    !! in f_well and in f_dipole by SOL_Alloc.
-    !!
     !! Calling Sequence:
-    !!    call LS0_Setup(io, ls0, fwl, fdp)
+    !!    call LS0_SetupFunctions(io, ls0, fls)
     !!
     !! Arguments:
     !!   (in)    type(LS0_COLLECTION), pointer
     !!             LS0_COLLECTION object to be used
-    !!   (in)    type(FWL_COLLECTION), pointer
-    !!             FWL_COLLECTION function object
-    !!   (in)    type(LS0_COLLECTION), pointer
-    !!             FDP_COLLECTION function object
+    !!   (in)    type(FLS_COLLECTION), pointer
+    !!             FLS_COLLECTION function object
     !!
     ! [ ARGUMENTS ]
     type(LS0_COLLECTION), pointer :: ls0
-    type(FWL_COLLECTION), pointer :: fwl
-    type(FDP_COLLECTION), pointer :: fdp
+    type(FLS_COLLECTION), pointer :: fls
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
     integer(kind=AE_INT) :: iStr, iVtx
-    real(kind=AE_REAL) :: rSigma, rDisch
-    complex(kind=AE_REAL) :: cZ1, cZ2, cRho1, cRho2, cRho3
+    real(kind=AE_REAL) :: rSigma
     type(LS0_STRING), pointer :: str
-    type(LS0_VERTEX), pointer :: this_vtx, next, last_vtx
+    type(LS0_VERTEX), pointer :: this_vtx, next
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(ls0)), &
-           "LS0_Setup: LS0_Create has not been called")
-      call IO_Assert(io, (associated(fwl)), &
-           "LS0_Setup: Illegal FWL_COLLECTION object")
-      call IO_Assert(io, (associated(fdp)), &
-           "LS0_Setup: Illegal FDP_COLLECTION object")
+           "LS0_SetupFunctions: LS0_Create has not been called")
+      call IO_Assert(io, (associated(fls)), &
+           "LS0_SetupFunctions: Illegal FLS_COLLECTION object")
     end if
 
     do iStr = 1, ls0%iNStr
       str => ls0%Strings(iStr)
-      cRho1 = cZERO
-      ! Build dipoles for all segments
-      do iVtx = 1, str%iNPts-1  ! Set up nVertices-1 dipoles...
+      do iVtx = 1, str%iNPts-1
         this_vtx => str%Vertices(iVtx)
         next => str%Vertices(iVtx+1)
-        cZ1 = this_vtx%cZ
-        cZ2 = next%cZ
-
-        ! Compute the dipole strengths in terms of the given sink density.  NOTE: these
-        ! computations may be easily adjusted for linear-strength line-sinks.
         rSigma = rHALF * (this_vtx%rSigma + next%rSigma)
-        rDisch = rSigma*abs(cZ2-cZ1)
-        cRho3 = cRho1 + rDisch
-        cRho2 = rHALF*(cRho1+cRho3)
-        this_vtx%pFDP => FDP_New(io, fdp, cZ1, cZ2, (/cRho1, cRho2, cRho3/), ELEM_LS0, iStr, iVtx, -1)
-        cRho1 = cRho3                               ! Move on to the next one with this Rho value
+        this_vtx%pFLS => FLS_New(io, fls, this_vtx%cZ, next%cZ, &
+                                 cmplx(rSigma, rZERO, AE_REAL), ELEM_LS0, iStr, iVtx, -1)
       end do
-
-      ! Put a well at the end of the string
-      last_vtx => str%Vertices(str%iNPts)
-      cZ1 = last_vtx%cZ
-      str%pFWL => FWL_New(io, fwl, cZ1, real(cRho3), rZERO, ELEM_LS0, iStr, -1, -1)
     end do
 
     return
@@ -566,7 +529,7 @@ contains
             prev => str%Vertices(str%iNPts-1)
             prev%rSigma = rIO_LocalLength(io, rSigma, vtx%cZ-prev%cZ)
           end if
-          nullify(vtx%pFDP)
+          nullify(vtx%pFLS)
         case (kOpEND)
           ! EOD mark was found. Exit the file parser.
           exit
@@ -586,7 +549,6 @@ contains
           allocate(str%Vertices(iMaxVtx), stat = iStat)
           call IO_Assert(io, (iStat == 0), "LS0_Read: Allocation failed")
           ! Made it!
-          nullify(str%pFWL)          ! No FWL function yet!
           str%iID = iID
           write (unit=IO_MessageBuffer, &
                  fmt="("" LS0_Read: "", i6, "" vertices allocated"")" &
@@ -672,7 +634,6 @@ contains
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
     integer(kind=AE_INT) :: iStr, iVtx
-    integer(kind=AE_INT) :: nWL, nPD, nDP, nEQ, nUN
     real(kind=AE_REAL) :: rSigma
     type(LS0_STRING), pointer :: str
     type(LS0_VERTEX), pointer :: vtx, next
@@ -688,9 +649,7 @@ contains
     if (associated(ls0%Strings)) then
       call HTML_StartTable()
       call HTML_AttrInteger('Number of line-sinks', ls0%iNStr)
-      call HTML_AttrInteger('Number of FWL functions', iLS0_GetInfo(io, ls0, SIZE_FWL, 0))
-      call HTML_AttrInteger('Number of FPD functions', iLS0_GetInfo(io, ls0, SIZE_FPD, 0))
-      call HTML_AttrInteger('Number of FDP functions', iLS0_GetInfo(io, ls0, SIZE_FDP, 0))
+      call HTML_AttrInteger('Number of FLS functions', iLS0_GetInfo(io, ls0, SIZE_FLS, 0))
       call HTML_AttrInteger('Number of equations', iLS0_GetInfo(io, ls0, SIZE_EQUATIONS, 0))
       call HTML_AttrInteger('Number of unknowns', iLS0_GetInfo(io, ls0, SIZE_UNKNOWNS, 0))
       call HTML_EndTable()
@@ -701,19 +660,18 @@ contains
         call HTML_StartTable()
         call HTML_AttrInteger('String number', iStr)
         call HTML_AttrInteger('ID', str%iID)
-        call HTML_AttrInteger('FWL index', str%pFWL%iIndex)
         call HTML_EndTable()
 
         call HTML_Header('Vertices', 4)
 
         call HTML_StartTable()
-        call HTML_TableHeader((/'Vertex', 'FDP # ', 'X     ', 'Y     ', 'Sigma ', 'M Head'/))
+        call HTML_TableHeader((/'Vertex', 'FLS # ', 'X     ', 'Y     ', 'Sigma ', 'M Head'/))
         do iVtx = 1, str%iNPts-1
           vtx => str%Vertices(iVtx)
           next => str%Vertices(iVtx+1)
           rSigma = rIO_WorldLength(io, vtx%rSigma, next%cZ-vtx%cZ)
           call HTML_StartRow()
-          call HTML_ColumnInteger((/iVtx, vtx%pFDP%iIndex/))
+          call HTML_ColumnInteger((/iVtx, vtx%pFLS%iIndex/))
           call HTML_ColumnComplex((/cIO_WorldCoords(io, vtx%cZ)/))
           call HTML_ColumnReal((/rSigma, vtx%rCheckHead/))
           call HTML_EndRow()
