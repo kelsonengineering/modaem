@@ -1463,7 +1463,7 @@ contains
   end subroutine LS2_Read
 
 
-  subroutine LS2_Inquiry(io, ls2, iLU)
+  subroutine LS2_Inquiry(io, ls2, iLU, lCSV)
     !! subroutine LS2_Inquiry
     !!
     !! Writes an inquiry report for all line-sinks to iLU
@@ -1476,25 +1476,37 @@ contains
     !!             LS2_COLLECTION object to be used
     !!   (in)    integer :: iLU
     !!             The output LU to receive output
+    !!   (in)    logical, optional :: lCSV
+    !!             If .true., write CSV-style headers
     !!
     ! [ ARGUMENTS ]
     type(LS2_COLLECTION), pointer :: ls2
     integer(kind=AE_INT), intent(in) :: iLU
+    logical, intent(in), optional :: lCSV
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
     integer(kind=AE_INT) :: iStr, iVtx
     real(kind=AE_REAL) :: rLength
     type(LS2_STRING), pointer :: str
     type(LS2_VERTEX), pointer :: this, next
+    logical :: lDoCSV
+    lDoCSV = .false.
+    if (present(lCSV)) lDoCSV = lCSV
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(ls2)), &
            "LS2_Inquiry: LS2_Create has not been called")
     end if
 
-    write (unit=iLU, &
-           fmt="(""#LS2, ID, VTX, MODE, ENABLED, COND, X1, Y1, X2, Y2, LENGTH, SPEC_HEAD, DEPTH, STRENGTH, MOD_HEAD, " // &
-           "FLUX_ERROR, ROUTE?, ROUTE_MODE, DOWNSTREAM_ID, BASEFLOW, OVFLOW, STRFLOW"")")
+    if (lDoCSV) then
+      write (unit=iLU, &
+             fmt="(""tag, id, vtx, mode, enabled, cond, x1, y1, x2, y2, length, spec_head, depth, strength, " // &
+             "mod_head, flux_error, route, route_mode, downstream_id, baseflow, ovflow, strflow"")")
+    else
+      write (unit=iLU, &
+             fmt="(""#LS2, ID, VTX, MODE, ENABLED, COND, X1, Y1, X2, Y2, LENGTH, SPEC_HEAD, DEPTH, STRENGTH, MOD_HEAD, " // &
+             "FLUX_ERROR, ROUTE?, ROUTE_MODE, DOWNSTREAM_ID, BASEFLOW, OVFLOW, STRFLOW"")")
+    end if
     do iStr = 1, ls2%iNStr
       str => ls2%Strings(iStr)
       do iVtx = 1, str%iNPts-1

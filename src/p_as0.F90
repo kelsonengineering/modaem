@@ -586,7 +586,7 @@ contains
   end subroutine AS0_Read
 
 
-  subroutine AS0_Inquiry(io, as0, iLU)
+  subroutine AS0_Inquiry(io, as0, iLU, lCSV)
     !! subroutine AS0_Inquiry
     !!
     !! Writes an inquiry report for all area-sinks to iLU
@@ -599,22 +599,33 @@ contains
     !!             AS0_COLLECTION object to be used
     !!   (in)    integer :: iLU
     !!             The output LU to receive output
+    !!   (in)    logical, optional :: lCSV
+    !!             If .true., write CSV-style headers
     !!
     ! [ ARGUMENTS ]
     type(AS0_COLLECTION), pointer :: as0
     integer(kind=AE_INT), intent(in) :: iLU
+    logical, intent(in), optional :: lCSV
     type(IO_STATUS), pointer :: io
     ! [ LOCAAS ]
     integer(kind=AE_INT) :: iStr
     type(AS0_STRING), pointer :: str
+    logical :: lDoCSV
+    lDoCSV = .false.
+    if (present(lCSV)) lDoCSV = lCSV
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(as0)), &
            "AS0_Inquiry: AS0_Create has not been called")
     end if
 
-    write (unit=iLU, &
-           fmt="(""#AS0, ID, FLAG, AREA, STRENGTH, ACTIVE_A"")")
+    if (lDoCSV) then
+      write (unit=iLU, &
+             fmt="(""tag, id, flag, area, strength, active_a"")")
+    else
+      write (unit=iLU, &
+             fmt="(""#AS0, ID, FLAG, AREA, STRENGTH, ACTIVE_A"")")
+    end if
     do iStr = 1, as0%iNStr
       str => as0%Strings(iStr)
       write (unit=iLU, &

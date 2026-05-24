@@ -810,7 +810,7 @@ contains
   end subroutine WL0_Read
 
 
-  subroutine WL0_Inquiry(io, wl0, aqu, iLU)
+  subroutine WL0_Inquiry(io, wl0, aqu, iLU, lCSV)
     !! subroutine WL0_Inquiry
     !!
     !! Writes an inquiry report for all wells to iLU
@@ -829,18 +829,26 @@ contains
     type(AQU_COLLECTION), pointer :: aqu
     integer(kind=AE_INT), intent(in) :: iLU
     type(IO_STATUS), pointer :: io
+    logical, intent(in), optional :: lCSV
     ! [ LOCALS ]
     integer(kind=AE_INT) :: i
     type(WL0_WELL), pointer :: wel
     real(kind=AE_REAL) :: wt_head, scr_head, rDdn
+    logical :: lDoCSV
+    lDoCSV = .false.
+    if (present(lCSV)) lDoCSV = lCSV
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(wl0)), &
            "WL0_Inquiry: WL0_Create has not been called")
     end if
 
-    write (unit=iLU, &
-           fmt="(""#WL0, ID, X, Y, DISCHARGE, RADIUS, CHECK_HEAD, UN_HEAD, WT_HEAD, SCR_HEAD, DDN, DRY"")")
+    if (lDoCSV) then
+      write (unit=iLU, fmt="(""tag, id, x, y, discharge, radius, check_head, un_head, wt_head, scr_head, ddn, dry"")")
+    else
+      write (unit=iLU, &
+             fmt="(""#WL0, ID, X, Y, DISCHARGE, RADIUS, CHECK_HEAD, UN_HEAD, WT_HEAD, SCR_HEAD, DDN, DRY"")")
+    end if
     do i = 1, wl0%iCount
       wel => wl0%Wells(i)
       call WL0_GetHeadAtWell(io, wel, wt_head, scr_head)

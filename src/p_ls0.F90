@@ -562,7 +562,7 @@ contains
   end subroutine LS0_Read
 
 
-  subroutine LS0_Inquiry(io, ls0, iLU)
+  subroutine LS0_Inquiry(io, ls0, iLU, lCSV)
     !! subroutine LS0_Inquiry
     !!
     !! Writes an inquiry report for all line-sinks to iLU
@@ -580,19 +580,27 @@ contains
     type(LS0_COLLECTION), pointer :: ls0
     integer(kind=AE_INT), intent(in) :: iLU
     type(IO_STATUS), pointer :: io
+    logical, intent(in), optional :: lCSV
     ! [ LOCALS ]
     integer(kind=AE_INT) :: iStr, iVtx
     real(kind=AE_REAL) :: rLength, rSigma
     type(LS0_STRING), pointer :: str
     type(LS0_VERTEX), pointer :: this, next
+    logical :: lDoCSV
+    lDoCSV = .false.
+    if (present(lCSV)) lDoCSV = lCSV
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(ls0)), &
            "LS0_Inquiry: LS0_Create has not been called")
     end if
 
-    write (unit=iLU, &
-           fmt="(""#LS0, ID, VTX, X1, Y1, X2, Y2, LENGTH, STRENGTH, MOD_HEAD"")")
+    if (lDoCSV) then
+      write (unit=iLU, fmt="(""tag, id, vtx, x1, y1, x2, y2, length, strength, mod_head"")")
+    else
+      write (unit=iLU, &
+             fmt="(""#LS0, ID, VTX, X1, Y1, X2, Y2, LENGTH, STRENGTH, MOD_HEAD"")")
+    end if
     do iStr = 1, ls0%iNStr
       str => ls0%Strings(iStr)
       do iVtx = 1, str%iNPts-1

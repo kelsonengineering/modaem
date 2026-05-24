@@ -1042,7 +1042,7 @@ contains
   end subroutine HB0_Read
 
 
-  subroutine HB0_Inquiry(io, hb0, iLU)
+  subroutine HB0_Inquiry(io, hb0, iLU, lCSV)
     !! subroutine HB0_Inquiry
     !!
     !! Writes an inquiry report for all barriers to iLU
@@ -1055,10 +1055,13 @@ contains
     !!             HB0_COLLECTION object to be used
     !!   (in)    integer :: iLU
     !!             The output LU to receive output
+    !!   (in)    logical, optional :: lCSV
+    !!             If .true., write CSV-style headers
     !!
     ! [ io%lDebug ]
     type(HB0_COLLECTION), pointer :: hb0
     integer(kind=AE_INT), intent(in) :: iLU
+    logical, intent(in), optional :: lCSV
     type(IO_STATUS), pointer :: io
 
     ! [ LOCALS ]
@@ -1066,6 +1069,9 @@ contains
     real(kind=AE_REAL) :: rLength
     type(HB0_STRING), pointer :: str
     type(HB0_VERTEX), pointer :: this, next
+    logical :: lDoCSV
+    lDoCSV = .false.
+    if (present(lCSV)) lDoCSV = lCSV
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(hb0)), &
@@ -1073,8 +1079,13 @@ contains
     end if
 
 
-    write (unit=iLU, &
-           fmt="(""#HB0, VTX, X1, Y1, X2, Y2, LENGTH, STRENGTH_1, STRENGTH_2, FLUX_1, FLUX_2"")")
+    if (lDoCSV) then
+      write (unit=iLU, &
+             fmt="(""tag, id, vtx, x1, y1, x2, y2, length, strength_1, strength_2, flux_1, flux_2"")")
+    else
+      write (unit=iLU, &
+             fmt="(""#HB0, VTX, X1, Y1, X2, Y2, LENGTH, STRENGTH_1, STRENGTH_2, FLUX_1, FLUX_2"")")
+    end if
     do iStr = 1, hb0%iNStr
       str => hb0%Strings(iStr)
       do iVtx = 1, str%iNPts-1

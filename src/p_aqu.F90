@@ -1839,7 +1839,7 @@ contains
   end subroutine AQU_Report
 
 
-  subroutine AQU_Inquiry(io, aqu, iLU)
+  subroutine AQU_Inquiry(io, aqu, iLU, lCSV)
     !! subroutine AQU_Inquiry
     !!
     !! Writes an inquiry report for all barriers to iLU
@@ -1847,6 +1847,7 @@ contains
     ! [ ARGUMENTS ]
     type(AQU_COLLECTION), pointer :: aqu
     integer(kind=AE_INT), intent(in) :: iLU
+    logical, intent(in), optional :: lCSV
     type(IO_STATUS), pointer :: io
 
     ! [ LOCALS ]
@@ -1856,6 +1857,9 @@ contains
     type(AQU_BDYELEMENT), pointer :: bdy
     type(AQU_STRING), pointer :: str
     type(AQU_VERTEX), pointer :: vtx, next
+    logical :: lDoCSV
+    lDoCSV = .false.
+    if (present(lCSV)) lDoCSV = lCSV
 
     if (aqu%lDebug) then
       call IO_Assert(io, (associated(aqu)), &
@@ -1863,8 +1867,13 @@ contains
     end if
 
     if (aqu%frf%lReference) then
-      write (unit=iLU, &
-             fmt="(""#[REFERENCE]AQU, 0, 0, REF_X, REF_Y, CONST, SPEC_HEAD, MODEL_HEAD, ERROR"")")
+      if (lDoCSV) then
+        write (unit=iLU, &
+               fmt="(""tag, ibdy, istr, ref_x, ref_y, const, spec_head, model_head, error"")")
+      else
+        write (unit=iLU, &
+               fmt="(""#[REFERENCE]AQU, 0, 0, REF_X, REF_Y, CONST, SPEC_HEAD, MODEL_HEAD, ERROR"")")
+      end if
       write (unit=iLU, &
              fmt="(""AQU"", 2("", "", i9), 5("", "", e16.8))" &
              ) 0, &
@@ -1876,9 +1885,16 @@ contains
     end if
 
     if (aqu%iNBdy > 0) then
-      write (unit=iLU, &
-             fmt="(""#[BOUNDARY]AQU, IBDY, FLAG, X1, Y1, X2, Y2, LENGTH, STRENGTH, SPEC_HEAD, SPEC_FLUX, " // &
-             "GHB_DISTANCE, MODEL_HEAD, MODEL_FLUX"")")
+      if (lDoCSV) then
+        write (unit=iLU, fmt="()")
+        write (unit=iLU, &
+               fmt="(""tag, ibdy, flag, x1, y1, x2, y2, length, strength, spec_head, spec_flux, " // &
+               "ghb_distance, model_head, model_flux"")")
+      else
+        write (unit=iLU, &
+               fmt="(""#[BOUNDARY]AQU, IBDY, FLAG, X1, Y1, X2, Y2, LENGTH, STRENGTH, SPEC_HEAD, SPEC_FLUX, " // &
+               "GHB_DISTANCE, MODEL_HEAD, MODEL_FLUX"")")
+      end if
       do iBdy = 1, aqu%iNBdy
         bdy => aqu%BdyElements(iBdy)
         write (unit=iLU, &
@@ -1902,8 +1918,14 @@ contains
            "AQU_Inquiry: AQU_Create has not been called")
     end if
 
-    write (unit=iLU, &
-           fmt="(""#IN0, ID, VTX, X1, Y1, X2, Y2, LENGTH, STRENGTH1, STRENGTH2, POT1, POT1, ERROR1, ERROR2"")")
+    if (lDoCSV) then
+      write (unit=iLU, fmt="()")
+      write (unit=iLU, &
+             fmt="(""tag, id, vtx, x1, y1, x2, y2, length, strength1, strength2, pot1, pot2, error1, error2"")")
+    else
+      write (unit=iLU, &
+             fmt="(""#IN0, ID, VTX, X1, Y1, X2, Y2, LENGTH, STRENGTH1, STRENGTH2, POT1, POT1, ERROR1, ERROR2"")")
+    end if
     do iStr = 1, aqu%iNStr
       str => aqu%Strings(iStr)
       do iVtx = 1, str%iNPts-1

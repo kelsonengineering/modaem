@@ -1505,7 +1505,7 @@ contains
     end subroutine CW0_Read
 
 
-    subroutine CW0_Inquiry(io, cw0, aem, iLU)
+    subroutine CW0_Inquiry(io, cw0, aem, iLU, lCSV)
       !! subroutine CW0_Inquiry
       !!
       !! Writes an inquiry report for all line-sinks to iLU
@@ -1518,11 +1518,14 @@ contains
       !!             CW0_COLLECTION object to be used
       !!   (in)    integer :: iLU
       !!             The output LU to receive output
+      !!   (in)    logical, optional :: lCSV
+      !!             If .true., write CSV-style headers
       !!
       ! [ ARGUMENTS ]
       type(CW0_COLLECTION), pointer :: cw0
       type(AEM_DOMAIN), pointer :: aem
       integer(kind=AE_INT), intent(in) :: iLU
+      logical, intent(in), optional :: lCSV
       type(IO_STATUS), pointer :: io
       ! [ LOCALS ]
       integer(kind=AE_INT) :: iWel, iRad, iVtx
@@ -1531,14 +1534,22 @@ contains
       type(CW0_WELL), pointer :: wel
       type(CW0_RADIAL), pointer :: rad
       type(CW0_VERTEX), pointer :: vtx, this, next
+      logical :: lDoCSV
+      lDoCSV = .false.
+      if (present(lCSV)) lDoCSV = lCSV
 
       if (io%lDebug) then
         call IO_Assert(io, (associated(cw0)), &
              "CW0_Inquiry: CW0_Create has not been called")
       end if
 
-    write (unit=iLU, &
-           fmt="(""#CW0, ID, HEAD_SPEC, XC, YC, Q, MODEL_Q, CAISSON_HEAD"")")
+      if (lDoCSV) then
+        write (unit=iLU, &
+               fmt="(""tag, id, head_spec, xc, yc, q, model_q, caisson_head"")")
+      else
+        write (unit=iLU, &
+               fmt="(""#CW0, ID, HEAD_SPEC, XC, YC, Q, MODEL_Q, CAISSON_HEAD"")")
+      end if
       do iWel = 1, cw0%iCount
         wel => cw0%Wells(iWel)
         ! Write the overall collector-well record CW0
@@ -1549,9 +1560,19 @@ contains
         write (unit=iLU, &
                fmt="(""CW0"", 1("", "", i9), 1("", "", l9), 5("", "", e16.8))" &
                ) wel%iID, wel%lHeadSpec, cIO_WorldCoords(io, wel%cZC), wel%rQ, rModeledQ, rCaissonHead
-        ! Write records for all radials(CWR)
+      end do
+      ! Write records for all radials (CWR)
+      if (lDoCSV) then
+        write (unit=iLU, fmt="()")
         write (unit=iLU, &
-               fmt="(""#CWR, WELL_ID, RADIAL, VERTEX, X0, Y0, X1, Y1, LENGTH, STRENGTH, MODEL_HEAD, ERROR"")")
+               fmt="(""tag, well_id, radial, vertex, x0, y0, x1, y1, length, strength, model_head, error"")")
+      end if
+      do iWel = 1, cw0%iCount
+        wel => cw0%Wells(iWel)
+        if (.not. lDoCSV) then
+          write (unit=iLU, &
+                 fmt="(""#CWR, WELL_ID, RADIAL, VERTEX, X0, Y0, X1, Y1, LENGTH, STRENGTH, MODEL_HEAD, ERROR"")")
+        end if
         do iRad = 1, wel%iNRad
           rad => wel%Radials(iRad)
           do iVtx = 1, wel%iResolution-1

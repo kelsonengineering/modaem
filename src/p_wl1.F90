@@ -902,7 +902,7 @@ contains
   end subroutine WL1_Read
 
 
-  subroutine WL1_Inquiry(io, wl1, aqu, iLU)
+  subroutine WL1_Inquiry(io, wl1, aqu, iLU, lCSV)
     !! subroutine WL1_Inquiry
     !!
     !! Writes an inquiry report for all line-sinks to iLU
@@ -921,19 +921,26 @@ contains
     type(AQU_COLLECTION), pointer :: aqu
     integer(kind=AE_INT), intent(in) :: iLU
     type(IO_STATUS), pointer :: io
+    logical, intent(in), optional :: lCSV
     ! [ LOCALS ]
     integer(kind=AE_INT) :: i
     type(WL1_WELL), pointer :: wel
     real(kind=AE_REAL) :: pp_wtbl, pp_head
+    logical :: lDoCSV
+    lDoCSV = .false.
+    if (present(lCSV)) lDoCSV = lCSV
 
     if (io%lDebug) then
       call IO_Assert(io, (associated(wl1)), &
            "WL1_Inquiry: WL1_Create has not been called")
     end if
 
-
-    write (unit=iLU, &
-           fmt="(""#WL1, ID, X, Y, RADIUS, CP_X, CP_Y, SPEC_HEAD, DISCHARGE, MOD_HEAD, DF_HEAD, PP_WTBL, PP_HEAD, ERROR"")")
+    if (lDoCSV) then
+      write (unit=iLU, fmt="(""tag, id, x, y, radius, cp_x, cp_y, spec_head, discharge, mod_head, df_head, pp_wtbl, pp_head, error"")")
+    else
+      write (unit=iLU, &
+             fmt="(""#WL1, ID, X, Y, RADIUS, CP_X, CP_Y, SPEC_HEAD, DISCHARGE, MOD_HEAD, DF_HEAD, PP_WTBL, PP_HEAD, ERROR"")")
+    end if
     do i = 1, wl1%iCount
       wel => wl1%Wells(i)
       if (wel%lPpWell) then
