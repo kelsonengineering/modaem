@@ -45,7 +45,6 @@ module p_ls2
   use f_linesink
   use f_aem
   use u_matrix
-  use p_aqu
 
   implicit none
 
@@ -504,7 +503,7 @@ contains
   end subroutine LS2_SetupFunctions
 
 
-  subroutine LS2_SetupMatrix(io, ls2, aqu, mat)
+  subroutine LS2_SetupMatrix(io, ls2, mat)
     !! subroutine LS2_SetupMatrix
     !!
     !! This routine sets up the matrix entries for the module
@@ -520,14 +519,11 @@ contains
     !! Arguments:
     !!   (in)    type(LS2_COLLECTION), pointer
     !!             LS2_COLLECTION object to be used
-    !!   (in)    type(AQU_COLLECTION), pointer
-    !!             AQU_COLLECTION object to be used
     !!   (in)    type(MAT_MATRIX), pointer
     !!             MAT_MATRIX object to be used
     !!
     ! [ ARGUMENTS ]
     type(LS2_COLLECTION), pointer :: ls2
-    type(AQU_COLLECTION), pointer :: aqu
     type(MAT_MATRIX), pointer :: mat
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
@@ -541,8 +537,6 @@ contains
     if (io%lDebug) then
       call IO_Assert(io, (associated(ls2)), &
            "LS2_Setup: LS2_Create has not been called")
-      call IO_Assert(io, (associated(aqu)), &
-           "LS2_Setup: Illegal AQU_COLLECTION object")
       call IO_Assert(io, (associated(mat)), &
            "LS2_Setup: Illegal MAT_MATRIX object")
     end if
@@ -583,7 +577,7 @@ contains
   end subroutine LS2_SetupMatrix
 
 
-  function iLS2_Prepare(io, ls2, aqu, iIteration) result(iChanges)
+  function iLS2_Prepare(io, ls2, aem, iIteration) result(iChanges)
     !! subroutine LS2_Prepare
     !!
     !! Prepares the module for a new iteration
@@ -592,19 +586,19 @@ contains
     !! percolating rivers, negative drains, and eventually streamflow routing.
     !!
     !! Calling Sequence:
-    !!    call LS2_Setup(wl1, aqu, mat)
+    !!    call LS2_Setup(wl1, aem, mat)
     !!
     !! Arguments:
     !!   (in)    type(LS2_COLLECTION), pointer :: ls2
     !!             LS2_COLLECTION object to be used
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
+    !!   (in)    type(AEM_DOMAIN), pointer :: aem
+    !!             AEM_DOMAIN object to be used
     !!   (in)    type(MAT_MATRIX), pointer :: io
     !!             MAT_MATRIX object to be used
     !!
     ! [ ARGUMENTS ]
     type(LS2_COLLECTION), pointer :: ls2
-    type(AQU_COLLECTION), pointer :: aqu
+    type(AEM_DOMAIN), pointer :: aem
     integer(kind=AE_INT), intent(in) :: iIteration
     type(IO_STATUS), pointer :: io
     ! [ RETURN VALUE ]
@@ -674,7 +668,7 @@ contains
                 end if
               else
                 ! ...if not check to see if it needs to be turned back on.
-                if (rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot, vtx%cCPZ(1)) > vtx%rCPHead) then
+                if (rDOM_PotentialToHead(io, aem%dom, vtx%rCheckPot, vtx%cCPZ(1)) > vtx%rCPHead) then
                   write (unit=sBuf, &
                          fmt="(""  Enabling drain element string  "", i8, "" segment "", i8)" &
                          ) str%iID, iVtx
@@ -688,7 +682,7 @@ contains
 
           ! First, force a matrix regen if any of the vertices is unconfined(darn shame)
           if (vtx%lEnabled .and. &
-              lDOM_IsConfined(io, aqu%dom, vtx%cCPZ(1), vtx%rCheckPot) &
+              lDOM_IsConfined(io, aem%dom, vtx%cCPZ(1), vtx%rCheckPot) &
             ) ls2%iRegenerate = 1
         end do
       end do
@@ -717,7 +711,7 @@ contains
   end function rLS2_GetCoefficientMultiplier
 
 
-  subroutine LS2_ComputeCoefficients(io, ls2, aqu, fls, cPathZ, iEqType, iElementType, iElementString, &
+  subroutine LS2_ComputeCoefficients(io, ls2, aem, fls, cPathZ, iEqType, iElementType, iElementString, &
                iElementVertex, iElementFlag, cOrientation, rGhbResistance, &
                iIteration, rMultiplier, rARow)
     !! subroutine LS2_ComputeCoefficients
@@ -726,13 +720,13 @@ contains
     !! elements in layer iL.
     !!
     !! Calling Sequence:
-    !!    call LS2_ComputeCoefficients(io, ls2, aqu, fls, cPathZ, iEqType, cOrientation, rRow)
+    !!    call LS2_ComputeCoefficients(io, ls2, aem, fls, cPathZ, iEqType, cOrientation, rRow)
     !!
     !! Arguments:
     !!   (in)    type(LS2_COLLECTION), pointer
     !!             LS2_COLLECTION object to be used
-    !!   (in)    type(AQU_COLLECTION), pointer
-    !!             AQU_COLLECTION object to be used
+    !!   (in)    type(AEM_DOMAIN), pointer
+    !!             AEM_DOMAIN object to be used
     !!   (in)    type(FLS_COLLECTION), pointer
     !!             FLS_COLLECTION object to be used
     !!   (in)    complex :: cPathZ(:)
@@ -755,7 +749,7 @@ contains
     !!
     ! [ ARGUMENTS ]
     type(LS2_COLLECTION), pointer :: ls2
-    type(AQU_COLLECTION), pointer :: aqu
+    type(AEM_DOMAIN), pointer :: aem
     type(FLS_COLLECTION), pointer :: fls
     complex(kind=AE_REAL), dimension(:), intent(in) :: cPathZ
     complex(kind=AE_REAL), intent(in) :: cOrientation
@@ -829,20 +823,20 @@ contains
 
             ! On the first iteration, use the CP head as a head estimate...
             if (iIteration == 1) then
-              vtx%rSolutionPot = rDOM_HeadToPotential(io, aqu%dom, vtx%rCPHead, vtx%cCPZ(1))
+              vtx%rSolutionPot = rDOM_HeadToPotential(io, aem%dom, vtx%rCPHead, vtx%cCPZ(1))
               vtx%rSolutionHead = vtx%rCPHead
             end if
 
-            if (lDOM_IsConfined(io, aqu%dom, vtx%cCPZ(1), vtx%rSolutionPot)) then
-              rCorr = -rDOM_Transmissivity(io, aqu%dom, vtx%cCPZ(1), vtx%rSolutionPot) / str%rConductance
+            if (lDOM_IsConfined(io, aem%dom, vtx%cCPZ(1), vtx%rSolutionPot)) then
+              rCorr = -rDOM_Transmissivity(io, aem%dom, vtx%cCPZ(1), vtx%rSolutionPot) / str%rConductance
             else
               if (iIteration == 1) then
-                rCorr = - rDOM_HydCond(io, aqu%dom, vtx%cCPZ(1)) * &
-                        (vtx%rCPHead - rDOM_Base(io, aqu%dom, vtx%cCPZ(1))) /  &
+                rCorr = - rDOM_HydCond(io, aem%dom, vtx%cCPZ(1)) * &
+                        (vtx%rCPHead - rDOM_Base(io, aem%dom, vtx%cCPZ(1))) /  &
                         str%rConductance
               else
-                rCorr = -rHALF * rDOM_HydCond(io, aqu%dom, vtx%cCPZ(1)) * &
-                        (vtx%rSolutionHead + vtx%rCPHead - rTWO*rDOM_Base(io, aqu%dom, vtx%cCPZ(1))) /  &
+                rCorr = -rHALF * rDOM_HydCond(io, aem%dom, vtx%cCPZ(1)) * &
+                        (vtx%rSolutionHead + vtx%rCPHead - rTWO*rDOM_Base(io, aem%dom, vtx%cCPZ(1))) /  &
                         str%rConductance
               end if
             end if
@@ -860,21 +854,21 @@ contains
   end subroutine LS2_ComputeCoefficients
 
 
-  function rLS2_ComputeRHS(io, ls2, aqu, iEqType, iElementType, iElementString, iElementVertex, &
+  function rLS2_ComputeRHS(io, ls2, aem, iEqType, iElementType, iElementString, iElementVertex, &
              iElementFlag, iIteration, lDirect) result(rRHS)
     !! function rLS2_ComputeRHS
     !!
     !! Computes the right-hand side value for the solution
     !!
     !! Calling Sequence:
-    !!   rRHS = rLS2_ComputeRHS(io, ls2, aqu, rValue, iElementType, iElementString, iElementVertex, &
+    !!   rRHS = rLS2_ComputeRHS(io, ls2, aem, rValue, iElementType, iElementString, iElementVertex, &
          !!                          iElementFlag)
     !!
     !! Arguments:
     !!   (in)    type(LS2_COLLECTION), pointer :: ls2
     !!             LS2_COLLECTION object to be used
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
-    !!             AQU_COLLECTION object to be used
+    !!   (in)    type(AEM_DOMAIN), pointer :: aem
+    !!             AEM_DOMAIN object to be used
     !!   (in)    integer :: iElementType
     !!             Element type(either ELAM_AQU or ELEM_IN0)
     !!   (in)    integer :: iElementString
@@ -890,7 +884,7 @@ contains
     !!
     ! [ ARGUMENTS ]
     type(LS2_COLLECTION), pointer :: ls2
-    type(AQU_COLLECTION), pointer :: aqu
+    type(AEM_DOMAIN), pointer :: aem
     integer(kind=AE_INT), intent(in) :: iEqType
     integer(kind=AE_INT), intent(in) :: iElementType
     integer(kind=AE_INT), intent(in) :: iElementString
@@ -915,17 +909,17 @@ contains
 
     ! For LS2, compute the RHS by subtracting the previous result from the
     ! desired potential at the control-point
-    rRHS = rDOM_HeadToPotential(io, aqu%dom, vtx%rCPHead, vtx%cCPZ(1)) - vtx%rCheckPot
+    rRHS = rDOM_HeadToPotential(io, aem%dom, vtx%rCPHead, vtx%cCPZ(1)) - vtx%rCheckPot
 
     ! Need to add the resistance correction term
     if (lDirect) then
       rCorr = rZERO
     else
-      if (lDOM_IsConfined(io, aqu%dom, vtx%cCPZ(1), vtx%rSolutionPot)) then
-        rCorr = vtx%rStrength * rDOM_Transmissivity(io, aqu%dom, vtx%cCPZ(1), vtx%rSolutionPot) / str%rConductance
+      if (lDOM_IsConfined(io, aem%dom, vtx%cCPZ(1), vtx%rSolutionPot)) then
+        rCorr = vtx%rStrength * rDOM_Transmissivity(io, aem%dom, vtx%cCPZ(1), vtx%rSolutionPot) / str%rConductance
       else
-        rCorr = vtx%rStrength * rHALF * rDOM_HydCond(io, aqu%dom, vtx%cCPZ(1)) * &
-                (vtx%rSolutionHead + vtx%rCPHead - rTWO*rDOM_Base(io, aqu%dom, vtx%cCPZ(1))) / str%rConductance
+        rCorr = vtx%rStrength * rHALF * rDOM_HydCond(io, aem%dom, vtx%cCPZ(1)) * &
+                (vtx%rSolutionHead + vtx%rCPHead - rTWO*rDOM_Base(io, aem%dom, vtx%cCPZ(1))) / str%rConductance
       end if
     end if
     rRHS = rRHS + rCorr
@@ -1082,11 +1076,10 @@ contains
   end subroutine LS2_FindStringPointer
 
 
-  subroutine LS2_ComputeCheck(io, ls2, aem, aqu, lLinearize)
+  subroutine LS2_ComputeCheck(io, ls2, aem, lLinearize)
     !! Updates check potential, head, and confinement linearization for all LS2 segments.
     type(LS2_COLLECTION), pointer :: ls2
     type(AEM_DOMAIN), pointer :: aem
-    type(AQU_COLLECTION), pointer :: aqu
     logical, intent(in) :: lLinearize
     type(IO_STATUS), pointer :: io
     type(LS2_VERTEX), pointer :: vtx
@@ -1100,11 +1093,11 @@ contains
       do iVtx = 1, ls2%Strings(iStr)%iNPts - 1
         vtx => ls2%Strings(iStr)%Vertices(iVtx)
         vtx%rCheckPot = real(cAEM_Potential(io, aem, vtx%cCPZ(1), .false.), AE_REAL)
-        vtx%rCheckHead = rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot, vtx%cCPZ(1))
+        vtx%rCheckHead = rDOM_PotentialToHead(io, aem%dom, vtx%rCheckPot, vtx%cCPZ(1))
         if (lLinearize) then
           vtx%rSolutionPot = vtx%rCheckPot
           vtx%rSolutionHead = vtx%rCheckHead
-          if (.not. lDOM_IsConfined(io, aqu%dom, vtx%cCPZ(1), vtx%rCheckPot)) ls2%iRegenerate = 1
+          if (.not. lDOM_IsConfined(io, aem%dom, vtx%cCPZ(1), vtx%rCheckPot)) ls2%iRegenerate = 1
         end if
       end do
     end do
@@ -1113,7 +1106,7 @@ contains
   end subroutine LS2_ComputeCheck
 
 
-  function iLS2_DoRouting(io, ls2, aqu, iCurrentIteration, lSwitch, lReportFlows) result(iChanges)
+  function iLS2_DoRouting(io, ls2, iCurrentIteration, lSwitch, lReportFlows) result(iChanges)
     !! subroutine LS2_DoRouting
     !!
     !! Performs routing calculations
@@ -1129,7 +1122,6 @@ contains
     !!
     ! [ ARGUMENTS ]
     type(LS2_COLLECTION), pointer :: ls2
-    type(AQU_COLLECTION), pointer :: aqu
     integer(kind=AE_INT), intent(in) :: iCurrentIteration
     logical, intent(in) :: lSwitch
     logical, intent(in) :: lReportFlows
@@ -1149,7 +1141,7 @@ contains
         str => ls2%Strings(iStr)
         if (str%lRoute .and. str%iDownstreamID < 0) then
           rStreamFlow = rZERO
-          iChanges = iChanges + iLS2_RouteString(io, ls2, aqu, str%iID, rStreamFlow, lSwitch, 0)
+          iChanges = iChanges + iLS2_RouteString(io, ls2, str%iID, rStreamFlow, lSwitch, 0)
           if (lReportFlows) then
             print *, 'Total routing for string ', str%iID, ':'
             print *, '  Stream flow      ', rStreamFlow
@@ -1163,7 +1155,7 @@ contains
     return
   end function iLS2_DoRouting
 
-  recursive function iLS2_RouteString(io, ls2, aqu, iID, rStreamFlow, lSwitch, iChangesIn) result(iChanges)
+  recursive function iLS2_RouteString(io, ls2, iID, rStreamFlow, lSwitch, iChangesIn) result(iChanges)
     !! subroutine LS2_RouteString
     !!
     !! Performs routing calculations for a given string, storing routed values
@@ -1189,7 +1181,6 @@ contains
     !!
     ! [ ARGUMENTS ]
     type(LS2_COLLECTION), pointer :: ls2
-    type(AQU_COLLECTION), pointer :: aqu
     integer(kind=AE_INT), intent(in) :: iID
     real(kind=AE_REAL), intent(out) :: rStreamFlow
     logical, intent(in) :: lSwitch
@@ -1224,7 +1215,7 @@ contains
       if (str%iID == this%iID) continue
       if (this%iID == str%iDownstreamID) then
         rSQi = rZERO
-        iChanges = iLS2_RouteString(io, ls2, aqu, str%iID, rSQi, lSwitch, iChanges)
+        iChanges = iLS2_RouteString(io, ls2, str%iID, rSQi, lSwitch, iChanges)
         !print *,'QB', str%iID,rBQi, rIQi, rOQi
         rStreamFlow = rStreamFlow + rSQi
       end if
@@ -1534,7 +1525,7 @@ contains
   end subroutine LS2_Inquiry
 
 
-  subroutine LS2_Report(io, ls2, aqu)
+  subroutine LS2_Report(io, ls2, aem)
     !! subroutine LS2_Report
     !!
     !! Writes a debugging report for all line-sinks to LU_OUTPUT
@@ -1548,7 +1539,7 @@ contains
     !!
     ! [ ARGUMENTS ]
     type(LS2_COLLECTION), pointer :: ls2
-    type(AQU_COLLECTION), pointer :: aqu
+    type(AEM_DOMAIN), pointer :: aem
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
     integer(kind=AE_INT) :: iStr, iVtx
@@ -1594,7 +1585,7 @@ contains
           call HTML_ColumnInteger((/iVtx, vtx%pFLS%iIndex/))
           call HTML_ColumnComplex((/cIO_WorldCoords(io, vtx%cZ)/))
           call HTML_ColumnReal((/vtx%rLength, vtx%rCPHead, str%rConductance, vtx%rCPDepth, &
-          	   vtx%rStrength, rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot, vtx%cCPZ(1))/))
+          	   vtx%rStrength, rDOM_PotentialToHead(io, aem%dom, vtx%rCheckPot, vtx%cCPZ(1))/))
           call HTML_ColumnLogical((/vtx%lEnabled/))
           call HTML_ColumnReal((/vtx%rStreamFlow/))
           call HTML_ColumnLogical((/vtx%lRouteEnabled/))

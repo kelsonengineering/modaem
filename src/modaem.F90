@@ -165,11 +165,11 @@ program modaem
         if (associated(pkg%pd0)) call PD0_Report(io, pkg%pd0)
         if (associated(pkg%ls0)) call LS0_Report(io, pkg%ls0)
         if (associated(pkg%ls1)) call LS1_Report(io, pkg%ls1)
-        if (associated(pkg%ls2)) call LS2_Report(io, pkg%ls2, pkg%aqu)
+        if (associated(pkg%ls2)) call LS2_Report(io, pkg%ls2, pkg%aem)
         if (associated(pkg%hb0)) call HB0_Report(io, pkg%hb0)
         if (associated(pkg%as0_top)) call AS0_Report(io, pkg%as0_top, '(aquifer top)')
         if (associated(pkg%as0_bottom)) call AS0_Report(io, pkg%as0_bottom, '(aquifer bottom)')
-        if (associated(pkg%cw0)) call CW0_Report(io, pkg%cw0, pkg%aqu)
+        if (associated(pkg%cw0)) call CW0_Report(io, pkg%cw0, pkg%aem)
         if (io%lDebug) then
           if (associated(pkg%aem%mat)) call MAT_Report(io, pkg%aem%mat, 'mat', .false.)
           if (associated(pkg%aem%fwl)) call FWL_Report(io, pkg%aem%fwl)

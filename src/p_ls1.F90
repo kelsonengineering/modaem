@@ -40,7 +40,6 @@ module p_ls1
   use f_linesink
   use f_aem
   use u_matrix
-  use p_aqu
 
   implicit none
 
@@ -416,30 +415,11 @@ contains
   end subroutine LS1_SetupFunctions
 
 
-  subroutine LS1_SetupMatrix(io, ls1, aqu, mat)
+  subroutine LS1_SetupMatrix(io, ls1, mat)
     !! subroutine LS1_SetupMatrix
-    !!
-    !! This routine sets up the matrix entries for the linesinks
-    !! Since this module creates given-strength elements, the strengths of
-    !! all functions are computed at set-up time.
-    !!
-    !! Note: This routine assumes that sufficient space has been allocated
-    !! in f_well and in f_dipole by SOL_Alloc.
-    !!
-    !! Calling Sequence:
-    !!    call LS1_Setup(ls1)
-    !!
-    !! Arguments:
-    !!   (in)    type(LS1_COLLECTION), pointer
-    !!             LS1_COLLECTION object to be used
-    !!   (in)    type(AQU_COLLECTION), pointer
-    !!             AQU_COLLECTION object to be used
-    !!   (in)    type(MAT_MATRIX), pointer
-    !!             MAT_MATRIX object to be used
     !!
     ! [ ARGUMENTS ]
     type(LS1_COLLECTION), pointer :: ls1
-    type(AQU_COLLECTION), pointer :: aqu
     type(MAT_MATRIX), pointer :: mat
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
@@ -453,8 +433,6 @@ contains
     if (io%lDebug) then
       call IO_Assert(io, (associated(ls1)), &
            "LS1_Setup: LS1_Create has not been called")
-      call IO_Assert(io, (associated(aqu)), &
-           "LS1_Setup: Illegal AQU_COLLECTION object")
       call IO_Assert(io, (associated(mat)), &
            "LS1_Setup: Illegal MAT_MATRIX object")
     end if
@@ -488,25 +466,13 @@ contains
   end subroutine LS1_SetupMatrix
 
 
-  function iLS1_Prepare(io, ls1, aqu, iIteration) result(iChanges)
+  function iLS1_Prepare(io, ls1, iIteration) result(iChanges)
     !! subroutine LS1_Prepare
     !!
-    !! Prepares the module for a new iteration
-    !!
-    !! Do-nothing for m_ls1
-    !!
-    !! Calling Sequence:
-    !!    call LS1_Setup(io, ls1, aqu, mat)
-    !!
-    !! Arguments:
-    !!   (in)    type(LS1_COLLECTION), pointer
-    !!             LS1_COLLECTION object to be used
-    !!   (in)    type(MAT_MATRIX), pointer
-    !!             MAT_MATRIX object to be used
+    !! Prepares the module for a new iteration -- do-nothing for LS1
     !!
     ! [ ARGUMENTS ]
     type(LS1_COLLECTION), pointer :: ls1
-    type(AQU_COLLECTION), pointer :: aqu
     integer(kind=AE_INT), intent(in) :: iIteration
     type(IO_STATUS), pointer :: io
     ! [ RETURN VALUE ]
@@ -645,7 +611,7 @@ contains
   end subroutine LS1_ComputeCoefficients
 
 
-  function rLS1_ComputeRHS(io, ls1, aqu, iEqType, iElementType, iElementString, iElementVertex, &
+  function rLS1_ComputeRHS(io, ls1, aem, iEqType, iElementType, iElementString, iElementVertex, &
              iElementFlag, iIteration, lDirect) result(rRHS)
     !! function rLS1_ComputeRHS
     !!
@@ -677,7 +643,7 @@ contains
     !!
     ! [ ARGUMENTS ]
     type(LS1_COLLECTION), pointer :: ls1
-    type(AQU_COLLECTION), pointer :: aqu
+    type(AEM_DOMAIN), pointer :: aem
     integer(kind=AE_INT), intent(in) :: iEqType
     integer(kind=AE_INT), intent(in) :: iElementType
     integer(kind=AE_INT), intent(in) :: iElementString
@@ -699,12 +665,10 @@ contains
          'Illegal vertex index')
     vtx => str%Vertices(iElementVertex)
 
-    ! For LS1, compute the RHS by subtracting the previous result from the
-    ! desired potential at the control-point
     if (lDirect) then
-      rRHS = rDOM_HeadToPotential(io, aqu%dom, vtx%rCPHead, vtx%cCPZ(1))
+      rRHS = rDOM_HeadToPotential(io, aem%dom, vtx%rCPHead, vtx%cCPZ(1))
     else
-      rRHS = rDOM_HeadToPotential(io, aqu%dom, vtx%rCPHead, vtx%cCPZ(1)) - vtx%rCheckPot
+      rRHS = rDOM_HeadToPotential(io, aem%dom, vtx%rCPHead, vtx%cCPZ(1)) - vtx%rCheckPot
     end if
     return
   end function rLS1_ComputeRHS
@@ -859,11 +823,10 @@ contains
   end subroutine LS1_FindStringPointer
 
 
-  subroutine LS1_ComputeCheck(io, ls1, aem, aqu)
+  subroutine LS1_ComputeCheck(io, ls1, aem)
     !! Updates check potential and head for all LS1 linesink segments.
     type(LS1_COLLECTION), pointer :: ls1
     type(AEM_DOMAIN), pointer :: aem
-    type(AQU_COLLECTION), pointer :: aqu
     type(IO_STATUS), pointer :: io
     type(LS1_VERTEX), pointer :: vtx
     integer(kind=AE_INT) :: iStr, iVtx
@@ -876,7 +839,7 @@ contains
       do iVtx = 1, ls1%Strings(iStr)%iNPts - 1
         vtx => ls1%Strings(iStr)%Vertices(iVtx)
         vtx%rCheckPot = real(cAEM_Potential(io, aem, vtx%cCPZ(1), .false.), AE_REAL)
-        vtx%rCheckHead = rDOM_PotentialToHead(io, aqu%dom, vtx%rCheckPot, vtx%cCPZ(1))
+        vtx%rCheckHead = rDOM_PotentialToHead(io, aem%dom, vtx%rCheckPot, vtx%cCPZ(1))
       end do
     end do
 

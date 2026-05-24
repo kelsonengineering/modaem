@@ -23,7 +23,6 @@ module p_cw0
   use f_linesink
   use f_aem
   use u_matrix
-  use p_aqu
 
   implicit none
 
@@ -462,7 +461,7 @@ contains
   end subroutine CW0_SetupFunctions
 
 
-  subroutine CW0_SetupMatrix(io, cw0, aqu, mat)
+  subroutine CW0_SetupMatrix(io, cw0, mat)
     !! subroutine CW0_Setup
     !!
     !!
@@ -479,7 +478,6 @@ contains
     !!
     ! [ ARGUMENTS ]
     type(CW0_COLLECTION), pointer :: cw0
-    type(AQU_COLLECTION), pointer :: aqu
     type(MAT_MATRIX), pointer :: mat
     type(IO_STATUS), pointer :: io
     ! [ LOCALS ]
@@ -546,7 +544,7 @@ contains
   end subroutine CW0_SetupMatrix
 
 
-  function iCW0_Prepare(io, cw0, aqu, iIteration) result(iChanges)
+  function iCW0_Prepare(io, cw0, iIteration) result(iChanges)
     !! subroutine CW0_Prepare
     !!
     !! Prepares the module for a new iteration
@@ -554,7 +552,7 @@ contains
     !! Do-nothing for m_cw0
     !!
     !! Calling Sequence:
-    !!    call CW0_Setup(io, cw0, aqu, mat)
+    !!    call CW0_Setup(io, cw0, aem, mat)
     !!
     !! Arguments:
     !!   (in)    type(CW0_COLLECTION), pointer
@@ -564,7 +562,6 @@ contains
     !!
     ! [ ARGUMENTS ]
     type(CW0_COLLECTION), pointer :: cw0
-    type(AQU_COLLECTION), pointer :: aqu
     integer(kind=AE_INT), intent(in) :: iIteration
     type(IO_STATUS), pointer :: io
     ! [ RETURN VALUE ]
@@ -606,7 +603,7 @@ contains
   end subroutine CW0_SetRegenerate
 
 
-  subroutine CW0_ComputeCoefficients(io, cw0, aqu, fls, cPathZ, iEqType, iElementType, iElementString, &
+  subroutine CW0_ComputeCoefficients(io, cw0, aem, fls, cPathZ, iEqType, iElementType, iElementString, &
                iElementVertex, iElementFlag, cOrientation, rGhbResistance, &
                iIteration, rMultiplier, rARow)
     !! subroutine CW0_ComputeCoefficients
@@ -644,7 +641,7 @@ contains
     !!
     ! [ ARGUMENTS ]
     type(CW0_COLLECTION), pointer :: cw0
-    type(AQU_COLLECTION), pointer :: aqu
+    type(AEM_DOMAIN), pointer :: aem
     type(FLS_COLLECTION), pointer :: fls
     complex(kind=AE_REAL), dimension(:), intent(in) :: cPathZ
     complex(kind=AE_REAL), intent(in) :: cOrientation
@@ -728,27 +725,27 @@ contains
         if (iElementFlag /= wel%iResolution) then
           next => rad%Vertices(iElementFlag+1)
           iNextCol = iVtxCol+1
-          rT1 = rDOM_Transmissivity(io, aqu%dom, this%cCPZ, this%rCheck)
-          rT2 = rDOM_Transmissivity(io, aqu%dom, next%cCPZ, next%rCheck)
+          rT1 = rDOM_Transmissivity(io, aem%dom, this%cCPZ, this%rCheck)
+          rT2 = rDOM_Transmissivity(io, aem%dom, next%cCPZ, next%rCheck)
           this%rResistanceTerm = (rHALF * (rT1+rT2) * rad%rResistance) / rad%rWidth
           rARow(iVtxCol) = rARow(iVtxCol) - this%rResistanceTerm
           rARow(iNextCol) = rARow(iNextCol) + this%rResistanceTerm
         else
           next => last_vtx
           iNextCol = iCol
-          rT1 = rDOM_Transmissivity(io, aqu%dom, this%cCPZ, this%rCheck)
-          rT2 = rDOM_Transmissivity(io, aqu%dom, next%cCPZ, next%rCheck)
+          rT1 = rDOM_Transmissivity(io, aem%dom, this%cCPZ, this%rCheck)
+          rT2 = rDOM_Transmissivity(io, aem%dom, next%cCPZ, next%rCheck)
           this%rResistanceTerm = (rHALF * (rT1+rT2) * rad%rResistance) / rad%rWidth
           rARow(iVtxCol) = rARow(iVtxCol) - this%rResistanceTerm
           rARow(iNextCol) = rARow(iNextCol) + this%rResistanceTerm
         end if
       else if (iElementType == ELEM_CW0 .and. iEqType == EQN_TOTALFLOW .and. iElementString == iWel) then
-        rT1 = rDOM_Transmissivity(io, aqu%dom, last_vtx%cCPZ, last_vtx%rCheck)
+        rT1 = rDOM_Transmissivity(io, aem%dom, last_vtx%cCPZ, last_vtx%rCheck)
         last_vtx%rResistanceTerm = (rT1 * rad%rResistance) / rad%rWidth
       else if (iElementType == ELEM_CW0 .and. iEqType == EQN_HEAD .and. iElementString == iWel) then
         rad => wel%Radials(iElementVertex)
         this => rad%Vertices(iElementFlag)
-        rT1 = rDOM_Transmissivity(io, aqu%dom, this%cCPZ, this%rCheck)
+        rT1 = rDOM_Transmissivity(io, aem%dom, this%cCPZ, this%rCheck)
         this%rResistanceTerm = (rT1 * rad%rResistance) / rad%rWidth
         iVtxCol = iBaseCol + this%pFLS%iIndex - first_vtx%pFLS%iIndex + 1
         rARow(iVtxCol) = rARow(iVtxCol) - this%rResistanceTerm
@@ -764,7 +761,7 @@ contains
   end subroutine CW0_ComputeCoefficients
 
 
-  function rCW0_ComputeRHS(io, cw0, aqu, iEqType, iElementType, iElementString, iElementVertex, &
+  function rCW0_ComputeRHS(io, cw0, aem, iEqType, iElementType, iElementString, iElementVertex, &
              iElementFlag, iIteration, lDirect) result(rRHS)
     !! function rCW0_ComputeRHS
     !!
@@ -777,7 +774,7 @@ contains
     !! Arguments:
     !!   (in)    type(CW0_COLLECTION), pointer :: cw0
     !!             CW0_COLLECTION object to be used
-    !!   (in)    type(AQU_COLLECTION), pointer :: aqu
+    !!   (in)    type(AEM_DOMAIN), pointer :: aem
     !!             The AQU_COLLECTION used for head-to-potential conversions
     !!   (in)    integer :: iElementType
     !!             Element type(either ELAM_AQU or ELEM_IN0)
@@ -796,7 +793,7 @@ contains
     !!
     ! [ ARGUMENTS ]
     type(CW0_COLLECTION), pointer :: cw0
-    type(AQU_COLLECTION), pointer :: aqu
+    type(AEM_DOMAIN), pointer :: aem
     integer(kind=AE_INT), intent(in) :: iEqType
     integer(kind=AE_INT), intent(in) :: iElementType
     integer(kind=AE_INT), intent(in) :: iElementString
@@ -856,9 +853,9 @@ contains
       else if (iEqType == EQN_HEAD) then
         ! Closure condition -- specified head
         if (lDirect) then
-          rRHS = rDOM_HeadToPotential(io, aqu%dom, wel%rQ, this%cCPZ)
+          rRHS = rDOM_HeadToPotential(io, aem%dom, wel%rQ, this%cCPZ)
         else
-          rRHS = rDOM_HeadToPotential(io, aqu%dom, wel%rQ, this%cCPZ) - this%rCheck
+          rRHS = rDOM_HeadToPotential(io, aem%dom, wel%rQ, this%cCPZ) - this%rCheck
           rRHS = rRHS + this%rResistanceTerm * this%rStrength
         end if
       else if (iEqType == EQN_TOTALFLOW) then
@@ -991,13 +988,13 @@ contains
     end function rCW0_ComputeTotalFlow
 
 
-    function rCW0_ComputeCaissonHead(io, cw0, aqu, iWel) result(rCaissonHead)
+    function rCW0_ComputeCaissonHead(io, cw0, aem, iWel) result(rCaissonHead)
       !! function rCW0_ComputeCaissonHead
       !!
       !! Returns the head in the caisson
       !!
       !! Calling Sequence:
-      !!    h = rCW0_ComputeCaissonHead(io, cw0, aqu, iWel)
+      !!    h = rCW0_ComputeCaissonHead(io, cw0, aem, iWel)
       !!
       !! Arguments:
       !!   (in)    type(CW0_COLLECTION), pointer
@@ -1009,7 +1006,7 @@ contains
       !!
       ! [ ARGUMENTS ]
       type(CW0_COLLECTION), pointer :: cw0
-      type(AQU_COLLECTION), pointer :: aqu
+      type(AEM_DOMAIN), pointer :: aem
       integer(kind=AE_INT), intent(in) :: iWel
       type(IO_STATUS), pointer :: io
       ! [ RETURN VALUE ]
@@ -1027,7 +1024,7 @@ contains
       wel => cw0%Wells(iWel)
       rad => wel%Radials(wel%iNRad)
       vtx => rad%Vertices(wel%iResolution)
-      rCaissonHead = rDOM_PotentialToHead(io, aqu%dom, vtx%rCheck, vtx%cCPZ) - vtx%rStrength * rad%rResistance / rad%rWidth
+      rCaissonHead = rDOM_PotentialToHead(io, aem%dom, vtx%rCheck, vtx%cCPZ) - vtx%rStrength * rad%rResistance / rad%rWidth
 
       return
     end function rCW0_ComputeCaissonHead
@@ -1508,7 +1505,7 @@ contains
     end subroutine CW0_Read
 
 
-    subroutine CW0_Inquiry(io, cw0, aqu, iLU)
+    subroutine CW0_Inquiry(io, cw0, aem, iLU)
       !! subroutine CW0_Inquiry
       !!
       !! Writes an inquiry report for all line-sinks to iLU
@@ -1524,7 +1521,7 @@ contains
       !!
       ! [ ARGUMENTS ]
       type(CW0_COLLECTION), pointer :: cw0
-      type(AQU_COLLECTION), pointer :: aqu
+      type(AEM_DOMAIN), pointer :: aem
       integer(kind=AE_INT), intent(in) :: iLU
       type(IO_STATUS), pointer :: io
       ! [ LOCALS ]
@@ -1548,7 +1545,7 @@ contains
         rad => wel%Radials(wel%iNRad)
         vtx => rad%Vertices(wel%iResolution)
         rModeledQ = rCW0_ComputeTotalFlow(io, cw0, iWel)
-        rCaissonHead = rCW0_ComputeCaissonHead(io, cw0, aqu, iWel)
+        rCaissonHead = rCW0_ComputeCaissonHead(io, cw0, aem, iWel)
         write (unit=iLU, &
                fmt="(""CW0"", 1("", "", i9), 1("", "", l9), 5("", "", e16.8))" &
                ) wel%iID, wel%lHeadSpec, cIO_WorldCoords(io, wel%cZC), wel%rQ, rModeledQ, rCaissonHead
@@ -1570,8 +1567,8 @@ contains
                    cIO_WorldCoords(io, next%cZ), &
                    rLength, &
                    this%rStrength, &
-                   rDOM_PotentialToHead(io, aqu%dom, this%rCheck, this%cCPZ), &
-                   rDOM_PotentialToHead(io, aqu%dom, this%rCheck - &
+                   rDOM_PotentialToHead(io, aem%dom, this%rCheck, this%cCPZ), &
+                   rDOM_PotentialToHead(io, aem%dom, this%rCheck - &
                    this%rResistanceTerm*this%rStrength, this%cCPZ)
           end do
         end do
@@ -1581,7 +1578,7 @@ contains
     end subroutine CW0_Inquiry
 
 
-    subroutine CW0_Report(io, cw0, aqu)
+    subroutine CW0_Report(io, cw0, aem)
       !! subroutine CW0_Report
       !!
       !! Writes a debugging report for all line-sinks to LU_OUTPUT
@@ -1595,7 +1592,7 @@ contains
       !!
       ! [ ARGUMENTS ]
       type(CW0_COLLECTION), pointer :: cw0
-      type(AQU_COLLECTION), pointer :: aqu
+      type(AEM_DOMAIN), pointer :: aem
       type(IO_STATUS), pointer :: io
       ! [ LOCALS ]
       integer(kind=AE_INT) :: iWel, iRad, iVtx
@@ -1627,7 +1624,7 @@ contains
           rad => wel%Radials(wel%iNRad)
           vtx => rad%Vertices(wel%iResolution)
           rModeledQ = rCW0_ComputeTotalFlow(io, cw0, iWel)
-          rCaissonHead = rCW0_ComputeCaissonHead(io, cw0, aqu, iWel)
+          rCaissonHead = rCW0_ComputeCaissonHead(io, cw0, aem, iWel)
           call HTML_Header('Well information', 3)
           call HTML_StartTable()
           call HTML_AttrInteger('Well #', iWel)
@@ -1665,8 +1662,8 @@ contains
               call HTML_ColumnComplex((/ vtx%cZ /))
               call HTML_ColumnReal((/ vtx%rStrength /))
               call HTML_ColumnReal((/ vtx%rLength /))
-              call HTML_ColumnReal((/ rDOM_PotentialToHead(io, aqu%dom, vtx%rCheck, vtx%cCPZ) /))
-              call HTML_ColumnReal((/ rDOM_PotentialToHead(io, aqu%dom, vtx%rCheck, vtx%cCPZ) - &
+              call HTML_ColumnReal((/ rDOM_PotentialToHead(io, aem%dom, vtx%rCheck, vtx%cCPZ) /))
+              call HTML_ColumnReal((/ rDOM_PotentialToHead(io, aem%dom, vtx%rCheck, vtx%cCPZ) - &
                                       vtx%rStrength*rad%rResistance/rad%rWidth /))
               call HTML_EndRow()
             end do

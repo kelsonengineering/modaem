@@ -287,7 +287,7 @@ contains
           !****************************************************************************
           ! Here for the CW0 command -- extract information about collector wells
           !****************************************************************************
-          call CW0_Inquiry(io, pkg%cw0, pkg%aqu, LU_INQ)
+          call CW0_Inquiry(io, pkg%cw0, pkg%aem, LU_INQ)
         case default
           continue
       end select

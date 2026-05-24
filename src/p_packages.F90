@@ -260,12 +260,12 @@ contains
     call MAT_Alloc(io, pkg%aem%mat, iNEQ, iNUN)
 
     if (pkg%aem%iAQUNUnk /= 0) call AQU_SetupMatrix(io, pkg%aqu, pkg%aem%mat)
-    if (pkg%aem%iLS1NUnk /= 0) call LS1_SetupMatrix(io, pkg%ls1, pkg%aqu, pkg%aem%mat)
-    if (pkg%aem%iLS2NUnk /= 0) call LS2_SetupMatrix(io, pkg%ls2, pkg%aqu, pkg%aem%mat)
-    if (pkg%aem%iLS3NUnk /= 0) call LS3_SetupMatrix(io, pkg%ls3, pkg%aqu, pkg%aem%mat)
+    if (pkg%aem%iLS1NUnk /= 0) call LS1_SetupMatrix(io, pkg%ls1, pkg%aem%mat)
+    if (pkg%aem%iLS2NUnk /= 0) call LS2_SetupMatrix(io, pkg%ls2, pkg%aem%mat)
+    if (pkg%aem%iLS3NUnk /= 0) call LS3_SetupMatrix(io, pkg%ls3, pkg%aem%mat)
     if (pkg%aem%iHB0NUnk /= 0) call HB0_SetupMatrix(io, pkg%hb0, pkg%aem%mat)
     if (pkg%aem%iWL1NUnk /= 0) call WL1_SetupMatrix(io, pkg%wl1, pkg%aqu, pkg%aem%mat)
-    if (pkg%aem%iCW0NUnk /= 0) call CW0_SetupMatrix(io, pkg%cw0, pkg%aqu, pkg%aem%mat)
+    if (pkg%aem%iCW0NUnk /= 0) call CW0_SetupMatrix(io, pkg%cw0, pkg%aem%mat)
 
     return
   end subroutine PKG_AllocateMatrix
@@ -368,7 +368,7 @@ contains
       end if
 
       if (pkg%aem%iLS2NUnk > 0) then
-        call LS2_ComputeCoefficients(io, pkg%ls2, pkg%aqu, pkg%aem%fls, &
+        call LS2_ComputeCoefficients(io, pkg%ls2, pkg%aem, pkg%aem%fls, &
              (/(cCPZ(ic), ic=1, iNCP)/), &
              iEqType, iElementType, iElementString, iElementVertex, iElementFlag, &
              cOrientation, rGhbDistance, iIteration, rMultiplier, &
@@ -376,7 +376,7 @@ contains
       end if
 
       if (pkg%aem%iLS3NUnk > 0) then
-        call LS3_ComputeCoefficients(io, pkg%ls3, pkg%aqu, pkg%aem%fls, &
+        call LS3_ComputeCoefficients(io, pkg%ls3, pkg%aem, pkg%aem%fls, &
              (/(cCPZ(ic), ic=1, iNCP)/), &
              iEqType, iElementType, iElementString, iElementVertex, iElementFlag, &
              cOrientation, rGhbDistance, iIteration, rMultiplier, &
@@ -398,7 +398,7 @@ contains
       end if
 
       if (pkg%aem%iCW0NUnk > 0) then
-        call CW0_ComputeCoefficients(io, pkg%cw0, pkg%aqu, pkg%aem%fls, &
+        call CW0_ComputeCoefficients(io, pkg%cw0, pkg%aem, pkg%aem%fls, &
              (/(cCPZ(ic), ic=1, iNCP)/), &
              iEqType, iElementType, iElementString, iElementVertex, iElementFlag, &
              cOrientation, rGhbDistance, iIteration, rMultiplier, &
@@ -441,13 +441,13 @@ contains
           rRHS = rAQU_ComputeRHS(io, pkg%aqu, pkg%aem%fdp, iEqType, iElementType, &
                  iElementString, iElementVertex, iElementFlag, iIteration, lDirect)
         case (ELEM_LS1)
-          rRHS = rLS1_ComputeRHS(io, pkg%ls1, pkg%aqu, iEqType, iElementType, &
+          rRHS = rLS1_ComputeRHS(io, pkg%ls1, pkg%aem, iEqType, iElementType, &
                  iElementString, iElementVertex, iElementFlag, iIteration, lDirect)
         case (ELEM_LS2)
-          rRHS = rLS2_ComputeRHS(io, pkg%ls2, pkg%aqu, iEqType, iElementType, &
+          rRHS = rLS2_ComputeRHS(io, pkg%ls2, pkg%aem, iEqType, iElementType, &
                  iElementString, iElementVertex, iElementFlag, iIteration, lDirect)
         case (ELEM_LS3)
-          rRHS = rLS3_ComputeRHS(io, pkg%ls3, pkg%aqu, iEqType, iElementType, &
+          rRHS = rLS3_ComputeRHS(io, pkg%ls3, pkg%aem, iEqType, iElementType, &
                  iElementString, iElementVertex, iElementFlag, iIteration, lDirect)
         case (ELEM_HB0)
           rRHS = rHB0_ComputeRHS(io, pkg%hb0, iEqType, iElementType, iElementString, &
@@ -456,7 +456,7 @@ contains
           rRHS = rWL1_ComputeRHS(io, pkg%wl1, pkg%aqu, iEqType, iElementType, &
                  iElementString, iElementVertex, iElementFlag, iIteration, lDirect)
         case (ELEM_CW0)
-          rRHS = rCW0_ComputeRHS(io, pkg%cw0, pkg%aqu, iEqType, iElementType, &
+          rRHS = rCW0_ComputeRHS(io, pkg%cw0, pkg%aem, iEqType, iElementType, &
                  iElementString, iElementVertex, iElementFlag, iIteration, lDirect)
       end select
 
@@ -669,9 +669,9 @@ contains
     call WL0_ComputeCheck(io, pkg%wl0, pkg%aem, pkg%aqu)
     call WL1_ComputeCheck(io, pkg%wl1, pkg%aem, pkg%aqu)
     call LS0_ComputeCheck(io, pkg%ls0, pkg%aem)
-    call LS1_ComputeCheck(io, pkg%ls1, pkg%aem, pkg%aqu)
-    call LS2_ComputeCheck(io, pkg%ls2, pkg%aem, pkg%aqu, lLinearize)
-    call LS3_ComputeCheck(io, pkg%ls3, pkg%aem, pkg%aqu, lLinearize)
+    call LS1_ComputeCheck(io, pkg%ls1, pkg%aem)
+    call LS2_ComputeCheck(io, pkg%ls2, pkg%aem, lLinearize)
+    call LS3_ComputeCheck(io, pkg%ls3, pkg%aem, lLinearize)
     call HB0_ComputeCheck(io, pkg%hb0, pkg%aem)
     call CW0_ComputeCheck(io, pkg%cw0, pkg%aem)
 
@@ -713,14 +713,14 @@ contains
         if (iIter > 1 .and. iIter < iNIter-iNPolishIter+1) then
           iUpdate = iUpdate + &
                     iWL1_Prepare(io, pkg%wl1, pkg%aqu, pkg%aem%iCurrentIteration) + &
-                    iLS1_Prepare(io, pkg%ls1, pkg%aqu, pkg%aem%iCurrentIteration) + &
-                    iLS2_DoRouting(io, pkg%ls2, pkg%aqu, pkg%aem%iCurrentIteration, .true., .false.) + &
-                    iLS2_Prepare(io, pkg%ls2, pkg%aqu, pkg%aem%iCurrentIteration) + &
-                    iLS3_DoRouting(io, pkg%ls3, pkg%aqu, pkg%aem%iCurrentIteration, .true., .false.) + &
-                    iLS3_Prepare(io, pkg%ls3, pkg%aqu, pkg%aem%iCurrentIteration) + &
+                    iLS1_Prepare(io, pkg%ls1, pkg%aem%iCurrentIteration) + &
+                    iLS2_DoRouting(io, pkg%ls2, pkg%aem%iCurrentIteration, .true., .false.) + &
+                    iLS2_Prepare(io, pkg%ls2, pkg%aem, pkg%aem%iCurrentIteration) + &
+                    iLS3_DoRouting(io, pkg%ls3, pkg%aem%iCurrentIteration, .true., .false.) + &
+                    iLS3_Prepare(io, pkg%ls3, pkg%aem, pkg%aem%iCurrentIteration) + &
                     iHB0_Prepare(io, pkg%hb0, pkg%aem%iCurrentIteration)
           iUpdate = iUpdate + &
-                    iCW0_Prepare(io, pkg%cw0, pkg%aqu, pkg%aem%iCurrentIteration)
+                    iCW0_Prepare(io, pkg%cw0, pkg%aem%iCurrentIteration)
         end if
         if (iUpdate > 0) then
           call PKG_Update(io, pkg)
@@ -768,8 +768,8 @@ contains
     end do
 
     print *, 'Performing stream routing calculations'
-    iChanges = iLS2_DoRouting(io, pkg%ls2, pkg%aqu, pkg%aem%iCurrentIteration, .false., .true.)
-    iChanges = iLS3_DoRouting(io, pkg%ls3, pkg%aqu, pkg%aem%iCurrentIteration, .false., .true.)
+    iChanges = iLS2_DoRouting(io, pkg%ls2, pkg%aem%iCurrentIteration, .false., .true.)
+    iChanges = iLS3_DoRouting(io, pkg%ls3, pkg%aem%iCurrentIteration, .false., .true.)
     call WL0_SolvePartialPenetration(io, pkg%wl0, pkg%aqu)
 
     call IO_MessageText(io)

@@ -39,7 +39,6 @@ module p_ls0
   use u_io
   use f_linesink
   use f_aem
-  use p_aqu
 
   implicit none
 
