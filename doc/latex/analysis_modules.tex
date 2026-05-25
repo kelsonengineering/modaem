@@ -88,6 +88,120 @@ q\_y base-filename generates a grid of the total aquifer discharge
 in the y-direction on the file base-filename\_qy.grd (or base-filename\_qy.m)
 
 
+\section{Data extraction (module INQ)\label{sec:inq-module}}
+
+Module INQ provides a facility for extracting computed values from a ModAEM solution and
+writing them to output files. Two output formats are supported:
+\begin{description}
+\item[{Traditional (\texttt{opt inq})}] All output is written to a single file opened by the
+  \textsf{fil} directive. This is the default.
+\item[{CSV (\texttt{opt csv})}] Each directive type writes to its own comma-separated value
+  file, suitable for direct import into Python, R, Excel, or other tools.
+\end{description}
+The INQ module is entered with the \textsf{inq} directive and terminated with \textsf{end}.
+
+\subsection{Selecting the output format (\texttt{opt} directive)}
+
+\begin{verbatim}
+opt inq | csv
+\end{verbatim}
+
+\texttt{opt inq} writes all output to the single file named by \textsf{fil} (default behaviour).
+\texttt{opt csv} writes each directive type to a separate CSV file. The \textsf{fil} directive
+sets a file-name prefix; if omitted, files are named \texttt{<type>\_inq.csv}.
+
+\subsection{Naming the output file (\texttt{fil} directive)}
+
+\begin{verbatim}
+fil filename
+\end{verbatim}
+
+In \emph{traditional mode}, \textsf{fil} opens \texttt{filename} for writing and all subsequent
+extraction output is written to it.
+
+In \emph{CSV mode}, \textsf{fil} sets a prefix for all CSV file names. For example,
+\texttt{fil mymodel} causes extraction directives to write to files named
+\texttt{mymodel\_hea.csv}, \texttt{mymodel\_ls1.csv}, etc. If \textsf{fil} is omitted in CSV
+mode, files are named \texttt{hea\_inq.csv}, \texttt{ls1\_inq.csv}, etc.
+
+\subsection{Spatial extraction directives}
+
+These directives evaluate the solution at one or more points or paths. In traditional mode all
+output goes to the file opened by \textsf{fil}. In CSV mode each directive type appends to its
+own CSV file; a header row is written the first time a given type is used within an INQ block.
+Multiple occurrences of the same directive type accumulate rows in the same file.
+
+\begin{description}
+\item[\textsf{hea} $(x,y)$ label] Computes the potentiometric head at $(x,y)$. CSV columns:
+  \texttt{label, x, y, head}.
+\item[\textsf{dis} $(x,y)$ label] Computes the depth-integrated discharge vector. CSV columns:
+  \texttt{label, x, y, discharge\_x, discharge\_y}.
+\item[\textsf{vel} $(x,y)$ label] Computes the seepage velocity vector. CSV columns:
+  \texttt{label, x, y, velocity\_x, velocity\_y}.
+\item[\textsf{pot} $(x,y)$ label] Computes the discharge potential. CSV columns:
+  \texttt{label, x, y, potential\_r, potential\_i}.
+\item[\textsf{flo} $(x_1,y_1)$ $(x_2,y_2)$ label] Computes the total volumetric flow crossing
+  the segment. CSV columns: \texttt{label, x1, y1, x2, y2, flow}.
+\item[\textsf{bdy} $(x_1,y_1)$ $(x_2,y_2)$ label] Computes the head at the midpoint and the
+  integrated flow crossing the segment. CSV columns: \texttt{label, x1, y1, x2, y2, head, flux}.
+\item[\textsf{rch} $(x,y)$ label] Computes the net recharge rate. CSV columns:
+  \texttt{label, x, y, recharge}.
+\item[\textsf{sat} $(x,y)$ label] Computes the saturated thickness. CSV columns:
+  \texttt{label, x, y, sat\_thickness}.
+\item[\textsf{gag} gage-id label] Returns the routed flow at the downstream end of an LS2 stream
+  string. CSV columns: \texttt{gage\_id, label, flow}.
+\end{description}
+
+\subsection{Module inquiry directives}
+
+These directives write a table of element-level check values for a given module. In traditional
+mode output goes to the file opened by \textsf{fil}. In CSV mode each directive writes a
+separate file with a \texttt{tag} column as the first field identifying the record type.
+
+\begin{description}
+\item[\textsf{wl0} / \textsf{wl1}] Specified-discharge / specified-head wells.
+  CSV files: \texttt{wl0.csv}, \texttt{wl1.csv}.
+\item[\textsf{ls0} / \textsf{ls1} / \textsf{ls2}] Line-sink packages.
+  CSV files: \texttt{ls0.csv}, \texttt{ls1.csv}, \texttt{ls2.csv}.
+\item[\textsf{hb0}] No-flow barrier strings. CSV file: \texttt{hb0.csv}.
+\item[\textsf{as0}] Area-sink package. CSV file: \texttt{as0.csv}.
+\item[\textsf{aqu}] Aquifer reference and boundary elements. Writes up to three sections:
+  reference point (\texttt{AQU} records), boundary elements (\texttt{BDY} records), and
+  inhomogeneity interface elements (\texttt{IN0} records). In CSV mode the sections are
+  separated by a blank line, each with its own header row. CSV file: \texttt{aqu.csv}.
+\item[\textsf{cw0}] Collector wells. Writes two sections: well summary (\texttt{CW0} records)
+  and radial arm elements (\texttt{CWR} records). In CSV mode the sections are separated by a
+  blank line. CSV file: \texttt{cw0.csv}.
+\end{description}
+
+\subsection{Examples}
+
+Traditional mode:
+\begin{verbatim}
+inq
+  fil mymodel.inq
+  hea (0.0,0.0) 1
+  hea (100.0,0.0) 2
+  flo (-50.0,-100.0) (-50.0,100.0) 10
+  ls1
+  aqu
+end
+\end{verbatim}
+
+CSV mode (writes \texttt{mymodel\_hea.csv}, \texttt{mymodel\_flo.csv},
+\texttt{mymodel\_ls1.csv}, \texttt{mymodel\_aqu.csv}):
+\begin{verbatim}
+inq
+  opt csv
+  fil mymodel
+  hea (0.0,0.0) 1
+  hea (100.0,0.0) 2
+  flo (-50.0,-100.0) (-50.0,100.0) 10
+  ls1
+  aqu
+end
+\end{verbatim}
+
 \section{Streamline tracing (module TR0)\label{sec:tr0-module}}
 
 5.8 Module TR0 - Trace The TR0 directive instructs ModAEM to enter
