@@ -1,6 +1,6 @@
 module p_cw0
 
-  ! ModAEM 1.8
+  ! ModAEM 2.0
   ! Copyright(c) 2003-2008 WHPA Inc. and Vic Kelson
   !
   ! This code is the property of WHPA, Inc.  Do not distribute.

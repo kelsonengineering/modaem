@@ -1,6 +1,6 @@
 program modaem
 
-  ! ModAEM 1.8
+  ! ModAEM 2.0
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
   !
   ! This program is free software; you can redistribute it and/or
@@ -157,7 +157,7 @@ program modaem
         call IO_Assert(io, (associated(pkg)), &
              "PKG_Read: the PKG_DOMAIN has not been created")
         call HTML_Start()
-        call HTML_Header('ModAEM 1.8.0-dev', 1)
+        call HTML_Header('ModAEM 2.0.0-dev', 1)
         !call AEM_Report(io, pkg%aem)
         if (associated(pkg%aqu)) call AQU_Report(io, pkg%aqu)
         if (associated(pkg%wl0)) call WL0_Report(io, pkg%wl0)

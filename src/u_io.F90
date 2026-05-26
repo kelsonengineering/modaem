@@ -1,6 +1,6 @@
 module u_io
 
-  ! ModAEM 1.8
+  ! ModAEM 2.0
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
   !
   ! This program is free software; you can redistribute it and/or
@@ -963,7 +963,7 @@ contains
   end subroutine IO_Assert
 
   ! The following are some convenience routines for writing HTML output on the output file
-  ! This is a new feature for ModAEM 1.4+. All routines write directly to the output LU. This
+  ! This is a new feature for ModAEM 2.0+. All routines write directly to the output LU. This
   ! is by no means a complete implementation of HTML output. In fact, all output is written
   ! to tables, with the exception of the header information.
 

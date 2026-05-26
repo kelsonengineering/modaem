@@ -232,7 +232,7 @@ in general, it is expected that a more accurate estimate of the gradient is obta
 
 ##### Usage:
 
-    gra{[}z{]}delta
+    gra z delta
 
 Reports the numerical gradient in the potential at the complex coordinate, $z=(x,y)$, using the spacing $\delta$. Note that in Fortran free-format reads, the two parts of the complex coordinate are provided as $(x,y)$ pairs.
 
@@ -240,7 +240,7 @@ Reports the numerical gradient in the potential at the complex coordinate, $z=(x
 
 The numerical gradient at the coordinate $(100,100)$, using a spacing of $1.0$ is reported in response to the following directive:
 
-    gra(100.0,100.0)1.0
+    gra (100.0,100.0) 1.0
 
 ## Directives that compute a net analytic value for a line segment
 
@@ -255,7 +255,7 @@ Q(z_{1},z_{2})=\int_{z_{1}}^{z_{2}}Q_{n}ds
 ```
 where
 
-$z_{1}$and$z_{2}$  
+$z_{1}$ and $z_{2}$  
 are the points at the end-points of the line segment, $z_{j}=x_{j}+iy_{j}$
 
 $Q_{n}$  
@@ -268,7 +268,7 @@ A solution must be present (see the `sol` directive) prior to issing this direct
 
 ##### Usage:
 
-    flo(x1,y1)(x2,y2)
+    flo (x1,y1) (x2,y2)
 
 Reports the integrated groundwater flux across the line-segment connecting $(x_{1},y_{1})$ and $(x_{2,}y_{2})$ in units of $L^{3}/T$. The sign of the result is determined by the right-hand rule (Section [sec:The-right--hand-rule]).
 
@@ -276,7 +276,7 @@ Reports the integrated groundwater flux across the line-segment connecting $(x_{
 
 The total integrated flux across the line segment containing $(50,50)$ and $(100,100)$ is reported in response to the directive
 
-    flo(50.0,50.0)(100.0,100.0)
+    flo (50.0,50.0) (100.0,100.0)
 
 ## Extracting model results in machine-readable format (module INQ)
 

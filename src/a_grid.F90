@@ -1,6 +1,6 @@
 module a_grid
 
-  ! ModAEM 1.8
+  ! ModAEM 2.0
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
   !
   ! This program is free software; you can redistribute it and/or
@@ -631,7 +631,7 @@ contains
 
     else if (iOption == FILE_MATLAB) then
       write (unit=LU_GRID, &
-             fmt="('# Created by ModAEM 1.4')" &
+             fmt="('# Created by ModAEM 2.0')" &
              )
       write (unit=LU_GRID, &
              fmt="('# name: x')" &
@@ -652,7 +652,7 @@ contains
       end do
 
       write (unit=LU_GRID, &
-             fmt="('# Created by ModAEM 1.4')" &
+             fmt="('# Created by ModAEM 2.0')" &
              )
       write (unit=LU_GRID, &
              fmt="('# name: y')" &
@@ -673,7 +673,7 @@ contains
       end do
 
       write (unit=LU_GRID, &
-             fmt="('# Created by ModAEM 1.4')" &
+             fmt="('# Created by ModAEM 2.0')" &
              )
       write (unit=LU_GRID, &
              fmt="('# name: ', a20)" &

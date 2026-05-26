@@ -1,6 +1,6 @@
 module f_areasink
 
-  ! ModAEM 1.9
+  ! ModAEM 2.0
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
   !
   ! This program is free software; you can redistribute it and/or

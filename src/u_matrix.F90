@@ -1,6 +1,6 @@
 module u_matrix
 
-  ! ModAEM 1.8
+  ! ModAEM 2.0
   ! Copyright(c) 1995-2008 WHPA Inc. and Vic Kelson
   !
   ! This program is free software; you can redistribute it and/or
@@ -762,7 +762,7 @@ contains
 
         open(unit=LU_GRID, file = "mat_report."//label//".m", iostat=iStat)
         call IO_Assert(io, (iStat == 0), "MAT_Report: Could not open grid file mat_report."//label//".m")
-        write (unit=LU_GRID, fmt="('# Written by ModAEM 1.4')")
+        write (unit=LU_GRID, fmt="('# Written by ModAEM 2.0')")
         write (unit=LU_GRID, fmt="('# name: matrix')")
         write (unit=LU_GRID, fmt="('# type: matrix')")
         write (unit=LU_GRID, fmt="('# rows: ', i10)") size(mat%rMatrix, 1)
