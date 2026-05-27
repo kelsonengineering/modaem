@@ -166,7 +166,6 @@ contains
     ! [ LOCALS ]
     integer(kind=AE_INT) :: iStat
 
-
     if (io%lDebug) then
       call IO_Assert(io, (associated(pd0)), &
            "PD0_Destroy: PD0_Create has not been called")
@@ -255,7 +254,7 @@ contains
     !!   (in)    type(PD0_COLLECTION), pointer :: pd0
     !!             PD0_COLLECTION to be used
     !!   (out)   integer :: iOption
-    !!             The(see u_constants.f90) to be retrieved
+    !!             The (see u_constants.f90) to be retrieved
     !!
     !! Return Value:
     !!   integer :: iOption

@@ -28,7 +28,7 @@ Will be written as the output file. This file recieves an HTML document listing 
 
 The second file named in the name file is an optional file that contains the saved results from a previous solution that are to be reloaded, for example, to trace particles from a prior solution without the need for re-solving. If it is provided, the results are read from the previous solution file after the problem is defined (see the `**aem**` directive and related information below), when the `**sol**` directive is encountered. To “solve” the model byCool pictures? Why would we do all this work if we weren’t going to make cool pictures? – Mark Bakker
 
-simply reloading the solution, issue the directive `sol 0` after the problem definition is complete. If the previous solution file is missing or if the file is empty, a warning will be issued and execution will continue. However, if the file is not empty, a fatal error results if the contents of the previous solution file are inconsistent with the problem definition.
+simply reloading the solution, issue the directive `sol 0` after the problem definition is complete. If the previous solution file is missing or if the file is empty, a warning will be issued and execution will continue. However, if the file is not empty, a fatal error results if the contents of the previous solution file are inconsistent with the problem definition.
 
 The file name may have any extension that the modeler desires, although by convention, the extention `.pre` is recommended. If the name of previous solution file is omitted from the name file, no previous solution will be loaded.
 
@@ -38,7 +38,7 @@ The third file named in the name file is an optional file where the results of t
 
 The file name may have any extension that the modeler desires, although by convention, the extention `.pre` is recommended. If the name of the save file is omitted from the name file, no solution will be saved.
 
-## The AEM script file (`.``aem` file) 
+## The AEM script file (`.aem` file) 
 
 The AEM script file provides model elements and processing directives to ModAEM. The AEM script file can have any base file name (as specified in the modaem.nam file) and must have the extension `.aem`. The AEM script file is a flat text file that can be created with any text editor. Program directives are entered one per line.
 

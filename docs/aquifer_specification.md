@@ -11,7 +11,7 @@ Like most analytic element models, ModAEM supports heterogeneous aquifers in whi
 As with all other modules that are included in the problem definition section of a ModAEM script file, input for module AQU is contained between the `aqu` directive and the `end` directive. Module AQU differs from some of the other ModAEM modules, in that it posesses optional submodules. The general layout for module AQU input is as follows:
 
     \# Create an aquifer
-    aqu ndomains nstrings base thickness conductivity porosity
+    aqu ndomains nstrings base thickness conductivity porosity average-head
       ref <arguments> (optional) define a reference point and discharg
       bdy <arguments>
         (optional) define flow conditions at the perimeter 

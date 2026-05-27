@@ -361,6 +361,7 @@ contains
     type(LS2_STRING), pointer :: str
     type(LS2_VERTEX), pointer :: this_vtx, next_vtx
 
+    ! Initialize the segment lengths and strengths
     do iStr = 1, ls2%iNStr
       str => ls2%Strings(iStr)
       rTotalLen = rZERO
@@ -371,6 +372,7 @@ contains
         this_vtx%rStrength = rZERO
         rTotalLen = rTotalLen + this_vtx%rLength
       end do
+
       ! Assign the overland flow
       if (str%lRoute) then
         do iVtx = 1, str%iNPts-1
