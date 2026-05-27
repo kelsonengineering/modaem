@@ -1,6 +1,6 @@
 # Test a single aquifer with uniform flow
  aem
-   aqu 1 0 0.0 10.0 100.0 0.25
+   aqu 1 0 0.0 10.0 100.0 0.25 100.0
      ref (0.0,0.0) 100.0 (1.0,0.0)
    end
    hb0 1
