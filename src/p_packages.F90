@@ -33,6 +33,15 @@ module p_packages
     !! Orchestration container: holds the AEM computational kernel plus all
     !! element-package collections.
     !!
+    ! Starting column and unknown-count for each element package in the global matrix
+    integer(kind=AE_INT) :: iAQUStart, iAQUNUnk
+    integer(kind=AE_INT) :: iLS1Start, iLS1NUnk
+    integer(kind=AE_INT) :: iLS2Start, iLS2NUnk
+    integer(kind=AE_INT) :: iLS3Start, iLS3NUnk
+    integer(kind=AE_INT) :: iHB0Start, iHB0NUnk
+    integer(kind=AE_INT) :: iWL1Start, iWL1NUnk
+    integer(kind=AE_INT) :: iCW0Start, iCW0NUnk
+
     type(AEM_DOMAIN), pointer :: aem
     type(AQU_COLLECTION), pointer :: aqu
     type(WL0_COLLECTION), pointer :: wl0
@@ -60,6 +69,14 @@ contains
 
     allocate(pkg, stat=iStat)
     call IO_Assert(io, (iStat == 0), "PKG_Create: allocation failed")
+
+    pkg%iAQUStart = 0 ; pkg%iAQUNUnk = 0
+    pkg%iLS1Start = 0 ; pkg%iLS1NUnk = 0
+    pkg%iLS2Start = 0 ; pkg%iLS2NUnk = 0
+    pkg%iLS3Start = 0 ; pkg%iLS3NUnk = 0
+    pkg%iHB0Start = 0 ; pkg%iHB0NUnk = 0
+    pkg%iWL1Start = 0 ; pkg%iWL1NUnk = 0
+    pkg%iCW0Start = 0 ; pkg%iCW0NUnk = 0
 
     pkg%aem => AEM_Create(io)
     nullify(pkg%aqu)
@@ -222,50 +239,50 @@ contains
     iNUN = 0
 
     iNEQ = iNEQ + iAQU_GetInfo(io, pkg%aqu, SIZE_EQUATIONS, iIteration)
-    pkg%aem%iAQUStart = 1
-    pkg%aem%iAQUNUnk = iAQU_GetInfo(io, pkg%aqu, SIZE_UNKNOWNS, iIteration)
-    iNUN = iNUN + pkg%aem%iAQUNUnk
+    pkg%iAQUStart = 1
+    pkg%iAQUNUnk = iAQU_GetInfo(io, pkg%aqu, SIZE_UNKNOWNS, iIteration)
+    iNUN = iNUN + pkg%iAQUNUnk
 
     iNEQ = iNEQ + iLS1_GetInfo(io, pkg%ls1, SIZE_EQUATIONS, iIteration)
-    pkg%aem%iLS1Start = pkg%aem%iAQUNUnk + 1
-    pkg%aem%iLS1NUnk = iLS1_GetInfo(io, pkg%ls1, SIZE_UNKNOWNS, iIteration)
-    iNUN = iNUN + pkg%aem%iLS1NUnk
+    pkg%iLS1Start = pkg%iAQUNUnk + 1
+    pkg%iLS1NUnk = iLS1_GetInfo(io, pkg%ls1, SIZE_UNKNOWNS, iIteration)
+    iNUN = iNUN + pkg%iLS1NUnk
 
     iNEQ = iNEQ + iLS2_GetInfo(io, pkg%ls2, SIZE_EQUATIONS, iIteration)
-    pkg%aem%iLS2Start = pkg%aem%iAQUNUnk + pkg%aem%iLS1NUnk + 1
-    pkg%aem%iLS2NUnk = iLS2_GetInfo(io, pkg%ls2, SIZE_UNKNOWNS, iIteration)
-    iNUN = iNUN + pkg%aem%iLS2NUnk
+    pkg%iLS2Start = pkg%iAQUNUnk + pkg%iLS1NUnk + 1
+    pkg%iLS2NUnk = iLS2_GetInfo(io, pkg%ls2, SIZE_UNKNOWNS, iIteration)
+    iNUN = iNUN + pkg%iLS2NUnk
 
     iNEQ = iNEQ + iLS3_GetInfo(io, pkg%ls3, SIZE_EQUATIONS, iIteration)
-    pkg%aem%iLS3Start = pkg%aem%iAQUNUnk + pkg%aem%iLS1NUnk + pkg%aem%iLS2NUnk + 1
-    pkg%aem%iLS3NUnk = iLS3_GetInfo(io, pkg%ls3, SIZE_UNKNOWNS, iIteration)
-    iNUN = iNUN + pkg%aem%iLS3NUnk
+    pkg%iLS3Start = pkg%iAQUNUnk + pkg%iLS1NUnk + pkg%iLS2NUnk + 1
+    pkg%iLS3NUnk = iLS3_GetInfo(io, pkg%ls3, SIZE_UNKNOWNS, iIteration)
+    iNUN = iNUN + pkg%iLS3NUnk
 
     iNEQ = iNEQ + iHB0_GetInfo(io, pkg%hb0, SIZE_EQUATIONS, iIteration)
-    pkg%aem%iHB0Start = pkg%aem%iAQUNUnk + pkg%aem%iLS1NUnk + pkg%aem%iLS2NUnk + pkg%aem%iLS3NUnk + 1
-    pkg%aem%iHB0NUnk = iHB0_GetInfo(io, pkg%hb0, SIZE_UNKNOWNS, iIteration)
-    iNUN = iNUN + pkg%aem%iHB0NUnk
+    pkg%iHB0Start = pkg%iAQUNUnk + pkg%iLS1NUnk + pkg%iLS2NUnk + pkg%iLS3NUnk + 1
+    pkg%iHB0NUnk = iHB0_GetInfo(io, pkg%hb0, SIZE_UNKNOWNS, iIteration)
+    iNUN = iNUN + pkg%iHB0NUnk
 
     iNEQ = iNEQ + iWL1_GetInfo(io, pkg%wl1, SIZE_EQUATIONS, iIteration)
-    pkg%aem%iWL1Start = pkg%aem%iAQUNUnk + pkg%aem%iLS1NUnk + pkg%aem%iLS2NUnk + &
-                        pkg%aem%iLS3NUnk + pkg%aem%iHB0NUnk + 1
-    pkg%aem%iWL1NUnk = iWL1_GetInfo(io, pkg%wl1, SIZE_UNKNOWNS, iIteration)
-    iNUN = iNUN + pkg%aem%iWL1NUnk
+    pkg%iWL1Start = pkg%iAQUNUnk + pkg%iLS1NUnk + pkg%iLS2NUnk + &
+                        pkg%iLS3NUnk + pkg%iHB0NUnk + 1
+    pkg%iWL1NUnk = iWL1_GetInfo(io, pkg%wl1, SIZE_UNKNOWNS, iIteration)
+    iNUN = iNUN + pkg%iWL1NUnk
     iNEQ = iNEQ + iCW0_GetInfo(io, pkg%cw0, SIZE_EQUATIONS, iIteration)
-    pkg%aem%iCW0Start = pkg%aem%iAQUNUnk + pkg%aem%iLS1NUnk + pkg%aem%iLS2NUnk + &
-                        pkg%aem%iLS3NUnk + pkg%aem%iHB0NUnk + pkg%aem%iWL1NUnk + 1
-    pkg%aem%iCW0NUnk = iCW0_GetInfo(io, pkg%cw0, SIZE_UNKNOWNS, iIteration)
-    iNUN = iNUN + pkg%aem%iCW0NUnk
+    pkg%iCW0Start = pkg%iAQUNUnk + pkg%iLS1NUnk + pkg%iLS2NUnk + &
+                        pkg%iLS3NUnk + pkg%iHB0NUnk + pkg%iWL1NUnk + 1
+    pkg%iCW0NUnk = iCW0_GetInfo(io, pkg%cw0, SIZE_UNKNOWNS, iIteration)
+    iNUN = iNUN + pkg%iCW0NUnk
 
     call MAT_Alloc(io, pkg%aem%mat, iNEQ, iNUN)
 
-    if (pkg%aem%iAQUNUnk /= 0) call AQU_SetupMatrix(io, pkg%aqu, pkg%aem%mat)
-    if (pkg%aem%iLS1NUnk /= 0) call LS1_SetupMatrix(io, pkg%ls1, pkg%aem%mat)
-    if (pkg%aem%iLS2NUnk /= 0) call LS2_SetupMatrix(io, pkg%ls2, pkg%aem%mat)
-    if (pkg%aem%iLS3NUnk /= 0) call LS3_SetupMatrix(io, pkg%ls3, pkg%aem%mat)
-    if (pkg%aem%iHB0NUnk /= 0) call HB0_SetupMatrix(io, pkg%hb0, pkg%aem%mat)
-    if (pkg%aem%iWL1NUnk /= 0) call WL1_SetupMatrix(io, pkg%wl1, pkg%aqu, pkg%aem%mat)
-    if (pkg%aem%iCW0NUnk /= 0) call CW0_SetupMatrix(io, pkg%cw0, pkg%aem%mat)
+    if (pkg%iAQUNUnk /= 0) call AQU_SetupMatrix(io, pkg%aqu, pkg%aem%mat)
+    if (pkg%iLS1NUnk /= 0) call LS1_SetupMatrix(io, pkg%ls1, pkg%aem%mat)
+    if (pkg%iLS2NUnk /= 0) call LS2_SetupMatrix(io, pkg%ls2, pkg%aem%mat)
+    if (pkg%iLS3NUnk /= 0) call LS3_SetupMatrix(io, pkg%ls3, pkg%aem%mat)
+    if (pkg%iHB0NUnk /= 0) call HB0_SetupMatrix(io, pkg%hb0, pkg%aem%mat)
+    if (pkg%iWL1NUnk /= 0) call WL1_SetupMatrix(io, pkg%wl1, pkg%aqu, pkg%aem%mat)
+    if (pkg%iCW0NUnk /= 0) call CW0_SetupMatrix(io, pkg%cw0, pkg%aem%mat)
 
     return
   end subroutine PKG_AllocateMatrix
@@ -352,57 +369,57 @@ contains
       rMultiplier = rPKG_GetCoefficientMultiplier(io, pkg, iElementType, iElementString, &
                                                   iElementVertex, iElementFlag)
 
-      if (pkg%aem%iAQUNUnk > 0) then
+      if (pkg%iAQUNUnk > 0) then
         call AQU_ComputeCoefficients(io, pkg%aqu, pkg%aem%fdp, (/(cCPZ(ic), ic=1, iNCP)/), &
              iEqType, iElementType, iElementString, iElementVertex, iElementFlag, &
              cOrientation, rGhbDistance, iIteration, rMultiplier, &
-             rARow(pkg%aem%iAQUStart:pkg%aem%iAQUStart+pkg%aem%iAQUNUnk-1))
+             rARow(pkg%iAQUStart:pkg%iAQUStart+pkg%iAQUNUnk-1))
       end if
 
-      if (pkg%aem%iLS1NUnk > 0) then
+      if (pkg%iLS1NUnk > 0) then
         call LS1_ComputeCoefficients(io, pkg%ls1, pkg%aem%fls, &
              (/(cCPZ(ic), ic=1, iNCP)/), &
              iEqType, iElementType, iElementString, iElementVertex, iElementFlag, &
              cOrientation, rGhbDistance, iIteration, rMultiplier, &
-             rARow(pkg%aem%iLS1Start:pkg%aem%iLS1Start+pkg%aem%iLS1NUnk-1))
+             rARow(pkg%iLS1Start:pkg%iLS1Start+pkg%iLS1NUnk-1))
       end if
 
-      if (pkg%aem%iLS2NUnk > 0) then
+      if (pkg%iLS2NUnk > 0) then
         call LS2_ComputeCoefficients(io, pkg%ls2, pkg%aem, pkg%aem%fls, &
              (/(cCPZ(ic), ic=1, iNCP)/), &
              iEqType, iElementType, iElementString, iElementVertex, iElementFlag, &
              cOrientation, rGhbDistance, iIteration, rMultiplier, &
-             rARow(pkg%aem%iLS2Start:pkg%aem%iLS2Start+pkg%aem%iLS2NUnk-1))
+             rARow(pkg%iLS2Start:pkg%iLS2Start+pkg%iLS2NUnk-1))
       end if
 
-      if (pkg%aem%iLS3NUnk > 0) then
+      if (pkg%iLS3NUnk > 0) then
         call LS3_ComputeCoefficients(io, pkg%ls3, pkg%aem, pkg%aem%fls, &
              (/(cCPZ(ic), ic=1, iNCP)/), &
              iEqType, iElementType, iElementString, iElementVertex, iElementFlag, &
              cOrientation, rGhbDistance, iIteration, rMultiplier, &
-             rARow(pkg%aem%iLS3Start:pkg%aem%iLS3Start+pkg%aem%iLS3NUnk-1))
+             rARow(pkg%iLS3Start:pkg%iLS3Start+pkg%iLS3NUnk-1))
       end if
 
-      if (pkg%aem%iHB0NUnk > 0) then
+      if (pkg%iHB0NUnk > 0) then
         call HB0_ComputeCoefficients(io, pkg%hb0, pkg%aem%fdp, (/(cCPZ(ic), ic=1, iNCP)/), &
              iEqType, iElementType, iElementString, iElementVertex, iElementFlag, &
              cOrientation, rGhbDistance, iIteration, rMultiplier, &
-             rARow(pkg%aem%iHB0Start:pkg%aem%iHB0Start+pkg%aem%iHB0NUnk-1))
+             rARow(pkg%iHB0Start:pkg%iHB0Start+pkg%iHB0NUnk-1))
       end if
 
-      if (pkg%aem%iWL1NUnk > 0) then
+      if (pkg%iWL1NUnk > 0) then
         call WL1_ComputeCoefficients(io, pkg%wl1, pkg%aem%fwl, (/(cCPZ(ic), ic=1, iNCP)/), &
              iEqType, iElementType, iElementString, iElementVertex, iElementFlag, &
              cOrientation, rGhbDistance, iIteration, rMultiplier, &
-             rARow(pkg%aem%iWL1Start:pkg%aem%iWL1Start+pkg%aem%iWL1NUnk-1))
+             rARow(pkg%iWL1Start:pkg%iWL1Start+pkg%iWL1NUnk-1))
       end if
 
-      if (pkg%aem%iCW0NUnk > 0) then
+      if (pkg%iCW0NUnk > 0) then
         call CW0_ComputeCoefficients(io, pkg%cw0, pkg%aem, pkg%aem%fls, &
              (/(cCPZ(ic), ic=1, iNCP)/), &
              iEqType, iElementType, iElementString, iElementVertex, iElementFlag, &
              cOrientation, rGhbDistance, iIteration, rMultiplier, &
-             rARow(pkg%aem%iCW0Start:pkg%aem%iCW0Start+pkg%aem%iCW0NUnk-1))
+             rARow(pkg%iCW0Start:pkg%iCW0Start+pkg%iCW0NUnk-1))
       end if
 
       call MAT_SetRow(io, pkg%aem%mat, iRow, rARow(1:pkg%aem%mat%iNVar), rZERO)

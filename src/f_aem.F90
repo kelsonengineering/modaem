@@ -49,20 +49,6 @@ module f_aem
     !! reference-function objects. Element-package collections live in PKG_DOMAIN.
     !!
     integer(kind=AE_INT) :: iCurrentIteration
-    integer(kind=AE_INT) :: iAQUStart
-    integer(kind=AE_INT) :: iAQUNUnk
-    integer(kind=AE_INT) :: iLS1Start
-    integer(kind=AE_INT) :: iLS1NUnk
-    integer(kind=AE_INT) :: iLS2Start
-    integer(kind=AE_INT) :: iLS2NUnk
-    integer(kind=AE_INT) :: iLS3Start
-    integer(kind=AE_INT) :: iLS3NUnk
-    integer(kind=AE_INT) :: iHB0Start
-    integer(kind=AE_INT) :: iHB0NUnk
-    integer(kind=AE_INT) :: iWL1Start
-    integer(kind=AE_INT) :: iWL1NUnk
-    integer(kind=AE_INT) :: iCW0Start
-    integer(kind=AE_INT) :: iCW0NUnk
 
     ! True if a solution is present
     logical :: lSolutionPresent
@@ -98,18 +84,6 @@ contains
     call IO_Assert(io, (iStat == 0), "AEM_Create: allocation failed")
 
     aem%iCurrentIteration = 0
-    aem%iAQUStart = 0
-    aem%iAQUNUnk = 0
-    aem%iLS1Start = 0
-    aem%iLS1NUnk = 0
-    aem%iLS2Start = 0
-    aem%iLS2NUnk = 0
-    aem%iLS3Start = 0
-    aem%iLS3NUnk = 0
-    aem%iHB0Start = 0
-    aem%iHB0NUnk = 0
-    aem%iWL1Start = 0
-    aem%iWL1NUnk = 0
     aem%lDrawdown = .false.
     aem%lSolutionPresent = .false.
 
